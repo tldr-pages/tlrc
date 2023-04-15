@@ -98,7 +98,15 @@ fn run() -> Result<()> {
         }
         else {
             log("Cache is stale, updating...");
-            cache.update(&config.cache.languages)?;
+            cache.update(&config.cache.languages).map_err(|e| {
+                match e {
+                    Error::Download(desc) => {
+                        Error::Download(format!("{desc}\n\
+                        A download error occurred. To skip updating the cache, run tldr with --offline."))
+                    },
+                    _ => e,
+                }
+            })?;
         }
     }
 

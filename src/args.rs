@@ -47,17 +47,17 @@ pub enum Platform {
 
 impl Platform {
     #[cfg(target_os = "linux")]
-    pub fn get() -> Self { Self::Linux }
+    pub const fn get() -> Self { Self::Linux }
     #[cfg(target_os = "macos")]
-    pub fn get() -> Self { Self::OsX }
+    pub const fn get() -> Self { Self::OsX }
     #[cfg(target_os = "windows")]
-    pub fn get() -> Self { Self::Windows }
+    pub const fn get() -> Self { Self::Windows }
     #[cfg(not(any(
         target_os = "linux",
         target_os = "macos",
         target_os = "windows",
     )))]
-    pub fn get() -> Self { Self::Other }
+    pub const fn get() -> Self { Self::Other }
 }
 
 impl FromStr for Platform {

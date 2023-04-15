@@ -7,8 +7,7 @@ use crate::util::error;
 
 pub enum Error {
     ParseToml(String),
-    HttpRequest(String),
-    ExtractArchive(String),
+    Download(String),
     Argument(String),
     Msg(String),
 }
@@ -31,7 +30,7 @@ impl Error {
                 error(&desc);
                 3
             },
-            Error::HttpRequest(desc) | Error::ExtractArchive(desc) => {
+            Error::Download(desc) => {
                 error(&desc);
                 4
             },
@@ -53,12 +52,12 @@ impl From<toml::de::Error> for Error {
 
 impl From<ureq::Error> for Error {
     fn from(e: ureq::Error) -> Self {
-        Error::HttpRequest(e.to_string())
+        Error::Download(e.to_string())
     }
 }
 
 impl From<zip::result::ZipError> for Error {
     fn from(e: zip::result::ZipError) -> Self {
-        Error::ExtractArchive(e.to_string())
+        Error::Download(e.to_string())
     }
 }
