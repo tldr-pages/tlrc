@@ -1,9 +1,8 @@
-use std::str::FromStr;
 use std::fmt::Display;
 use std::path::PathBuf;
+use std::str::FromStr;
 
-use clap::{Parser, ArgAction};
-
+use clap::{ArgAction, Parser};
 
 #[derive(Clone, PartialEq)]
 pub enum ColorMode {
@@ -14,11 +13,15 @@ pub enum ColorMode {
 
 impl Display for ColorMode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", match self {
-            Self::Always => "always",
-            Self::Never  => "never",
-            Self::Auto   => "auto",
-        })
+        write!(
+            f,
+            "{}",
+            match self {
+                Self::Always => "always",
+                Self::Never => "never",
+                Self::Auto => "auto",
+            }
+        )
     }
 }
 
@@ -28,9 +31,11 @@ impl FromStr for ColorMode {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "always" => Ok(Self::Always),
-            "never"  => Ok(Self::Never),
-            "auto"   => Ok(Self::Auto),
-            _ => Err(format!("invalid value '{s}' for '--color' (possible values: always, never, auto)")),
+            "never" => Ok(Self::Never),
+            "auto" => Ok(Self::Auto),
+            _ => Err(format!(
+                "invalid value '{s}' for '--color' (possible values: always, never, auto)"
+            )),
         }
     }
 }
@@ -47,17 +52,21 @@ pub enum Platform {
 
 impl Platform {
     #[cfg(target_os = "linux")]
-    pub const fn get() -> Self { Self::Linux }
+    pub const fn get() -> Self {
+        Self::Linux
+    }
     #[cfg(target_os = "macos")]
-    pub const fn get() -> Self { Self::OsX }
+    pub const fn get() -> Self {
+        Self::OsX
+    }
     #[cfg(target_os = "windows")]
-    pub const fn get() -> Self { Self::Windows }
-    #[cfg(not(any(
-        target_os = "linux",
-        target_os = "macos",
-        target_os = "windows",
-    )))]
-    pub const fn get() -> Self { Self::Other }
+    pub const fn get() -> Self {
+        Self::Windows
+    }
+    #[cfg(not(any(target_os = "linux", target_os = "macos", target_os = "windows",)))]
+    pub const fn get() -> Self {
+        Self::Other
+    }
 }
 
 impl FromStr for Platform {
@@ -77,14 +86,18 @@ impl FromStr for Platform {
 
 impl Display for Platform {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", match self {
-            Self::Linux   => "linux",
-            Self::OsX     => "osx",
-            Self::Windows => "windows",
-            Self::Android => "android",
-            Self::SunOs   => "sunos",
-            Self::Other   => "other",
-        })
+        write!(
+            f,
+            "{}",
+            match self {
+                Self::Linux => "linux",
+                Self::OsX => "osx",
+                Self::Windows => "windows",
+                Self::Android => "android",
+                Self::SunOs => "sunos",
+                Self::Other => "other",
+            }
+        )
     }
 }
 
@@ -98,7 +111,7 @@ impl Display for Platform {
 {about-with-newline}
 {usage-heading} {usage}
 
-{all-args}{after-help}",
+{all-args}{after-help}"
 )]
 pub struct Cli {
     /// The tldr page to show.

@@ -4,7 +4,6 @@ use std::result::Result as StdResult;
 
 use crate::util::error;
 
-
 pub enum Error {
     ParseToml(String),
     Download(String),
@@ -21,19 +20,19 @@ impl Error {
             Error::Msg(desc) => {
                 error(&desc);
                 1
-            },
+            }
             Error::Argument(desc) => {
                 error(&desc);
                 2
-            },
+            }
             Error::ParseToml(desc) => {
                 error(&desc);
                 3
-            },
+            }
             Error::Download(desc) => {
                 error(&desc);
                 4
-            },
+            }
         });
     }
 }

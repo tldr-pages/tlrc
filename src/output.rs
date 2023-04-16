@@ -2,7 +2,6 @@ use yansi::Style;
 
 use crate::config::{OutputConfig, StyleConfig};
 
-
 const TITLE: &str = "# ";
 const DESC: &str = "> ";
 const BULLET: &str = "- ";
@@ -26,17 +25,22 @@ pub fn print_page(page_string: &str, outputcfg: &OutputConfig, stylecfg: StyleCo
                 println!();
             }
             println!("  {}", title.paint(&line.strip_prefix(TITLE).unwrap()));
-        }
-        else if line.starts_with(DESC) {
+        } else if line.starts_with(DESC) {
             println!("  {}", desc.paint(&line.strip_prefix(DESC).unwrap()));
-        }
-        else if line.starts_with(BULLET) {
+        } else if line.starts_with(BULLET) {
             println!("  {}", bullet.paint(&line.strip_prefix(BULLET).unwrap()));
-        }
-        else if line.starts_with(EXAMPLE) {
-            println!("      {}", example.paint(&line.strip_prefix(EXAMPLE).unwrap().strip_suffix(EXAMPLE).unwrap()));
-        }
-        else if !outputcfg.compact && line.is_empty() {
+        } else if line.starts_with(EXAMPLE) {
+            println!(
+                "      {}",
+                example.paint(
+                    &line
+                        .strip_prefix(EXAMPLE)
+                        .unwrap()
+                        .strip_suffix(EXAMPLE)
+                        .unwrap()
+                )
+            );
+        } else if !outputcfg.compact && line.is_empty() {
             println!();
         }
     }

@@ -3,12 +3,11 @@ use std::path::PathBuf;
 use std::process::exit;
 use std::time::Duration;
 
+use serde::{Deserialize, Serialize};
 use yansi::{Color, Style};
-use serde::{Serialize, Deserialize};
 
 use crate::cache::Cache;
 use crate::error::Result;
-
 
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -29,16 +28,16 @@ pub enum OutputColor {
 impl From<OutputColor> for yansi::Color {
     fn from(c: OutputColor) -> Self {
         match c {
-            OutputColor::Black             => Color::Black,
-            OutputColor::Red               => Color::Red,
-            OutputColor::Green             => Color::Green,
-            OutputColor::Yellow            => Color::Yellow,
-            OutputColor::Blue              => Color::Blue,
-            OutputColor::Magenta           => Color::Magenta,
-            OutputColor::Cyan              => Color::Cyan,
-            OutputColor::White             => Color::White,
-            OutputColor::Default           => Color::Default,
-            OutputColor::Color256(c)   => Color::Fixed(c),
+            OutputColor::Black => Color::Black,
+            OutputColor::Red => Color::Red,
+            OutputColor::Green => Color::Green,
+            OutputColor::Yellow => Color::Yellow,
+            OutputColor::Blue => Color::Blue,
+            OutputColor::Magenta => Color::Magenta,
+            OutputColor::Cyan => Color::Cyan,
+            OutputColor::White => Color::White,
+            OutputColor::Default => Color::Default,
+            OutputColor::Color256(c) => Color::Fixed(c),
             OutputColor::Rgb(rgb) => Color::RGB(rgb[0], rgb[1], rgb[2]),
         }
     }
@@ -115,7 +114,10 @@ impl Config {
 
     /// Get the default path to the config file.
     pub fn locate() -> PathBuf {
-        dirs::config_dir().unwrap().join(clap::crate_name!()).join("config.toml")
+        dirs::config_dir()
+            .unwrap()
+            .join(clap::crate_name!())
+            .join("config.toml")
     }
 
     /// Convert the number of hours from config to a `Duration`.
@@ -171,7 +173,9 @@ impl Default for Config {
 
 pub fn gen_config_and_exit() -> Result<()> {
     let mut config = String::new();
-    Config::default().serialize(toml::Serializer::new(&mut config)).unwrap();
+    Config::default()
+        .serialize(toml::Serializer::new(&mut config))
+        .unwrap();
     print!("{config}");
 
     exit(0);
