@@ -1,4 +1,5 @@
 # tlrc
+[![CI](https://github.com/acuteenvy/tlrc/actions/workflows/ci.yml/badge.svg)](https://github.com/acuteenvy/tlrc/actions/workflows/ci.yml)
 [![release](https://img.shields.io/github/v/release/acuteenvy/tlrc?display_name=tag&color=violet)][latest-release]
 [![license](https://img.shields.io/github/license/acuteenvy/tlrc?color=blueviolet)](/LICENSE)
 [![downloads](https://img.shields.io/github/downloads/acuteenvy/tlrc/total?color=brightgreen)][latest-release]
