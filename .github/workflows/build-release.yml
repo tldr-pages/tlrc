@@ -1,8 +1,8 @@
-name: Build and upload release binaries
+name: Build and release
 
 on:
-  release:
-    types: created
+  push:
+    tags: v*.*.*
 
 env:
   CARGO_TERM_COLOR: always
@@ -13,47 +13,73 @@ defaults:
     shell: bash
 
 jobs:
+  release:
+    name: Create the release
+    runs-on: ubuntu-latest
+    permissions: write-all
+
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v3
+
+      - name: Create the release
+        env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release create --title "$GITHUB_REF_NAME" --generate-notes "$GITHUB_REF_NAME"
+
   build:
     name: Build ${{ matrix.target }}
     runs-on: ${{ matrix.os }}
     permissions: write-all
+    needs: release
+
     strategy:
       fail-fast: false
       matrix:
         include:
           - target: x86_64-unknown-linux-gnu
             os: ubuntu-latest
+
           - target: x86_64-unknown-linux-musl
             os: ubuntu-latest
+
           - target: x86_64-apple-darwin
             os: macos-latest
+
           - target: x86_64-pc-windows-msvc
             os: windows-latest
+
     steps:
-    - name: Checkout the repository
-      uses: actions/checkout@v3
-    - name: Install musl libc
-      if: ${{ contains(matrix.target, 'musl') }}
-      run: sudo apt install musl-tools
-    - name: Install the rust target
-      run: rustup target add ${{ matrix.target }}
-    - name: Build
-      run: cargo build --release --target ${{ matrix.target }}
-    - name: Create the archive
-      env:
-        BIN: tldr
-      run: |
-        if [[ ${{ matrix.os }} == *windows* ]]; then
-          BIN="$BIN.exe"
-          ARCHIVER=(7z a)
-          EXTENSION="zip"
-        else
-          ARCHIVER=(tar -czvf)
-          EXTENSION="tar.gz"
-        fi
-        mv "target/${{ matrix.target }}/release/$BIN" "$BIN"
-        "${ARCHIVER[@]}" "$NAME-$GITHUB_REF_NAME-${{ matrix.target }}.$EXTENSION" "$BIN" LICENSE README.md
-    - name: Upload the archive
-      env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: gh release upload "$GITHUB_REF_NAME" "$NAME"-*
+      - name: Checkout the repository
+        uses: actions/checkout@v3
+
+      - name: Install musl libc
+        if: ${{ contains(matrix.target, 'musl') }}
+        run: sudo apt install musl-tools
+
+      - name: Install the rust target
+        run: rustup target add ${{ matrix.target }}
+
+      - name: Build
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Create the archive
+        env:
+          BIN: tldr
+        run: |
+          if [[ ${{ matrix.os }} == *windows* ]]; then
+            BIN="$BIN.exe"
+            ARCHIVER=(7z a)
+            EXTENSION="zip"
+          else
+            ARCHIVER=(tar -czvf)
+            EXTENSION="tar.gz"
+          fi
+
+          mv "target/${{ matrix.target }}/release/$BIN" "$BIN"
+          "${ARCHIVER[@]}" "$NAME-$GITHUB_REF_NAME-${{ matrix.target }}.$EXTENSION" "$BIN" LICENSE README.md
+
+      - name: Upload the archive
+        env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "$GITHUB_REF_NAME" "$NAME"-*
