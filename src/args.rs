@@ -4,7 +4,7 @@ use std::str::FromStr;
 
 use clap::{ArgAction, Parser};
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone)]
 pub enum ColorMode {
     Always,
     Never,

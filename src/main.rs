@@ -51,10 +51,14 @@ fn run() -> Result<()> {
     #[cfg(not(target_os = "windows"))]
     let color_support = true;
 
-    if cli.color == ColorMode::Never
-        || !(color_support && env::var("NO_COLOR").is_err() && io::stdout().is_terminal())
-    {
-        yansi::Paint::disable();
+    match cli.color {
+        ColorMode::Always => {}
+        ColorMode::Never => yansi::Paint::disable(),
+        ColorMode::Auto => {
+            if !(color_support && env::var("NO_COLOR").is_err() && io::stdout().is_terminal()) {
+                yansi::Paint::disable();
+            }
+        }
     }
 
     let config_location = cli.config.unwrap_or_else(Config::locate);
