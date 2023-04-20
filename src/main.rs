@@ -76,6 +76,9 @@ fn run() -> Result<()> {
     } else if cli.update {
         cache.update(&config.cache.languages)?;
         exit(0);
+    } else if cli.list_all {
+        cache.list_all()?;
+        exit(0);
     }
 
     if !cache.exists() {
@@ -85,7 +88,7 @@ fn run() -> Result<()> {
 
     let platform = cli.platform.unwrap_or_else(Platform::get);
     if cli.list {
-        cache.list(&platform)?;
+        cache.list_platform(&platform)?;
         exit(0);
     } else if let Some(path) = cli.render {
         let page = fs::read_to_string(path)?;

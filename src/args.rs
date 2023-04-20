@@ -95,7 +95,7 @@ impl Display for Platform {
                 Self::Windows => "windows",
                 Self::Android => "android",
                 Self::SunOs => "sunos",
-                Self::Other => "other",
+                Self::Other => unreachable!(),
             }
         )
     }
@@ -126,6 +126,10 @@ pub struct Cli {
     #[arg(short, long, group = "operations")]
     pub list: bool,
 
+    /// List all pages.
+    #[arg(long, group = "operations")]
+    pub list_all: bool,
+
     /// Render the specified markdown file.
     #[arg(short, long, group = "operations", value_name = "FILE")]
     pub render: Option<PathBuf>,
@@ -134,7 +138,7 @@ pub struct Cli {
     #[arg(long, group = "operations")]
     pub clean_cache: bool,
 
-    /// Print the default config to stdout and exit.
+    /// Print the default config to stdout.
     #[arg(long, group = "operations")]
     pub gen_config: bool,
 
