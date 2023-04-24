@@ -1,0 +1,129 @@
+.TH "TLRC" "1" "2023-04-24"  "tlrc 1.1.0" "tlrc manual"
+.nh
+.ad l
+.SH NAME
+tlrc - a tldr client written in Rust
+
+
+.SH SYNOPSIS
+\fItldr\fR [options] [page]
+
+
+.SH OPTIONS
+.TP 4
+.B -u, --update
+Update the cache.
+
+.TP 4
+.B -l, --list
+List all pages in the current platform.
+
+.TP 4
+.B --list-all
+List all pages.
+
+.TP 4
+\fB-r, --render\fR <FILE>
+Render the specified markdown file.
+
+.TP 4
+.B --clean-cache
+Clean the cache. You probably never have to run this, use \fB--update\fR instead.
+
+.TP 4
+.B --gen-config
+Print the default config to standard output.
+
+.TP 4
+.B --config-path
+Print the default config path.
+
+.TP 4
+\fB-p, --platform\fR <PLATFORM>
+Specify the platform to use.
+.br
+Can be one of the following: '\fBlinux\fR', '\fBmacos\fR', '\fBosx\fR'
+(alias for '\fBmacos\fR'), '\fBandroid\fR', '\fBsunos\fR'.
+.sp
+Default: the os you are \fBcurrently running\fR
+
+.TP 4
+\fB-L, --language\fR <LANGUAGE>
+Specify the language to use.\&
+Can be used multiple times.
+.sp
+Default: taken from the \fBLANG\fR and \fBLANGUAGE\fR environment variables.\&
+See \fBhttps://github.com/tldr-pages/tldr/blob/main/CLIENT-SPECIFICATION.md#language\fR
+for a detailed description of how \fItlrc\fR determines the language.
+
+.TP 4
+.B -o, --offline
+Do not update the cache, even if it is stale and automatic updates are on.\&
+
+.TP 4
+.B -q, --quiet
+Supress status messages and warnings.\&
+In other words, this makes \fItlrc\fR print only pages and errors.
+
+.TP 4
+\fB--color\fR <WHEN>
+Specify when to enable color.
+.br
+Can be one of the following: '\fBalways\fR', '\fBnever\fR', '\fBauto\fR'.
+.br
+\fBalways\fR forces colors on; \fBnever\fR forces colors off; and \fBauto\fR
+only automatically enables colors when outputting onto a tty and\&
+the \fBNO_COLOR\fR environment variable is not set.
+.sp
+Default: \fBauto\fR
+
+.TP 4
+\fB--config\fR <FILE>
+Specify an alternative path to the config file.
+.sp
+Default: \fBplatform dependent\fR (use \fB--config-path\fR to see the default path for your system)
+
+.TP 4
+.B -v, --version
+Print version information.
+
+.TP 4
+.B -h, --help
+Print a help message.
+
+
+.SH CONFIGURATION
+To generate a default config file, run:
+.IP
+.nf
+\fItldr\fR --gen-config > $(\fItldr\fR --config-path)
+.fi
+.PP
+See \fBhttps://github.com/acuteenvy/tlrc#configuration\fR for an example config file with explanations.
+
+
+.SH EXAMPLES
+See the tldr page for \fBtar\fR:
+.IP
+.nf
+\fItldr\fR tar
+.fi
+.PP
+
+See the tldr page for \fBdiskpart\fR, from platform \fBwindows\fR:
+.IP
+.nf
+\fItldr\fR --platform windows diskpart
+.fi
+.PP
+
+
+.SH SEE ALSO
+tldr client specification
+.br
+.B https://github.com/tldr-pages/tldr/blob/main/CLIENT-SPECIFICATION.md
+.br
+.sp
+Repository
+.br
+.B https://github.com/acuteenvy/tlrc
