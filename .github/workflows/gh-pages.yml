@@ -30,19 +30,21 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-      
+
       - name: Install pandoc
-        run: sudo apt install pandoc
-      
+        run: |
+          curl --location --output pandoc.deb https://github.com/jgm/pandoc/releases/download/3.1.2/pandoc-3.1.2-1-amd64.deb
+          sudo dpkg --install pandoc.deb
+
       - name: Download the stylesheet
         run: curl --output style.css https://raw.githubusercontent.com/acuteenvy/acuteenvy.github.io/master/manpages.css
-      
+
       - name: Build the website from the manpage and css
-        run: | 
+        run: |
           mkdir page
           # Convert it to markdown first to highlight bare URLs
           pandoc tldr.1 --output page.md
-          pandoc page.md --from markdown+autolink_bare_uris --metadata title="tlrc manual" --self-contained --css style.css --output page/index.html
+          pandoc page.md --from markdown+autolink_bare_uris --metadata title="tlrc manual" --embed-resources --standalone --css style.css --output page/index.html
 
       - name: Setup Pages
         uses: actions/configure-pages@v3
