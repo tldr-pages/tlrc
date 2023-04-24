@@ -17,11 +17,10 @@ You can find prebuilt binaries [here][latest-release].
 
 
 ## Usage
-See [the tldr client specification](https://github.com/tldr-pages/tldr/blob/main/CLIENT-SPECIFICATION.md) or run:
+See `man tldr` or the [online manpage](https://acuteenvy.github.io/tlrc). For a brief description, you can also run:
 ```
 tldr --help
 ```
-
 
 ## Configuration
 Tlrc can be customized with a [TOML](https://toml.io) configuration file. To get the default path for your system, run:
