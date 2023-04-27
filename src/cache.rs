@@ -168,17 +168,21 @@ impl Cache {
         )
     }
 
-    fn print_basenames(entries: &mut [PathBuf]) {
-        entries.sort();
+    fn print_basenames(entries: &[PathBuf]) {
+        let mut pages: Vec<String> = entries
+            .iter()
+            .map(|x| Path::new(x.file_stem().unwrap()).display().to_string())
+            .collect();
 
-        for entry in entries {
-            println!("{}", Path::new(entry.file_stem().unwrap()).display());
-        }
+        pages.sort();
+        pages.dedup();
+
+        println!("{}", pages.join("\n"));
     }
 
     /// List all pages in `platform` and common.
     pub fn list_platform(&self, platform: &Platform) -> Result<()> {
-        let mut entries: Vec<PathBuf> = if platform == &Platform::Other {
+        let entries: Vec<PathBuf> = if platform == &Platform::Other {
             self.list_dir("common")?
         } else {
             self.list_dir(&platform.to_string())?
@@ -187,13 +191,14 @@ impl Cache {
                 .collect()
         };
 
-        Self::print_basenames(&mut entries);
+        Self::print_basenames(&entries);
+
         Ok(())
     }
 
     /// List all pages.
     pub fn list_all(&self) -> Result<()> {
-        let mut entries: Vec<PathBuf> = self
+        let entries: Vec<PathBuf> = self
             .list_dir("linux")?
             .into_iter()
             .chain(self.list_dir("osx")?)
@@ -203,7 +208,8 @@ impl Cache {
             .chain(self.list_dir("common")?)
             .collect();
 
-        Self::print_basenames(&mut entries);
+        Self::print_basenames(&entries);
+
         Ok(())
     }
 

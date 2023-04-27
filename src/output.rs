@@ -7,7 +7,7 @@ const DESC: &str = "> ";
 const BULLET: &str = "- ";
 const EXAMPLE: char = '`';
 
-/// Highlight a substring between `from` and `to` instide `s`.
+/// Highlight a substring between `from` and `to` inside `s`.
 fn highlight_between(
     from: &str,
     to: &str,
