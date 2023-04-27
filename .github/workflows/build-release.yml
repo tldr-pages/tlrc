@@ -77,7 +77,7 @@ jobs:
           fi
 
           mv "target/${{ matrix.target }}/release/$BIN" "$BIN"
-          "${ARCHIVER[@]}" "$NAME-$GITHUB_REF_NAME-${{ matrix.target }}.$EXTENSION" "$BIN" LICENSE README.md
+          "${ARCHIVER[@]}" "$NAME-$GITHUB_REF_NAME-${{ matrix.target }}.$EXTENSION" "$BIN" LICENSE README.md "$BIN.1"
 
       - name: Upload the archive
         env:
