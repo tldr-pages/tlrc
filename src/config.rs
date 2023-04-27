@@ -75,6 +75,9 @@ pub struct StyleConfig {
     pub description: OutputStyle,
     pub bullet: OutputStyle,
     pub example: OutputStyle,
+    pub url: OutputStyle,
+    pub inline_code: OutputStyle,
+    pub placeholder: OutputStyle,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -165,6 +168,24 @@ impl Default for Config {
                     bold: false,
                     underline: false,
                     italic: false,
+                },
+                url: OutputStyle {
+                    color: OutputColor::Red,
+                    bold: false,
+                    underline: false,
+                    italic: true,
+                },
+                inline_code: OutputStyle {
+                    color: OutputColor::Yellow,
+                    bold: false,
+                    underline: false,
+                    italic: true,
+                },
+                placeholder: OutputStyle {
+                    color: OutputColor::Red,
+                    bold: false,
+                    underline: false,
+                    italic: true,
                 },
             },
         }
