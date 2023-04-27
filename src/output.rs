@@ -19,7 +19,7 @@ fn highlight_between(
 
     for (i, spl) in s.split(from).enumerate() {
         if from == to {
-            // Only even indexes contain the part to be highlighted
+            // Only odd indexes contain the part to be highlighted
             if i % 2 == 0 {
                 result.push_str(&style_normal.paint(spl).to_string());
             } else {

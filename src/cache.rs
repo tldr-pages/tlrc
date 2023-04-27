@@ -64,6 +64,11 @@ impl Cache {
 
             for entry in fs::read_dir(&self.0)? {
                 let path = entry?.path();
+                // Do not delete English pages.
+                if path.ends_with("pages") {
+                    continue;
+                }
+
                 if path.is_dir() && !full_langdirs.contains(&path) {
                     fs::remove_dir_all(path)?;
                 }
