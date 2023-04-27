@@ -55,6 +55,7 @@ const fn bool_true() -> bool {
 }
 
 #[derive(Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct OutputStyle {
     #[serde(default)]
     pub color: OutputColor,
@@ -151,6 +152,7 @@ const fn default_placeholder_style() -> OutputStyle {
 }
 
 #[derive(Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct StyleConfig {
     #[serde(default = "default_title_style")]
     pub title: OutputStyle,
@@ -180,6 +182,7 @@ const fn default_cache_max_age() -> u64 {
 }
 
 #[derive(Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct CacheConfig {
     /// Cache directory.
     #[serde(default = "Cache::locate")]
@@ -197,6 +200,7 @@ pub struct CacheConfig {
 }
 
 #[derive(Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct OutputConfig {
     /// Show page title.
     #[serde(default = "bool_true")]
@@ -210,7 +214,7 @@ pub struct OutputConfig {
 }
 
 #[derive(Serialize, Deserialize)]
-#[serde(default)]
+#[serde(default, deny_unknown_fields)]
 pub struct Config {
     pub cache: CacheConfig,
     pub output: OutputConfig,
@@ -241,7 +245,7 @@ impl Default for Config {
         Self {
             cache: CacheConfig {
                 dir: Cache::locate(),
-                auto_update: false,
+                auto_update: true,
                 max_age: default_cache_max_age(),
                 languages: vec![],
             },
