@@ -107,6 +107,7 @@ impl Display for Platform {
     about,
     version,
     disable_version_flag = true,
+    after_help = "See 'man tldr' or https://acuteenvy.github.io/tlrc for more information.",
     help_template = "{before-help}{name} {version}
 {about-with-newline}
 {usage-heading} {usage}
