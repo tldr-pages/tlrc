@@ -9,7 +9,7 @@ use yansi::{Color, Style};
 use crate::cache::Cache;
 use crate::error::Result;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum OutputColor {
     Black,
@@ -20,6 +20,7 @@ pub enum OutputColor {
     Magenta,
     Cyan,
     White,
+    #[default]
     Default,
     Color256(u8),
     Rgb([u8; 3]),
@@ -43,11 +44,28 @@ impl From<OutputColor> for yansi::Color {
     }
 }
 
+// Serde doesn't support default values directly, so we need to
+// wrap them in a function.
+const fn bool_false() -> bool {
+    false
+}
+
+const fn bool_true() -> bool {
+    true
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct OutputStyle {
+    #[serde(default)]
     pub color: OutputColor,
+
+    #[serde(default = "bool_false")]
     pub bold: bool,
+
+    #[serde(default = "bool_false")]
     pub underline: bool,
+
+    #[serde(default = "bool_false")]
     pub italic: bool,
 }
 
@@ -69,41 +87,130 @@ impl From<OutputStyle> for yansi::Style {
     }
 }
 
+const fn default_title_style() -> OutputStyle {
+    OutputStyle {
+        color: OutputColor::Magenta,
+        bold: true,
+        underline: false,
+        italic: false,
+    }
+}
+
+const fn default_description_style() -> OutputStyle {
+    OutputStyle {
+        color: OutputColor::Magenta,
+        bold: false,
+        underline: false,
+        italic: false,
+    }
+}
+
+const fn default_bullet_style() -> OutputStyle {
+    OutputStyle {
+        color: OutputColor::Green,
+        bold: false,
+        underline: false,
+        italic: false,
+    }
+}
+
+const fn default_example_style() -> OutputStyle {
+    OutputStyle {
+        color: OutputColor::Cyan,
+        bold: false,
+        underline: false,
+        italic: false,
+    }
+}
+
+const fn default_url_style() -> OutputStyle {
+    OutputStyle {
+        color: OutputColor::Red,
+        bold: false,
+        underline: false,
+        italic: true,
+    }
+}
+
+const fn default_code_style() -> OutputStyle {
+    OutputStyle {
+        color: OutputColor::Yellow,
+        bold: false,
+        underline: false,
+        italic: true,
+    }
+}
+
+const fn default_placeholder_style() -> OutputStyle {
+    OutputStyle {
+        color: OutputColor::Red,
+        bold: false,
+        underline: false,
+        italic: true,
+    }
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct StyleConfig {
+    #[serde(default = "default_title_style")]
     pub title: OutputStyle,
+
+    #[serde(default = "default_description_style")]
     pub description: OutputStyle,
+
+    #[serde(default = "default_bullet_style")]
     pub bullet: OutputStyle,
+
+    #[serde(default = "default_example_style")]
     pub example: OutputStyle,
+
+    #[serde(default = "default_url_style")]
     pub url: OutputStyle,
+
+    #[serde(default = "default_code_style")]
     pub inline_code: OutputStyle,
+
+    #[serde(default = "default_placeholder_style")]
     pub placeholder: OutputStyle,
+}
+
+const fn default_cache_max_age() -> u64 {
+    // 2 weeks
+    24 * 7 * 2
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct CacheConfig {
     /// Cache directory.
+    #[serde(default = "Cache::locate")]
     pub dir: PathBuf,
     /// Automatically update the cache
     /// if it is older than `max_age` hours.
+    #[serde(default = "bool_true")]
     pub auto_update: bool,
     /// Max cache age in hours.
+    #[serde(default = "default_cache_max_age")]
     max_age: u64,
     /// Languages to download. If empty, download everything.
+    #[serde(default = "Vec::new")]
     pub languages: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct OutputConfig {
     /// Show page title.
+    #[serde(default = "bool_true")]
     pub show_title: bool,
     /// Strip empty lines from pages.
+    #[serde(default = "bool_false")]
     pub compact: bool,
     /// Print pages in raw markdown.
+    #[serde(default = "bool_false")]
     pub raw_markdown: bool,
 }
 
 #[derive(Serialize, Deserialize)]
+#[serde(default)]
 pub struct Config {
     pub cache: CacheConfig,
     pub output: OutputConfig,
@@ -134,9 +241,8 @@ impl Default for Config {
         Self {
             cache: CacheConfig {
                 dir: Cache::locate(),
-                auto_update: true,
-                // 2 weeks
-                max_age: 24 * 7 * 2,
+                auto_update: false,
+                max_age: default_cache_max_age(),
                 languages: vec![],
             },
             output: OutputConfig {
@@ -145,48 +251,13 @@ impl Default for Config {
                 raw_markdown: false,
             },
             style: StyleConfig {
-                title: OutputStyle {
-                    color: OutputColor::Magenta,
-                    bold: true,
-                    underline: false,
-                    italic: false,
-                },
-                description: OutputStyle {
-                    color: OutputColor::Magenta,
-                    bold: false,
-                    underline: false,
-                    italic: false,
-                },
-                bullet: OutputStyle {
-                    color: OutputColor::Green,
-                    bold: false,
-                    underline: false,
-                    italic: false,
-                },
-                example: OutputStyle {
-                    color: OutputColor::Cyan,
-                    bold: false,
-                    underline: false,
-                    italic: false,
-                },
-                url: OutputStyle {
-                    color: OutputColor::Red,
-                    bold: false,
-                    underline: false,
-                    italic: true,
-                },
-                inline_code: OutputStyle {
-                    color: OutputColor::Yellow,
-                    bold: false,
-                    underline: false,
-                    italic: true,
-                },
-                placeholder: OutputStyle {
-                    color: OutputColor::Red,
-                    bold: false,
-                    underline: false,
-                    italic: true,
-                },
+                title: default_title_style(),
+                description: default_description_style(),
+                bullet: default_bullet_style(),
+                example: default_example_style(),
+                url: default_url_style(),
+                inline_code: default_code_style(),
+                placeholder: default_placeholder_style(),
             },
         }
     }
