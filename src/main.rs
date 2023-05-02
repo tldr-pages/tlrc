@@ -30,6 +30,7 @@ use crate::util::{get_languages_from_env, log, warn};
 /// If this is set to true, do not print anything except pages and errors.
 pub static QUIET: AtomicBool = AtomicBool::new(false);
 
+#[allow(clippy::too_many_lines)]
 fn run() -> Result<()> {
     let cli = Cli::parse();
 
@@ -61,11 +62,18 @@ fn run() -> Result<()> {
         }
     }
 
+    let config_is_from_cli = cli.config.is_some();
     let config_location = cli.config.unwrap_or_else(Config::locate);
 
     let config = if config_location.is_file() {
         Config::parse(config_location)?
     } else {
+        if config_is_from_cli {
+            warn(&format!(
+                "'{}': not a file, ignoring --config",
+                config_location.display()
+            ));
+        }
         Config::default()
     };
     let cache = Cache::new(&config.cache.dir);

@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use yansi::{Color, Style};
 
 use crate::cache::Cache;
-use crate::error::Result;
+use crate::error::{Error, Result};
 
 #[derive(Serialize, Deserialize, Default)]
 #[serde(rename_all = "lowercase")]
@@ -223,7 +223,9 @@ pub struct Config {
 
 impl Config {
     pub fn parse(file: PathBuf) -> Result<Config> {
-        Ok(toml::from_str(&fs::read_to_string(file)?)?)
+        Ok(toml::from_str(&fs::read_to_string(file).map_err(|e| {
+            Error::Msg(format!("could not read the config: {e}"))
+        })?)?)
     }
 
     /// Get the default path to the config file.
