@@ -41,9 +41,13 @@ pub fn get_languages_from_env() -> Vec<String> {
         .unwrap_or("")
         .split(':')
         .chain([var_lang.as_str()]);
+
     for lang in languages {
         if lang.len() >= 5 && lang.chars().nth(2) == Some('_') {
-            result.push(lang[..=4].to_string());
+            // <language>_<country> (ll_CC - 5 characters)
+            result.push(lang[..5].to_string());
+            // <language> (ll - 2 characters)
+            result.push(lang[..2].to_string());
         } else if lang.len() == 2 {
             result.push(lang.to_string());
         }
