@@ -60,6 +60,9 @@ pub struct OutputStyle {
     #[serde(default)]
     pub color: OutputColor,
 
+    #[serde(default)]
+    pub background: OutputColor,
+
     #[serde(default = "bool_false")]
     pub bold: bool,
 
@@ -68,11 +71,17 @@ pub struct OutputStyle {
 
     #[serde(default = "bool_false")]
     pub italic: bool,
+
+    #[serde(default = "bool_false")]
+    pub dim: bool,
+
+    #[serde(default = "bool_false")]
+    pub strikethrough: bool,
 }
 
 impl From<OutputStyle> for yansi::Style {
     fn from(s: OutputStyle) -> Self {
-        let mut style = Style::new(s.color.into());
+        let mut style = Style::new(s.color.into()).bg(s.background.into());
 
         if s.bold {
             style = style.bold();
@@ -83,6 +92,12 @@ impl From<OutputStyle> for yansi::Style {
         if s.underline {
             style = style.underline();
         }
+        if s.dim {
+            style = style.dimmed();
+        }
+        if s.strikethrough {
+            style = style.strikethrough();
+        }
 
         style
     }
@@ -91,63 +106,84 @@ impl From<OutputStyle> for yansi::Style {
 const fn default_title_style() -> OutputStyle {
     OutputStyle {
         color: OutputColor::Magenta,
+        background: OutputColor::Default,
         bold: true,
         underline: false,
         italic: false,
+        dim: false,
+        strikethrough: false,
     }
 }
 
 const fn default_description_style() -> OutputStyle {
     OutputStyle {
         color: OutputColor::Magenta,
+        background: OutputColor::Default,
         bold: false,
         underline: false,
         italic: false,
+        dim: false,
+        strikethrough: false,
     }
 }
 
 const fn default_bullet_style() -> OutputStyle {
     OutputStyle {
         color: OutputColor::Green,
+        background: OutputColor::Default,
         bold: false,
         underline: false,
         italic: false,
+        dim: false,
+        strikethrough: false,
     }
 }
 
 const fn default_example_style() -> OutputStyle {
     OutputStyle {
         color: OutputColor::Cyan,
+        background: OutputColor::Default,
         bold: false,
         underline: false,
         italic: false,
+        dim: false,
+        strikethrough: false,
     }
 }
 
 const fn default_url_style() -> OutputStyle {
     OutputStyle {
         color: OutputColor::Red,
+        background: OutputColor::Default,
         bold: false,
         underline: false,
         italic: true,
+        dim: false,
+        strikethrough: false,
     }
 }
 
 const fn default_code_style() -> OutputStyle {
     OutputStyle {
         color: OutputColor::Yellow,
+        background: OutputColor::Default,
         bold: false,
         underline: false,
         italic: true,
+        dim: false,
+        strikethrough: false,
     }
 }
 
 const fn default_placeholder_style() -> OutputStyle {
     OutputStyle {
         color: OutputColor::Red,
+        background: OutputColor::Default,
         bold: false,
         underline: false,
         italic: true,
+        dim: false,
+        strikethrough: false,
     }
 }
 
