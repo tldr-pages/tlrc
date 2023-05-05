@@ -13,6 +13,7 @@ mod util;
 use std::env;
 use std::fs;
 use std::io;
+use std::path::PathBuf;
 use std::process::exit;
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -30,7 +31,40 @@ use crate::util::{get_languages_from_env, log, warn};
 /// If this is set to true, do not print anything except pages and errors.
 pub static QUIET: AtomicBool = AtomicBool::new(false);
 
-#[allow(clippy::too_many_lines)]
+fn init_color(color_mode: &ColorMode) {
+    #[cfg(target_os = "windows")]
+    let color_support = yansi::Paint::enable_windows_ascii();
+    #[cfg(not(target_os = "windows"))]
+    let color_support = true;
+
+    match color_mode {
+        ColorMode::Always => {}
+        ColorMode::Never => yansi::Paint::disable(),
+        ColorMode::Auto => {
+            if !(color_support && env::var("NO_COLOR").is_err() && io::stdout().is_terminal()) {
+                yansi::Paint::disable();
+            }
+        }
+    }
+}
+
+fn get_config(cli_config_path: Option<PathBuf>) -> Result<Config> {
+    let config_is_from_cli = cli_config_path.is_some();
+    let config_location = cli_config_path.unwrap_or_else(Config::locate);
+
+    if config_location.is_file() {
+        Config::parse(config_location)
+    } else {
+        if config_is_from_cli {
+            warn(&format!(
+                "'{}': not a file, ignoring --config",
+                config_location.display()
+            ));
+        }
+        Ok(Config::default())
+    }
+}
+
 fn run() -> Result<()> {
     let cli = Cli::parse();
 
@@ -47,35 +81,9 @@ fn run() -> Result<()> {
         QUIET.store(true, Ordering::Relaxed);
     }
 
-    #[cfg(target_os = "windows")]
-    let color_support = yansi::Paint::enable_windows_ascii();
-    #[cfg(not(target_os = "windows"))]
-    let color_support = true;
+    init_color(&cli.color);
 
-    match cli.color {
-        ColorMode::Always => {}
-        ColorMode::Never => yansi::Paint::disable(),
-        ColorMode::Auto => {
-            if !(color_support && env::var("NO_COLOR").is_err() && io::stdout().is_terminal()) {
-                yansi::Paint::disable();
-            }
-        }
-    }
-
-    let config_is_from_cli = cli.config.is_some();
-    let config_location = cli.config.unwrap_or_else(Config::locate);
-
-    let config = if config_location.is_file() {
-        Config::parse(config_location)?
-    } else {
-        if config_is_from_cli {
-            warn(&format!(
-                "'{}': not a file, ignoring --config",
-                config_location.display()
-            ));
-        }
-        Config::default()
-    };
+    let config = get_config(cli.config)?;
     let cache = Cache::new(&config.cache.dir);
 
     if cli.clean_cache {
