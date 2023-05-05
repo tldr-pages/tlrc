@@ -26,7 +26,7 @@ use crate::cache::Cache;
 use crate::config::{gen_config_and_exit, Config};
 use crate::error::{Error, Result};
 use crate::output::print_page;
-use crate::util::{get_languages_from_env, log, warn};
+use crate::util::{get_languages_from_env, infoln, warnln};
 
 /// If this is set to true, do not print anything except pages and errors.
 pub static QUIET: AtomicBool = AtomicBool::new(false);
@@ -56,10 +56,10 @@ fn get_config(cli_config_path: Option<PathBuf>) -> Result<Config> {
         Config::parse(config_location)
     } else {
         if config_is_from_cli {
-            warn(&format!(
+            warnln!(
                 "'{}': not a file, ignoring --config",
                 config_location.display()
-            ));
+            );
         }
         Ok(Config::default())
     }
@@ -98,7 +98,7 @@ fn run() -> Result<()> {
     }
 
     if !cache.exists() {
-        log("Cache is empty, downloading...");
+        infoln!("cache is empty, downloading...");
         cache.update(&config.cache.languages)?;
     }
 
@@ -118,9 +118,9 @@ fn run() -> Result<()> {
 
     if config.cache.auto_update && cache.is_stale(&config.cache_max_age())? {
         if cli.offline {
-            warn("cache is stale. Run tldr without --offline to update.");
+            warnln!("cache is stale. Run tldr without --offline to update.");
         } else {
-            log("Cache is stale, updating...");
+            infoln!("cache is stale, updating...");
             cache.update(&config.cache.languages).map_err(|e| {
                 match e {
                     Error::Download(desc) => {

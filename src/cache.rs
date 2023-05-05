@@ -8,7 +8,7 @@ use zip::ZipArchive;
 
 use crate::args::Platform;
 use crate::error::{Error, Result};
-use crate::util::{languages_to_langdirs, log, warn};
+use crate::util::{infoln, languages_to_langdirs, warnln};
 
 const ARCHIVE: &str = "https://tldr.sh/assets/tldr.zip";
 
@@ -36,7 +36,7 @@ impl Cache {
     fn download() -> Result<Vec<u8>> {
         let mut buf = vec![];
 
-        log(&format!("Downloading tldr pages from '{ARCHIVE}'..."));
+        infoln!("downloading tldr pages from '{ARCHIVE}'...");
         ureq::get(ARCHIVE)
             .call()?
             .into_reader()
@@ -51,11 +51,11 @@ impl Cache {
 
         self.clean()?;
 
-        log("Extracting the archive...");
+        infoln!("extracting the archive...");
         archive.extract(&self.0)?;
 
         if !languages.is_empty() {
-            log("Deleting unneeded languages...");
+            infoln!("deleting unneeded languages...");
 
             let full_langdirs: Vec<PathBuf> = languages_to_langdirs(languages)
                 .iter()
@@ -76,19 +76,19 @@ impl Cache {
         }
         fs::remove_file(self.0.join("index.json"))?;
 
-        log("Cache update successful.");
+        infoln!("cache update successful.");
         Ok(())
     }
 
     /// Delete the cache directory.
     pub fn clean(&self) -> Result<()> {
         if !self.exists() {
-            log("Cache does not exist, not cleaning.");
+            infoln!("cache does not exist, not cleaning.");
             fs::create_dir_all(&self.0)?;
             return Ok(());
         }
 
-        log("Cleaning the cache directory...");
+        infoln!("cleaning the cache directory...");
         fs::remove_dir_all(&self.0)?;
         fs::create_dir_all(&self.0)?;
 
@@ -147,15 +147,15 @@ impl Cache {
                 self.find_page(&page_file, &alt_platform.to_string(), &language_dirs)
             {
                 if platform == &Platform::Other {
-                    warn(&format!(
+                    warnln!(
                         "showing page from platform '{alt_platform}', \
                     because '{page}' does not exist in 'common'"
-                    ));
+                    );
                 } else {
-                    warn(&format!(
+                    warnln!(
                         "showing page from platform '{alt_platform}', \
                     because '{page}' does not exist in '{platform}' and 'common'"
-                    ));
+                    );
                 }
                 return Ok(page_path);
             }

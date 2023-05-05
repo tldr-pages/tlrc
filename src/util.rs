@@ -1,23 +1,28 @@
 use std::env;
-use std::sync::atomic::Ordering;
 
 use yansi::{Color, Paint};
 
-use crate::QUIET;
-
-pub fn log(msg: &str) {
-    if QUIET.load(Ordering::Relaxed) {
-        return;
-    }
-    eprintln!("{msg}");
+/// Prints a warning.
+macro_rules! warnln {
+    ( $( $arg:tt )*) => {
+        if !$crate::QUIET.load(std::sync::atomic::Ordering::Relaxed) {
+            eprint!("{} ", yansi::Paint::new("warning:").fg(yansi::Color::Yellow).bold());
+            eprintln!($($arg)*);
+        }
+    };
 }
 
-pub fn warn(msg: &str) {
-    log(&format!(
-        "{} {msg}",
-        Paint::new("warning:").fg(Color::Yellow).bold()
-    ));
+/// Prints a status message.
+macro_rules! infoln {
+    ( $( $arg:tt )*) => {
+        if !$crate::QUIET.load(std::sync::atomic::Ordering::Relaxed) {
+            eprint!("{} ", yansi::Paint::new("info:").fg(yansi::Color::Cyan).bold());
+            eprintln!($($arg)*);
+        }
+    };
 }
+
+pub(crate) use {infoln, warnln};
 
 pub fn error(msg: &str) {
     eprintln!("{} {msg}", Paint::new("error:").fg(Color::Red).bold());
