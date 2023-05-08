@@ -19,7 +19,7 @@ serde = { version = "1.0.162", features = ["derive"] }
 toml = "0.7.3"
 ureq = "2.6.2"
 yansi = "0.5.1"
-zip = { version = "0.6.4", default-features = false, features = ["deflate"] }
+zip = { version = "0.6.5", default-features = false, features = ["deflate"] }
 
 [[bin]]
 name = "tldr"
