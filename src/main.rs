@@ -13,7 +13,6 @@ mod util;
 use std::env;
 use std::fs;
 use std::io;
-use std::path::PathBuf;
 use std::process::exit;
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -48,23 +47,6 @@ fn init_color(color_mode: &ColorMode) {
     }
 }
 
-fn get_config(cli_config_path: Option<PathBuf>) -> Result<Config> {
-    let config_is_from_cli = cli_config_path.is_some();
-    let config_location = cli_config_path.unwrap_or_else(Config::locate);
-
-    if config_location.is_file() {
-        Config::parse(config_location)
-    } else {
-        if config_is_from_cli {
-            warnln!(
-                "'{}': not a file, ignoring --config",
-                config_location.display()
-            );
-        }
-        Ok(Config::default())
-    }
-}
-
 fn run() -> Result<()> {
     let cli = Cli::parse();
 
@@ -83,7 +65,7 @@ fn run() -> Result<()> {
 
     init_color(&cli.color);
 
-    let config = get_config(cli.config)?;
+    let config = Config::new(cli.config)?;
     let cache = Cache::new(&config.cache.dir);
 
     if cli.clean_cache {

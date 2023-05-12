@@ -8,6 +8,7 @@ use yansi::{Color, Style};
 
 use crate::cache::Cache;
 use crate::error::{Error, Result};
+use crate::util::warnln;
 
 #[derive(Serialize, Deserialize, Default)]
 #[serde(rename_all = "lowercase")]
@@ -258,10 +259,27 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn parse(file: PathBuf) -> Result<Config> {
+    fn parse(file: PathBuf) -> Result<Self> {
         Ok(toml::from_str(&fs::read_to_string(file).map_err(|e| {
             Error::Msg(format!("could not read the config: {e}"))
         })?)?)
+    }
+
+    pub fn new(cli_config_path: Option<PathBuf>) -> Result<Self> {
+        let config_is_from_cli = cli_config_path.is_some();
+        let config_location = cli_config_path.unwrap_or_else(Self::locate);
+
+        if config_location.is_file() {
+            Self::parse(config_location)
+        } else {
+            if config_is_from_cli {
+                warnln!(
+                    "'{}': not a file, ignoring --config",
+                    config_location.display()
+                );
+            }
+            Ok(Self::default())
+        }
     }
 
     /// Get the default path to the config file.
