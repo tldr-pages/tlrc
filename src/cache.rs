@@ -1,4 +1,6 @@
 use std::fs;
+use std::fs::File;
+use std::io::Write;
 use std::io::{self, Cursor, Read};
 use std::path::{Path, PathBuf};
 use std::result::Result as StdResult;
@@ -45,36 +47,58 @@ impl Cache {
         Ok(buf)
     }
 
+    /// Extract `dir` from `archive`.
+    fn extract_dir(
+        &self,
+        archive: &mut ZipArchive<Cursor<Vec<u8>>>,
+        files: &[String],
+        dir: &str,
+    ) -> Result<()> {
+        infoln!("extracting: '{dir}'...");
+
+        for f in files {
+            // Skip directory entries, files that are not in a directory (we want only pages)
+            // and files that are not in the specified directory.
+            if f.ends_with('/') || !f.contains('/') || !f.starts_with(&format!("{dir}/")) {
+                continue;
+            }
+
+            let mut page = String::new();
+            archive
+                .by_name(f)
+                .unwrap()
+                .read_to_string(&mut page)
+                .unwrap();
+
+            let path = self.0.join(f);
+            fs::create_dir_all(path.parent().unwrap())?;
+            write!(File::create(path)?, "{page}")?;
+        }
+
+        Ok(())
+    }
+
     /// Delete the old cache and replace it with a fresh copy.
-    pub fn update(&self, languages: &[String]) -> Result<()> {
+    pub fn update(&self, languages_to_download: &[String]) -> Result<()> {
         let mut archive = ZipArchive::new(Cursor::new(Self::download()?))?;
+        let files: Vec<String> = archive.file_names().map(String::from).collect();
+        let langdirs = languages_to_langdirs(languages_to_download);
 
         self.clean()?;
 
-        infoln!("extracting the archive...");
-        archive.extract(&self.0)?;
-
-        if !languages.is_empty() {
-            infoln!("deleting unneeded languages...");
-
-            let full_langdirs: Vec<PathBuf> = languages_to_langdirs(languages)
-                .iter()
-                .map(|lang_dir| self.0.join(lang_dir))
-                .collect();
-
-            for entry in fs::read_dir(&self.0)? {
-                let path = entry?.path();
-                // Do not delete English pages.
-                if path.ends_with("pages") {
-                    continue;
-                }
-
-                if path.is_dir() && !full_langdirs.contains(&path) {
-                    fs::remove_dir_all(path)?;
-                }
-            }
+        // Always extract English pages, even when not specified in the config.
+        if !languages_to_download.contains(&"en".to_string()) {
+            self.extract_dir(&mut archive, &files, "pages")?;
         }
-        fs::remove_file(self.0.join("index.json"))?;
+
+        for langdir in langdirs {
+            // Skip invalid languages.
+            if !files.contains(&format!("{langdir}/")) {
+                continue;
+            }
+
+            self.extract_dir(&mut archive, &files, &langdir)?;
+        }
 
         infoln!("cache update successful.");
         Ok(())

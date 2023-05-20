@@ -68,11 +68,19 @@ fn run() -> Result<()> {
     let config = Config::new(cli.config)?;
     let cache = Cache::new(&config.cache.dir);
 
+    let languages_are_from_cli = cli.languages.is_some();
+    let languages = cli.languages.unwrap_or_else(get_languages_from_env);
+    let languages_to_download = if config.cache.languages.is_empty() {
+        &languages
+    } else {
+        &config.cache.languages
+    };
+
     if cli.clean_cache {
         cache.clean()?;
         exit(0);
     } else if cli.update {
-        cache.update(&config.cache.languages)?;
+        cache.update(languages_to_download)?;
         exit(0);
     } else if cli.list_all {
         cache.list_all()?;
@@ -81,7 +89,7 @@ fn run() -> Result<()> {
 
     if !cache.exists() {
         infoln!("cache is empty, downloading...");
-        cache.update(&config.cache.languages)?;
+        cache.update(languages_to_download)?;
     }
 
     let platform = cli.platform.unwrap_or_else(Platform::get);
@@ -103,7 +111,7 @@ fn run() -> Result<()> {
             warnln!("cache is stale. Run tldr without --offline to update.");
         } else {
             infoln!("cache is stale, updating...");
-            cache.update(&config.cache.languages).map_err(|e| {
+            cache.update(languages_to_download).map_err(|e| {
                 match e {
                     Error::Download(desc) => {
                         Error::Download(format!("{desc}\n\
@@ -115,8 +123,6 @@ fn run() -> Result<()> {
         }
     }
 
-    let languages_are_from_cli = cli.languages.is_some();
-    let languages = cli.languages.unwrap_or_else(get_languages_from_env);
     let page_name = cli.page.join("-").to_lowercase();
 
     let page_path = cache.find(&page_name, &languages, &platform).map_err(|e| {

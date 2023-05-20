@@ -1,4 +1,6 @@
+use std::collections::HashSet;
 use std::env;
+use std::hash::Hash;
 
 use yansi::{Color, Paint};
 
@@ -50,17 +52,18 @@ pub fn get_languages_from_env() -> Vec<String> {
     for lang in languages {
         if lang.len() >= 5 && lang.chars().nth(2) == Some('_') {
             // <language>_<country> (ll_CC - 5 characters)
-            result.push(lang[..5].to_string());
+            result.push(&lang[..5]);
             // <language> (ll - 2 characters)
-            result.push(lang[..2].to_string());
+            result.push(&lang[..2]);
         } else if lang.len() == 2 {
-            result.push(lang.to_string());
+            result.push(lang);
         }
     }
 
-    result.push("en".to_string());
+    result.push("en");
+    dedup_nosort(&mut result);
 
-    result
+    result.into_iter().map(String::from).collect()
 }
 
 /// Convert language codes to directory names in the cache.
@@ -75,4 +78,14 @@ pub fn languages_to_langdirs(languages: &[String]) -> Vec<String> {
             }
         })
         .collect()
+}
+
+/// Deduplicate a vector in place preserving the order of elements.
+fn dedup_nosort<T>(vec: &mut Vec<T>)
+where
+    T: Hash + Eq + Copy,
+{
+    let mut set = HashSet::new();
+
+    vec.retain(|x| set.insert(*x));
 }
