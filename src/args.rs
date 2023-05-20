@@ -47,7 +47,7 @@ pub enum Platform {
     Windows,
     Android,
     SunOs,
-    Other,
+    Common,
 }
 
 impl Platform {
@@ -65,7 +65,7 @@ impl Platform {
     }
     #[cfg(not(any(target_os = "linux", target_os = "macos", target_os = "windows",)))]
     pub const fn get() -> Self {
-        Self::Other
+        Self::Common
     }
 }
 
@@ -74,12 +74,13 @@ impl FromStr for Platform {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "linux"         => Ok(Self::Linux),
+            "linux" => Ok(Self::Linux),
             "macos" | "osx" => Ok(Self::OsX),
-            "windows"       => Ok(Self::Windows),
-            "android"       => Ok(Self::Android),
-            "sunos"         => Ok(Self::SunOs),
-            _ => Err(format!("invalid platform '{s}' (possible values: linux, macos, osx, windows, android, sunos)'"))
+            "windows" => Ok(Self::Windows),
+            "android" => Ok(Self::Android),
+            "sunos" => Ok(Self::SunOs),
+            "common" => Ok(Self::Common),
+            _ => Err(format!("invalid platform '{s}' (possible values: linux, macos, osx, windows, android, sunos, common)'"))
         }
     }
 }
@@ -95,7 +96,7 @@ impl Display for Platform {
                 Self::Windows => "windows",
                 Self::Android => "android",
                 Self::SunOs => "sunos",
-                Self::Other => unreachable!(),
+                Self::Common => "common",
             }
         )
     }

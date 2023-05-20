@@ -145,7 +145,7 @@ impl Cache {
         let page_file = format!("{page}.md");
         let language_dirs = languages_to_langdirs(languages);
 
-        if platform != &Platform::Other {
+        if platform != &Platform::Common {
             if let Some(page_path) =
                 self.find_page(&page_file, &platform.to_string(), &language_dirs)
             {
@@ -170,7 +170,7 @@ impl Cache {
             if let Some(page_path) =
                 self.find_page(&page_file, &alt_platform.to_string(), &language_dirs)
             {
-                if platform == &Platform::Other {
+                if platform == &Platform::Common {
                     warnln!(
                         "showing page from platform '{alt_platform}', \
                     because '{page}' does not exist in 'common'"
@@ -211,8 +211,8 @@ impl Cache {
 
     /// List all pages in `platform` and common.
     pub fn list_platform(&self, platform: &Platform) -> Result<()> {
-        let entries: Vec<PathBuf> = if platform == &Platform::Other {
-            self.list_dir("common")?
+        let entries: Vec<PathBuf> = if platform == &Platform::Common {
+            self.list_dir(&platform.to_string())?
         } else {
             self.list_dir(&platform.to_string())?
                 .into_iter()
