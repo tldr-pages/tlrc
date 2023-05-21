@@ -148,7 +148,7 @@ pub struct Cli {
     #[arg(long, group = "operations")]
     pub config_path: bool,
 
-    /// Specify the platform to use [linux, macos/osx, windows, android, sunos].
+    /// Specify the platform to use [linux, macos/osx, windows, android, sunos, common].
     #[arg(short, long)]
     pub platform: Option<Platform>,
 
