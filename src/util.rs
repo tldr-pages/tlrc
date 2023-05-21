@@ -61,7 +61,7 @@ pub fn get_languages_from_env() -> Vec<String> {
     }
 
     result.push("en");
-    dedup_nosort(&mut result);
+    result.dedup_nosort();
 
     result.into_iter().map(String::from).collect()
 }
@@ -80,12 +80,17 @@ pub fn languages_to_langdirs(languages: &[String]) -> Vec<String> {
         .collect()
 }
 
-/// Deduplicate a vector in place preserving the order of elements.
-fn dedup_nosort<T>(vec: &mut Vec<T>)
+trait Dedup {
+    /// Deduplicate a vector in place preserving the order of elements.
+    fn dedup_nosort(&mut self);
+}
+
+impl<T> Dedup for Vec<T>
 where
     T: Hash + Eq + Copy,
 {
-    let mut set = HashSet::new();
-
-    vec.retain(|x| set.insert(*x));
+    fn dedup_nosort(&mut self) {
+        let mut set = HashSet::new();
+        self.retain(|x| set.insert(*x));
+    }
 }
