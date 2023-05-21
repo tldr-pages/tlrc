@@ -8,6 +8,7 @@ A [tldr](https://tldr.sh) client written in Rust.
 [![release](https://img.shields.io/github/v/release/acuteenvy/tlrc?&logo=github&color=cba6f7&logoColor=d9e0ee&labelColor=363a4f)][latest-release]
 [![crates.io](https://img.shields.io/crates/v/tlrc?&logo=rust&color=cba6f7&logoColor=d9e0ee&labelColor=363a4f)][crate]
 [![license](https://img.shields.io/github/license/acuteenvy/tlrc?color=b4befe&labelColor=363a4f)](/LICENSE)
+<br>
 [![github downloads](https://img.shields.io/github/downloads/acuteenvy/tlrc/total?logo=github&color=94e2d5&logoColor=d9e0ee&labelColor=363a4f)][latest-release]
 [![crates.io downloads](https://img.shields.io/crates/d/tlrc?logo=rust&color=94e2d5&logoColor=d9e0ee&labelColor=363a4f)][crate]
 
@@ -48,7 +49,8 @@ dir = "/path/to/cache"
 # Automatically update the cache when it is if it is older than max_age hours.
 auto_update = true
 max_age = 336
-# Specify a list of desired page languages. If it is empty, all languages are downloaded.
+# Specify a list of desired page languages. If it is empty, languages specified in
+# the LANG and LANGUAGE environment variables are downloaded.
 # English is implied and will always be downloaded.
 # You can see a list of language codes here: https://github.com/tldr-pages/tldr
 # Example: ["de", "pl"]
@@ -68,51 +70,72 @@ raw_markdown = false
 # 256color ANSI code: { color256 = 50 }
 # RGB:                { rgb = [0, 255, 255] }
 color = "magenta"
+background = "default"
 bold = true
 underline = false
 italic = false
+dim = false
+strikethrough = false
 
 # Style for the description of the page.
 [style.description]
 color = "magenta"
+background = "default"
 bold = false
 underline = false
 italic = false
+dim = false
+strikethrough = false
 
 # Style for the description of examples.
 [style.bullet]
 color = "green"
+background = "default"
 bold = false
 underline = false
 italic = false
+dim = false
+strikethrough = false
 
 # Style for command examples.
 [style.example]
 color = "cyan"
+background = "default"
 bold = false
 underline = false
 italic = false
+dim = false
+strikethrough = false
 
 # Style for URLs inside the description.
 [style.url]
 color = "red"
+background = "default"
 bold = false
 underline = false
 italic = true
+dim = false
+strikethrough = false
 
 # Style for text surrounded by backticks (`).
 [style.inline_code]
 color = "yellow"
+background = "default"
 bold = false
 underline = false
 italic = true
+dim = false
+strikethrough = false
 
 # Style for placeholders inside command examples.
 [style.placeholder]
 color = "red"
+background = "default"
 bold = false
 underline = false
 italic = true
+dim = false
+strikethrough = false
 ```
 
 [latest-release]: https://github.com/acuteenvy/tlrc/releases/latest
