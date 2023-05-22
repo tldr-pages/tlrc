@@ -1,6 +1,10 @@
+use std::io;
+use std::io::Write;
+
 use yansi::Style;
 
 use crate::config::{OutputConfig, StyleConfig};
+use crate::error::Result;
 
 const TITLE: &str = "# ";
 const DESC: &str = "> ";
@@ -39,10 +43,16 @@ fn highlight_between(
 }
 
 /// Print the given page to stdout.
-pub fn print_page(page_string: &str, outputcfg: &OutputConfig, stylecfg: StyleConfig) {
+pub fn print_page(
+    page_string: &str,
+    outputcfg: &OutputConfig,
+    stylecfg: StyleConfig,
+) -> Result<()> {
+    let mut lock = io::stdout().lock();
+
     if outputcfg.raw_markdown {
-        print!("{page_string}");
-        return;
+        write!(lock, "{page_string}")?;
+        return Ok(());
     }
 
     let title: Style = stylecfg.title.into();
@@ -56,11 +66,16 @@ pub fn print_page(page_string: &str, outputcfg: &OutputConfig, stylecfg: StyleCo
     for line in page_string.lines() {
         if outputcfg.show_title && line.starts_with(TITLE) {
             if !outputcfg.compact {
-                println!();
+                writeln!(lock)?;
             }
-            println!("  {}", title.paint(&line.strip_prefix(TITLE).unwrap()));
+            writeln!(
+                lock,
+                "  {}",
+                title.paint(&line.strip_prefix(TITLE).unwrap())
+            )?;
         } else if line.starts_with(DESC) {
-            println!(
+            writeln!(
+                lock,
                 "  {}",
                 highlight_between(
                     "`",
@@ -69,9 +84,10 @@ pub fn print_page(page_string: &str, outputcfg: &OutputConfig, stylecfg: StyleCo
                     &desc,
                     &inline_code
                 )
-            );
+            )?;
         } else if line.starts_with(BULLET) {
-            println!(
+            writeln!(
+                lock,
                 "  {}",
                 highlight_between(
                     "`",
@@ -80,9 +96,10 @@ pub fn print_page(page_string: &str, outputcfg: &OutputConfig, stylecfg: StyleCo
                     &bullet,
                     &inline_code,
                 )
-            );
+            )?;
         } else if line.starts_with(EXAMPLE) {
-            println!(
+            writeln!(
+                lock,
                 "    {}",
                 highlight_between(
                     "{{",
@@ -94,13 +111,15 @@ pub fn print_page(page_string: &str, outputcfg: &OutputConfig, stylecfg: StyleCo
                     &example,
                     &placeholder,
                 )
-            );
+            )?;
         } else if !outputcfg.compact && line.is_empty() {
-            println!();
+            writeln!(lock)?;
         }
     }
 
     if !outputcfg.compact {
-        println!();
+        writeln!(lock)?;
     }
+
+    Ok(())
 }

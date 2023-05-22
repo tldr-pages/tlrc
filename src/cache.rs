@@ -136,12 +136,7 @@ impl Cache {
     }
 
     /// If the page exists, return the path to it.
-    pub fn find(
-        &self,
-        page: &str,
-        languages: &[String],
-        platform: &Platform,
-    ) -> StdResult<PathBuf, String> {
+    pub fn find(&self, page: &str, languages: &[String], platform: &Platform) -> Result<PathBuf> {
         let page_file = format!("{page}.md");
         let language_dirs = languages_to_langdirs(languages);
 
@@ -185,7 +180,7 @@ impl Cache {
             }
         }
 
-        Err("page not found.".to_string())
+        Err(Error::new("page not found."))
     }
 
     /// List all available pages in English for `platform`.
@@ -197,7 +192,7 @@ impl Cache {
         )
     }
 
-    fn print_basenames(entries: &[PathBuf]) {
+    fn print_basenames(entries: &[PathBuf]) -> Result<()> {
         let mut pages: Vec<String> = entries
             .iter()
             .map(|x| Path::new(x.file_stem().unwrap()).display().to_string())
@@ -206,7 +201,7 @@ impl Cache {
         pages.sort();
         pages.dedup();
 
-        println!("{}", pages.join("\n"));
+        Ok(writeln!(io::stdout(), "{}", pages.join("\n"))?)
     }
 
     /// List all pages in `platform` and common.
@@ -220,9 +215,7 @@ impl Cache {
                 .collect()
         };
 
-        Self::print_basenames(&entries);
-
-        Ok(())
+        Self::print_basenames(&entries)
     }
 
     /// List all pages.
@@ -237,9 +230,7 @@ impl Cache {
             .chain(self.list_dir("common")?)
             .collect();
 
-        Self::print_basenames(&entries);
-
-        Ok(())
+        Self::print_basenames(&entries)
     }
 
     /// Return `true` if the cache is older than `max_age`.
@@ -248,11 +239,10 @@ impl Cache {
             .modified()?
             .elapsed()
             .map_err(|_| {
-                Error::Msg(
+                Error::new(
                     "the system clock is not functioning correctly.\n\
             Modification time of the cache is later than the current system time.\n\
-            Please fix your system clock."
-                        .to_string(),
+            Please fix your system clock.",
                 )
             })?;
 

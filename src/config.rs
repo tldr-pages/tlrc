@@ -1,13 +1,14 @@
-use std::fs;
+use std::io::Write;
 use std::path::PathBuf;
 use std::process::exit;
 use std::time::Duration;
+use std::{fs, io};
 
 use serde::{Deserialize, Serialize};
 use yansi::{Color, Style};
 
 use crate::cache::Cache;
-use crate::error::{Error, Result};
+use crate::error::{Error, ErrorKind, Result};
 use crate::util::warnln;
 
 #[derive(Serialize, Deserialize, Default)]
@@ -261,7 +262,7 @@ pub struct Config {
 impl Config {
     fn parse(file: PathBuf) -> Result<Self> {
         Ok(toml::from_str(&fs::read_to_string(file).map_err(|e| {
-            Error::Msg(format!("could not read the config: {e}"))
+            Error::new(format!("could not read the config: {e}")).kind(ErrorKind::Io)
         })?)?)
     }
 
@@ -328,7 +329,7 @@ pub fn gen_config_and_exit() -> Result<()> {
     Config::default()
         .serialize(toml::Serializer::new(&mut config))
         .unwrap();
-    print!("{config}");
+    write!(io::stdout(), "{config}")?;
 
     exit(0);
 }

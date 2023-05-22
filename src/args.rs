@@ -117,7 +117,7 @@ impl Display for Platform {
 )]
 pub struct Cli {
     /// The tldr page to show.
-    #[arg(group = "operations")]
+    #[arg(group = "operations", required = true)]
     pub page: Vec<String>,
 
     /// Update the cache.

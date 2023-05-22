@@ -13,6 +13,7 @@ mod util;
 use std::env;
 use std::fs;
 use std::io;
+use std::io::Write;
 use std::process::exit;
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -23,7 +24,7 @@ use yansi::Paint;
 use crate::args::{Cli, ColorMode, Platform};
 use crate::cache::Cache;
 use crate::config::{gen_config_and_exit, Config};
-use crate::error::{Error, Result};
+use crate::error::{ErrorKind, Result};
 use crate::output::print_page;
 use crate::util::{get_languages_from_env, infoln, warnln};
 
@@ -51,7 +52,7 @@ fn run() -> Result<()> {
     let cli = Cli::parse();
 
     if cli.config_path {
-        println!("{}", Config::locate().display());
+        writeln!(io::stdout(), "{}", Config::locate().display())?;
         exit(0);
     }
 
@@ -98,12 +99,8 @@ fn run() -> Result<()> {
         exit(0);
     } else if let Some(path) = cli.render {
         let page = fs::read_to_string(path)?;
-        print_page(&page, &config.output, config.style);
+        print_page(&page, &config.output, config.style)?;
         exit(0);
-    }
-
-    if cli.page.is_empty() {
-        return Err(Error::Argument("page not specified".to_string()));
     }
 
     if config.cache.auto_update && cache.is_stale(&config.cache_max_age())? {
@@ -111,15 +108,15 @@ fn run() -> Result<()> {
             warnln!("cache is stale. Run tldr without --offline to update.");
         } else {
             infoln!("cache is stale, updating...");
-            cache.update(languages_to_download).map_err(|e| {
-                match e {
-                    Error::Download(desc) => {
-                        Error::Download(format!("{desc}\n\
-                        A download error occurred. To skip updating the cache, run tldr with --offline."))
-                    },
+            cache
+                .update(languages_to_download)
+                .map_err(|e| match e.kind {
+                    ErrorKind::Download => e.describe(
+                        "\n\nA download error occurred. \
+                        To skip updating the cache, run tldr with --offline.",
+                    ),
                     _ => e,
-                }
-            })?;
+                })?;
         }
     }
 
@@ -127,10 +124,10 @@ fn run() -> Result<()> {
 
     let page_path = cache.find(&page_name, &languages, &platform).map_err(|e| {
         if languages_are_from_cli {
-            Error::Msg(format!("{e} Try running tldr without --language."))
+            e.describe("Try running tldr without --language.")
         } else {
-            Error::Msg(format!(
-                "{e} Please run 'tldr --update'.\n\n\
+            e.describe(format!(
+                "Please run 'tldr --update'.\n\n\
             If you want to request creation of that page, you can file an issue here:\n\
             {}\n\
             or document it yourself and create a pull request here:\n\
@@ -145,9 +142,7 @@ fn run() -> Result<()> {
         &fs::read_to_string(page_path)?,
         &config.output,
         config.style,
-    );
-
-    Ok(())
+    )
 }
 
 fn main() {

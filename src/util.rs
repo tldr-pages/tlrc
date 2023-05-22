@@ -2,14 +2,14 @@ use std::collections::HashSet;
 use std::env;
 use std::hash::Hash;
 
-use yansi::{Color, Paint};
-
 /// Prints a warning.
 macro_rules! warnln {
     ( $( $arg:tt )*) => {
         if !$crate::QUIET.load(std::sync::atomic::Ordering::Relaxed) {
-            eprint!("{} ", yansi::Paint::new("warning:").fg(yansi::Color::Yellow).bold());
-            eprintln!($($arg)*);
+            use std::io::Write;
+            let mut lock = std::io::stderr().lock();
+            write!(lock, "{} ", yansi::Paint::new("warning:").fg(yansi::Color::Yellow).bold())?;
+            writeln!(lock, $($arg)*)?;
         }
     };
 }
@@ -18,17 +18,15 @@ macro_rules! warnln {
 macro_rules! infoln {
     ( $( $arg:tt )*) => {
         if !$crate::QUIET.load(std::sync::atomic::Ordering::Relaxed) {
-            eprint!("{} ", yansi::Paint::new("info:").fg(yansi::Color::Cyan).bold());
-            eprintln!($($arg)*);
+            use std::io::Write;
+            let mut lock = std::io::stderr().lock();
+            write!(lock, "{} ", yansi::Paint::new("info:").fg(yansi::Color::Cyan).bold())?;
+            writeln!(lock, $($arg)*)?;
         }
     };
 }
 
 pub(crate) use {infoln, warnln};
-
-pub fn error(msg: &str) {
-    eprintln!("{} {msg}", Paint::new("error:").fg(Color::Red).bold());
-}
 
 pub fn get_languages_from_env() -> Vec<String> {
     // https://github.com/tldr-pages/tldr/blob/main/CLIENT-SPECIFICATION.md#language
