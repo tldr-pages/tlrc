@@ -12,9 +12,8 @@ mod util;
 
 use std::env;
 use std::fs;
-use std::io;
-use std::io::Write;
-use std::process::exit;
+use std::io::{self, Write};
+use std::process;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use clap::Parser;
@@ -53,7 +52,7 @@ fn run() -> Result<()> {
 
     if cli.config_path {
         writeln!(io::stdout(), "{}", Config::locate().display())?;
-        exit(0);
+        process::exit(0);
     }
 
     if cli.gen_config {
@@ -79,13 +78,13 @@ fn run() -> Result<()> {
 
     if cli.clean_cache {
         cache.clean()?;
-        exit(0);
+        process::exit(0);
     } else if cli.update {
         cache.update(languages_to_download)?;
-        exit(0);
+        process::exit(0);
     } else if cli.list_all {
         cache.list_all()?;
-        exit(0);
+        process::exit(0);
     }
 
     if !cache.exists() {
@@ -96,11 +95,11 @@ fn run() -> Result<()> {
     let platform = cli.platform.unwrap_or_else(Platform::get);
     if cli.list {
         cache.list_platform(&platform)?;
-        exit(0);
+        process::exit(0);
     } else if let Some(path) = cli.render {
         let page = fs::read_to_string(path)?;
         print_page(&page, &config.output, config.style)?;
-        exit(0);
+        process::exit(0);
     }
 
     if config.cache.auto_update && cache.is_stale(&config.cache_max_age())? {
@@ -122,21 +121,35 @@ fn run() -> Result<()> {
 
     let page_name = cli.page.join("-").to_lowercase();
 
-    let page_path = cache.find(&page_name, &languages, &platform).map_err(|e| {
-        if languages_are_from_cli {
-            e.describe("Try running tldr without --language.")
-        } else {
-            e.describe(format!(
-                "Please run 'tldr --update'.\n\n\
-            If you want to request creation of that page, you can file an issue here:\n\
-            {}\n\
-            or document it yourself and create a pull request here:\n\
-            {}",
-                Paint::new("https://github.com/tldr-pages/tldr/issues").bold(),
-                Paint::new("https://github/com/tldr-pages/tldr/pulls").bold()
-            ))
-        }
-    })?;
+    let page_path = cache
+        .find(&page_name, &languages, &platform)
+        .map_err(|mut e| {
+            if languages_are_from_cli {
+                e = e.describe("Try running tldr without --language.");
+
+                // This checks whether any language specified on the cli would not be downloaded
+                // during a cache update.
+                if !languages_to_download.iter().all(|x| languages.contains(x)) {
+                    e = e.describe(
+                        "\n\nThe language you are trying to view the page in \
+                        may not be installed.\n\
+                        Please update your config and run 'tldr --update' to install a new language.",
+                    );
+                }
+
+                e
+            } else {
+                e.describe(format!(
+                    "Try running 'tldr --update'.\n\n\
+                    If the page does not exist, you can create an issue here:\n\
+                    {}\n\
+                    or document it yourself and create a pull request here:\n\
+                    {}",
+                    Paint::new("https://github.com/tldr-pages/tldr/issues").bold(),
+                    Paint::new("https://github/com/tldr-pages/tldr/pulls").bold()
+                ))
+            }
+        })?;
 
     print_page(
         &fs::read_to_string(page_path)?,

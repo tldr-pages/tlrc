@@ -1,6 +1,6 @@
 use std::fmt::Display;
 use std::io::{self, Write};
-use std::process::exit;
+use std::process;
 use std::result::Result as StdResult;
 
 use yansi::{Color, Paint};
@@ -60,7 +60,7 @@ impl Error {
         )
         .unwrap_or_default();
 
-        exit(match self.kind {
+        process::exit(match self.kind {
             ErrorKind::Msg | ErrorKind::Io => 1,
             ErrorKind::ParseToml => 3,
             ErrorKind::Download => 4,

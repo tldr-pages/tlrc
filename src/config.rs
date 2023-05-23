@@ -1,8 +1,8 @@
-use std::io::Write;
+use std::fs;
+use std::io::{self, Write};
 use std::path::PathBuf;
-use std::process::exit;
+use std::process;
 use std::time::Duration;
-use std::{fs, io};
 
 use serde::{Deserialize, Serialize};
 use yansi::{Color, Style};
@@ -225,14 +225,17 @@ pub struct CacheConfig {
     /// Cache directory.
     #[serde(default = "Cache::locate")]
     pub dir: PathBuf,
+
     /// Automatically update the cache
     /// if it is older than `max_age` hours.
     #[serde(default = "bool_true")]
     pub auto_update: bool,
+
     /// Max cache age in hours.
     #[serde(default = "default_cache_max_age")]
     max_age: u64,
-    /// Languages to download. If empty, download everything.
+
+    /// Languages to download.
     #[serde(default = "Vec::new")]
     pub languages: Vec<String>,
 }
@@ -240,12 +243,14 @@ pub struct CacheConfig {
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct OutputConfig {
-    /// Show page title.
+    /// Show the page title.
     #[serde(default = "bool_true")]
     pub show_title: bool,
+
     /// Strip empty lines from pages.
     #[serde(default = "bool_false")]
     pub compact: bool,
+
     /// Print pages in raw markdown.
     #[serde(default = "bool_false")]
     pub raw_markdown: bool,
@@ -331,5 +336,5 @@ pub fn gen_config_and_exit() -> Result<()> {
         .unwrap();
     write!(io::stdout(), "{config}")?;
 
-    exit(0);
+    process::exit(0);
 }

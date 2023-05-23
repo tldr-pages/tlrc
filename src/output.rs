@@ -1,5 +1,4 @@
-use std::io;
-use std::io::Write;
+use std::io::{self, BufWriter, Write};
 
 use yansi::Style;
 
@@ -48,12 +47,11 @@ pub fn print_page(
     outputcfg: &OutputConfig,
     stylecfg: StyleConfig,
 ) -> Result<()> {
-    let mut lock = io::stdout().lock();
-
     if outputcfg.raw_markdown {
-        write!(lock, "{page_string}")?;
+        write!(io::stdout(), "{page_string}")?;
         return Ok(());
     }
+    let mut handle = BufWriter::new(io::stdout().lock());
 
     let title: Style = stylecfg.title.into();
     let desc: Style = stylecfg.description.into();
@@ -66,16 +64,16 @@ pub fn print_page(
     for line in page_string.lines() {
         if outputcfg.show_title && line.starts_with(TITLE) {
             if !outputcfg.compact {
-                writeln!(lock)?;
+                writeln!(handle)?;
             }
             writeln!(
-                lock,
+                handle,
                 "  {}",
                 title.paint(&line.strip_prefix(TITLE).unwrap())
             )?;
         } else if line.starts_with(DESC) {
             writeln!(
-                lock,
+                handle,
                 "  {}",
                 highlight_between(
                     "`",
@@ -87,7 +85,7 @@ pub fn print_page(
             )?;
         } else if line.starts_with(BULLET) {
             writeln!(
-                lock,
+                handle,
                 "  {}",
                 highlight_between(
                     "`",
@@ -99,7 +97,7 @@ pub fn print_page(
             )?;
         } else if line.starts_with(EXAMPLE) {
             writeln!(
-                lock,
+                handle,
                 "    {}",
                 highlight_between(
                     "{{",
@@ -113,13 +111,15 @@ pub fn print_page(
                 )
             )?;
         } else if !outputcfg.compact && line.is_empty() {
-            writeln!(lock)?;
+            writeln!(handle)?;
         }
     }
 
     if !outputcfg.compact {
-        writeln!(lock)?;
+        writeln!(handle)?;
     }
+
+    handle.flush()?;
 
     Ok(())
 }

@@ -1,7 +1,5 @@
-use std::fs;
-use std::fs::File;
-use std::io::Write;
-use std::io::{self, Cursor, Read};
+use std::fs::{self, File};
+use std::io::{self, Cursor, Read, Write};
 use std::path::{Path, PathBuf};
 use std::result::Result as StdResult;
 use std::time::Duration;
