@@ -50,21 +50,21 @@ pub enum Platform {
     Common,
 }
 
-impl Platform {
+impl Default for Platform {
     #[cfg(target_os = "linux")]
-    pub const fn get() -> Self {
+    fn default() -> Self {
         Self::Linux
     }
     #[cfg(target_os = "macos")]
-    pub const fn get() -> Self {
+    fn default() -> Self {
         Self::OsX
     }
     #[cfg(target_os = "windows")]
-    pub const fn get() -> Self {
+    fn default() -> Self {
         Self::Windows
     }
     #[cfg(not(any(target_os = "linux", target_os = "macos", target_os = "windows",)))]
-    pub const fn get() -> Self {
+    fn default() -> Self {
         Self::Common
     }
 }

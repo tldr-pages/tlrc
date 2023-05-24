@@ -19,7 +19,7 @@ use clap::Parser;
 use is_terminal::IsTerminal;
 use yansi::Paint;
 
-use crate::args::{Cli, ColorMode, Platform};
+use crate::args::{Cli, ColorMode};
 use crate::cache::Cache;
 use crate::config::{gen_config_and_exit, Config};
 use crate::error::{ErrorKind, Result};
@@ -91,7 +91,7 @@ fn run() -> Result<()> {
         cache.update(languages_to_download)?;
     }
 
-    let platform = cli.platform.unwrap_or_else(Platform::get);
+    let platform = cli.platform.unwrap_or_default();
     if cli.list {
         cache.list_platform(&platform)?;
         process::exit(0);
