@@ -166,12 +166,12 @@ impl Cache {
                 if platform == &Platform::Common {
                     warnln!(
                         "showing page from platform '{alt_platform}', \
-                    because '{page}' does not exist in 'common'"
+                        because '{page}' does not exist in 'common'"
                     );
                 } else {
                     warnln!(
                         "showing page from platform '{alt_platform}', \
-                    because '{page}' does not exist in '{platform}' and 'common'"
+                        because '{page}' does not exist in '{platform}' and 'common'"
                     );
                 }
                 return Ok(page_path);
@@ -239,8 +239,8 @@ impl Cache {
             .map_err(|_| {
                 Error::new(
                     "the system clock is not functioning correctly.\n\
-            Modification time of the cache is later than the current system time.\n\
-            Please fix your system clock.",
+                    Modification time of the cache is later than the current system time.\n\
+                    Please fix your system clock.",
                 )
             })?;
 
