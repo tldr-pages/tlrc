@@ -1,9 +1,11 @@
-use std::io::{self, BufWriter, Write};
+use std::fs::{self, File};
+use std::io::{self, BufRead, BufReader, BufWriter, Write};
+use std::path::Path;
 
 use yansi::Style;
 
 use crate::config::{OutputConfig, StyleConfig};
-use crate::error::Result;
+use crate::error::{Error, Result};
 
 const TITLE: &str = "# ";
 const DESC: &str = "> ";
@@ -41,17 +43,12 @@ fn highlight_between(
     result
 }
 
-/// Print the given page to stdout.
-pub fn print_page(
-    page_string: &str,
-    outputcfg: &OutputConfig,
-    stylecfg: StyleConfig,
-) -> Result<()> {
+/// Read and print the given page to stdout.
+pub fn print_page(page_path: &Path, outputcfg: &OutputConfig, stylecfg: StyleConfig) -> Result<()> {
     if outputcfg.raw_markdown {
-        write!(io::stdout(), "{page_string}")?;
+        write!(io::stdout(), "{}", fs::read_to_string(page_path)?)?;
         return Ok(());
     }
-    let mut handle = BufWriter::new(io::stdout().lock());
 
     let title: Style = stylecfg.title.into();
     let desc: Style = stylecfg.description.into();
@@ -61,19 +58,24 @@ pub fn print_page(
     let inline_code: Style = stylecfg.inline_code.into();
     let placeholder: Style = stylecfg.placeholder.into();
 
-    for line in page_string.lines() {
+    let reader = BufReader::new(File::open(page_path)?);
+    let mut stdout = BufWriter::new(io::stdout().lock());
+
+    for (i, line) in reader.lines().enumerate() {
+        let line = line?;
+
         if outputcfg.show_title && line.starts_with(TITLE) {
             if !outputcfg.compact {
-                writeln!(handle)?;
+                writeln!(stdout)?;
             }
             writeln!(
-                handle,
+                stdout,
                 "  {}",
                 title.paint(&line.strip_prefix(TITLE).unwrap())
             )?;
         } else if line.starts_with(DESC) {
             writeln!(
-                handle,
+                stdout,
                 "  {}",
                 highlight_between(
                     "`",
@@ -85,7 +87,7 @@ pub fn print_page(
             )?;
         } else if line.starts_with(BULLET) {
             writeln!(
-                handle,
+                stdout,
                 "  {}",
                 highlight_between(
                     "`",
@@ -97,7 +99,7 @@ pub fn print_page(
             )?;
         } else if line.starts_with(EXAMPLE) {
             writeln!(
-                handle,
+                stdout,
                 "    {}",
                 highlight_between(
                     "{{",
@@ -105,21 +107,25 @@ pub fn print_page(
                     line.strip_prefix(EXAMPLE)
                         .unwrap()
                         .strip_suffix(EXAMPLE)
-                        .unwrap(),
+                        .ok_or_else(|| Error::parse_page(page_path, i, &line)
+                            .describe("\n\nunclosed backtick '`'"))?,
                     &example,
                     &placeholder,
                 )
             )?;
         } else if !outputcfg.compact && line.is_empty() {
-            writeln!(handle)?;
+            writeln!(stdout)?;
+        } else {
+            return Err(Error::parse_page(page_path, i, &line)
+                .describe("\n\nEvery line must begin with either '#', '> ', '- ' or '`'"));
         }
     }
 
     if !outputcfg.compact {
-        writeln!(handle)?;
+        writeln!(stdout)?;
     }
 
-    handle.flush()?;
+    stdout.flush()?;
 
     Ok(())
 }

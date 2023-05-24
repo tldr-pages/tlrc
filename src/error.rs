@@ -1,5 +1,6 @@
 use std::fmt::Display;
 use std::io::{self, Write};
+use std::path::Path;
 use std::process;
 use std::result::Result as StdResult;
 
@@ -7,6 +8,7 @@ use yansi::{Color, Paint};
 
 pub enum ErrorKind {
     ParseToml,
+    ParsePage,
     Download,
     Io,
     Msg,
@@ -51,6 +53,16 @@ impl Error {
         self
     }
 
+    pub fn parse_page(page_path: &Path, i: usize, line: &str) -> Self {
+        Error::new(format!(
+            "'{}' is not a valid tldr page. (line {}):\n\n    {}",
+            page_path.display(),
+            i + 1,
+            Paint::new(line).bold(),
+        ))
+        .kind(ErrorKind::ParsePage)
+    }
+
     /// Print the error message to stderr and exit.
     pub fn exit(self) -> ! {
         writeln!(
@@ -64,6 +76,7 @@ impl Error {
             ErrorKind::Msg | ErrorKind::Io => 1,
             ErrorKind::ParseToml => 3,
             ErrorKind::Download => 4,
+            ErrorKind::ParsePage => 5,
         });
     }
 }

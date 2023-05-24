@@ -11,7 +11,6 @@ mod output;
 mod util;
 
 use std::env;
-use std::fs;
 use std::io::{self, Write};
 use std::process;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -97,8 +96,7 @@ fn run() -> Result<()> {
         cache.list_platform(&platform)?;
         process::exit(0);
     } else if let Some(path) = cli.render {
-        let page = fs::read_to_string(path)?;
-        print_page(&page, &config.output, config.style)?;
+        print_page(&path, &config.output, config.style)?;
         process::exit(0);
     }
 
@@ -151,11 +149,7 @@ fn run() -> Result<()> {
             }
         })?;
 
-    print_page(
-        &fs::read_to_string(page_path)?,
-        &config.output,
-        config.style,
-    )
+    print_page(&page_path, &config.output, config.style)
 }
 
 fn main() {
