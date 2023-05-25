@@ -1,7 +1,5 @@
 use std::fs;
-use std::io::{self, Write};
 use std::path::PathBuf;
-use std::process;
 use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
@@ -327,14 +325,4 @@ impl Default for Config {
             },
         }
     }
-}
-
-pub fn gen_config_and_exit() -> Result<()> {
-    let mut config = String::new();
-    Config::default()
-        .serialize(toml::Serializer::new(&mut config))
-        .unwrap();
-    write!(io::stdout(), "{config}")?;
-
-    process::exit(0);
 }

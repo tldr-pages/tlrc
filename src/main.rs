@@ -12,7 +12,6 @@ mod util;
 
 use std::env;
 use std::io::{self, Write};
-use std::process;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use clap::Parser;
@@ -21,7 +20,7 @@ use yansi::Paint;
 
 use crate::args::{Cli, ColorMode};
 use crate::cache::Cache;
-use crate::config::{gen_config_and_exit, Config};
+use crate::config::Config;
 use crate::error::{ErrorKind, Result};
 use crate::output::print_page;
 use crate::util::{get_languages_from_env, infoln, warnln};
@@ -51,11 +50,16 @@ fn run() -> Result<()> {
 
     if cli.config_path {
         writeln!(io::stdout(), "{}", Config::locate().display())?;
-        process::exit(0);
+        return Ok(());
     }
 
     if cli.gen_config {
-        gen_config_and_exit()?;
+        write!(
+            io::stdout(),
+            "{}",
+            toml::ser::to_string_pretty(&Config::default()).unwrap()
+        )?;
+        return Ok(());
     }
 
     if cli.quiet {
@@ -76,14 +80,11 @@ fn run() -> Result<()> {
     };
 
     if cli.clean_cache {
-        cache.clean()?;
-        process::exit(0);
+        return cache.clean();
     } else if cli.update {
-        cache.update(languages_to_download)?;
-        process::exit(0);
+        return cache.update(languages_to_download);
     } else if cli.list_all {
-        cache.list_all()?;
-        process::exit(0);
+        return cache.list_all();
     }
 
     if !cache.exists() {
@@ -93,11 +94,9 @@ fn run() -> Result<()> {
 
     let platform = cli.platform.unwrap_or_default();
     if cli.list {
-        cache.list_platform(&platform)?;
-        process::exit(0);
+        return cache.list_platform(&platform);
     } else if let Some(path) = cli.render {
-        print_page(&path, &config.output, config.style)?;
-        process::exit(0);
+        return print_page(&path, &config.output, config.style);
     }
 
     if config.cache.auto_update && cache.is_stale(&config.cache_max_age())? {
