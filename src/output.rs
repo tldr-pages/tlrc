@@ -64,7 +64,10 @@ pub fn print_page(page_path: &Path, outputcfg: &OutputConfig, stylecfg: StyleCon
     for (i, line) in reader.lines().enumerate() {
         let line = line?;
 
-        if outputcfg.show_title && line.starts_with(TITLE) {
+        if line.starts_with(TITLE) {
+            if !outputcfg.show_title {
+                continue;
+            }
             if !outputcfg.compact {
                 writeln!(stdout)?;
             }
@@ -113,8 +116,10 @@ pub fn print_page(page_path: &Path, outputcfg: &OutputConfig, stylecfg: StyleCon
                     &placeholder,
                 )
             )?;
-        } else if !outputcfg.compact && line.is_empty() {
-            writeln!(stdout)?;
+        } else if line.is_empty() {
+            if !outputcfg.compact {
+                writeln!(stdout)?;
+            }
         } else {
             return Err(Error::parse_page(page_path, i, &line)
                 .describe("\n\nEvery line must begin with either '#', '> ', '- ' or '`'"));
