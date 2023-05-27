@@ -1,4 +1,4 @@
-use std::fs::{self, File};
+use std::fs::File;
 use std::io::{self, BufRead, BufReader, BufWriter, Write};
 use std::path::Path;
 
@@ -45,8 +45,12 @@ fn highlight_between(
 
 /// Read and print the given page to stdout.
 pub fn print_page(page_path: &Path, outputcfg: &OutputConfig, stylecfg: StyleConfig) -> Result<()> {
+    let mut reader = BufReader::new(File::open(page_path)?);
+    let mut stdout = BufWriter::new(io::stdout().lock());
+
     if outputcfg.raw_markdown {
-        write!(io::stdout(), "{}", fs::read_to_string(page_path)?)?;
+        io::copy(&mut reader, &mut stdout)?;
+        stdout.flush()?;
         return Ok(());
     }
 
@@ -57,9 +61,6 @@ pub fn print_page(page_path: &Path, outputcfg: &OutputConfig, stylecfg: StyleCon
     let url: Style = stylecfg.url.into();
     let inline_code: Style = stylecfg.inline_code.into();
     let placeholder: Style = stylecfg.placeholder.into();
-
-    let reader = BufReader::new(File::open(page_path)?);
-    let mut stdout = BufWriter::new(io::stdout().lock());
 
     for (i, line) in reader.lines().enumerate() {
         let line = line?;
