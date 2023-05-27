@@ -59,7 +59,7 @@ languages = []
 [output]
 # Show the command name in the page.
 show_title = true
-# Strip newlines from output.
+# Strip empty lines from output.
 compact = false
 # Print pages in raw markdown.
 raw_markdown = false
