@@ -68,8 +68,10 @@ fn run() -> Result<()> {
 
     init_color(&cli.color);
 
-    let config = Config::new(cli.config)?;
+    let mut config = Config::new(cli.config)?;
     let cache = Cache::new(&config.cache.dir);
+    config.output.compact = !cli.no_compact && (cli.compact || config.output.compact);
+    config.output.raw_markdown = !cli.no_raw && (cli.raw || config.output.raw_markdown);
 
     let languages_are_from_cli = cli.languages.is_some();
     let languages = cli.languages.unwrap_or_else(get_languages_from_env);

@@ -160,6 +160,22 @@ pub struct Cli {
     #[arg(short, long)]
     pub offline: bool,
 
+    /// Strip empty lines from output.
+    #[arg(short, long)]
+    pub compact: bool,
+
+    /// Do not strip empty lines from output (overrides --compact).
+    #[arg(long)]
+    pub no_compact: bool,
+
+    /// Print pages in raw markdown instead of rendering them.
+    #[arg(short = 'R', long)]
+    pub raw: bool,
+
+    /// Render pages instead of printing raw file contents (overrides --raw).
+    #[arg(long)]
+    pub no_raw: bool,
+
     /// Supress status messages.
     #[arg(short, long)]
     pub quiet: bool,
