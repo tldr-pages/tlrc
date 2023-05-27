@@ -98,7 +98,7 @@ fn run() -> Result<()> {
     if cli.list {
         return cache.list_platform(&platform);
     } else if let Some(path) = cli.render {
-        return print_page(&path, &config.output, config.style);
+        return print_page(&path, &config.output, &config.indent, config.style);
     }
 
     if config.cache.auto_update && cache.is_stale(&config.cache_max_age())? {
@@ -150,7 +150,7 @@ fn run() -> Result<()> {
             }
         })?;
 
-    print_page(&page_path, &config.output, config.style)
+    print_page(&page_path, &config.output, &config.indent, config.style)
 }
 
 fn main() {

@@ -245,6 +245,10 @@ pub struct OutputConfig {
     #[serde(default = "bool_true")]
     pub show_title: bool,
 
+    /// Show hyphens before example descriptions.
+    #[serde(default = "bool_false")]
+    pub show_hyphens: bool,
+
     /// Strip empty lines from pages.
     #[serde(default = "bool_false")]
     pub compact: bool,
@@ -254,11 +258,35 @@ pub struct OutputConfig {
     pub raw_markdown: bool,
 }
 
+const fn two() -> usize {
+    2
+}
+const fn four() -> usize {
+    4
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct IndentConfig {
+    #[serde(default = "two")]
+    pub title: usize,
+
+    #[serde(default = "two")]
+    pub description: usize,
+
+    #[serde(default = "two")]
+    pub bullet: usize,
+
+    #[serde(default = "four")]
+    pub example: usize,
+}
+
 #[derive(Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct Config {
     pub cache: CacheConfig,
     pub output: OutputConfig,
+    pub indent: IndentConfig,
     pub style: StyleConfig,
 }
 
@@ -311,8 +339,15 @@ impl Default for Config {
             },
             output: OutputConfig {
                 show_title: true,
+                show_hyphens: false,
                 compact: false,
                 raw_markdown: false,
+            },
+            indent: IndentConfig {
+                title: 2,
+                description: 2,
+                bullet: 2,
+                example: 4,
             },
             style: StyleConfig {
                 title: default_title_style(),

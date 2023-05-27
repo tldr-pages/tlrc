@@ -4,7 +4,7 @@ use std::path::Path;
 
 use yansi::Style;
 
-use crate::config::{OutputConfig, StyleConfig};
+use crate::config::{IndentConfig, OutputConfig, StyleConfig};
 use crate::error::{Error, Result};
 
 const TITLE: &str = "# ";
@@ -44,7 +44,12 @@ fn highlight_between(
 }
 
 /// Read and print the given page to stdout.
-pub fn print_page(page_path: &Path, outputcfg: &OutputConfig, stylecfg: StyleConfig) -> Result<()> {
+pub fn print_page(
+    page_path: &Path,
+    outputcfg: &OutputConfig,
+    indentcfg: &IndentConfig,
+    stylecfg: StyleConfig,
+) -> Result<()> {
     let mut reader = BufReader::new(File::open(page_path)?);
     let mut stdout = BufWriter::new(io::stdout().lock());
 
@@ -74,13 +79,15 @@ pub fn print_page(page_path: &Path, outputcfg: &OutputConfig, stylecfg: StyleCon
             }
             writeln!(
                 stdout,
-                "  {}",
+                "{}{}",
+                " ".repeat(indentcfg.title),
                 title.paint(&line.strip_prefix(TITLE).unwrap())
             )?;
         } else if line.starts_with(DESC) {
             writeln!(
                 stdout,
-                "  {}",
+                "{}{}",
+                " ".repeat(indentcfg.description),
                 highlight_between(
                     "`",
                     "`",
@@ -90,21 +97,22 @@ pub fn print_page(page_path: &Path, outputcfg: &OutputConfig, stylecfg: StyleCon
                 )
             )?;
         } else if line.starts_with(BULLET) {
+            let line = if outputcfg.show_hyphens {
+                line.as_str()
+            } else {
+                line.strip_prefix(BULLET).unwrap()
+            };
             writeln!(
                 stdout,
-                "  {}",
-                highlight_between(
-                    "`",
-                    "`",
-                    line.strip_prefix(BULLET).unwrap(),
-                    &bullet,
-                    &inline_code,
-                )
+                "{}{}",
+                " ".repeat(indentcfg.bullet),
+                highlight_between("`", "`", line, &bullet, &inline_code)
             )?;
         } else if line.starts_with(EXAMPLE) {
             writeln!(
                 stdout,
-                "    {}",
+                "{}{}",
+                " ".repeat(indentcfg.example),
                 highlight_between(
                     "{{",
                     "}}",
