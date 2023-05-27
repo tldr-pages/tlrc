@@ -21,6 +21,10 @@ ureq = { version = "2.6.2", default-features = false, features = ["tls"] }
 yansi = "0.5.1"
 zip = { version = "0.6.5", default-features = false, features = ["deflate"] }
 
+[build-dependencies]
+clap = { version = "4.2.7", features = ["derive", "cargo"] }
+clap_complete = "4.3.0"
+
 [[bin]]
 name = "tldr"
 path = "src/main.rs"
