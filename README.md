@@ -69,10 +69,23 @@ languages = []
 [output]
 # Show the command name in the page.
 show_title = true
+# Prefix descriptions of examples with hyphens.
+show_hyphens = false
 # Strip empty lines from output.
 compact = false
 # Print pages in raw markdown.
 raw_markdown = false
+
+# Number of spaces to put before each line of the page.
+[indent]
+# Command name.
+title = 2
+# Command description.
+description = 2
+# Descriptions of examples.
+bullet = 2
+# Example command invocations.
+example = 4
 
 # Style for the title of the page (command name).
 [style.title]
@@ -97,7 +110,7 @@ italic = false
 dim = false
 strikethrough = false
 
-# Style for the description of examples.
+# Style for descriptions of examples.
 [style.bullet]
 color = "green"
 background = "default"

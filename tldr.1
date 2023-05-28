@@ -1,4 +1,4 @@
-.TH "TLRC" "1" "2023-05-26"  "tlrc 1.2.2" "tlrc manual"
+.TH "TLRC" "1" "2023-05-28"  "tlrc 1.3.0" "tlrc manual"
 .nh
 .ad l
 .SH NAME
@@ -59,6 +59,25 @@ for a detailed description of how \fItlrc\fR determines the language.
 .TP 4
 .B -o, --offline
 Do not update the cache, even if it is stale and automatic updates are on.\&
+Equivalent of setting \fIcache.auto_update\fR=\fBfalse\fR in the config.
+
+.TP 4
+.B -c, --compact
+Strip empty lines from output. Equivalent of setting \fIoutput.compact\fR=\fBtrue\fR in the config.
+
+.TP 4
+.B --no-compact
+Do not strip empty lines from output. Equivalent of setting \fIoutput.compact\fR=\fBfalse\fR in the config.\&
+This always overrides \fB--compact\fR.
+
+.TP 4
+.B -R, --raw
+Print pages in raw markdown. Equivalent of setting \fIoutput.raw_markdown\fR=\fBtrue\fR in the config.
+
+.TP 4
+.B --no-raw
+Render pages instead of printing raw file contents. Equivalent of setting \fIoutput.raw_markdown\fR=\fBfalse\fR\&
+in the config. This always overrides \fB--raw\fR.
 
 .TP 4
 .B -q, --quiet
