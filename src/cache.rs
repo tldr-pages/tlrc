@@ -61,16 +61,13 @@ impl Cache {
                 continue;
             }
 
-            let mut page = String::new();
-            archive
-                .by_name(f)
-                .unwrap()
-                .read_to_string(&mut page)
-                .unwrap();
-
             let path = self.0.join(f);
             fs::create_dir_all(path.parent().unwrap())?;
-            write!(File::create(path)?, "{page}")?;
+
+            let mut page = archive.by_name(f).unwrap();
+            let mut file = File::create(&path)?;
+
+            io::copy(&mut page, &mut file)?;
         }
 
         Ok(())
