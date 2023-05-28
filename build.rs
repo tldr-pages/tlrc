@@ -16,14 +16,13 @@ where
 }
 
 fn main() -> Result<(), io::Error> {
-    let completion_dir = match env::var("COMPLETION_DIR").ok() {
-        Some(val) => val,
-        None => return Ok(()),
-    };
-    let cmd = &mut Cli::command();
+    let completion_dir = env::var("COMPLETION_DIR")
+        .or_else(|_| env::var("OUT_DIR"))
+        .unwrap();
 
     fs::create_dir_all(&completion_dir)?;
 
+    let cmd = &mut Cli::command();
     gen_completions(shells::Bash, cmd, &completion_dir)?;
     gen_completions(shells::Zsh, cmd, &completion_dir)?;
     gen_completions(shells::Fish, cmd, &completion_dir)?;
