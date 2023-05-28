@@ -20,6 +20,16 @@ A [tldr](https://tldr.sh) client written in Rust.
 ## Installation
 [![Packaging status](https://repology.org/badge/vertical-allrepos/tlrc.svg)](https://repology.org/project/tlrc/versions)
 
+### Arch Linux
+Install [tlrc](https://aur.archlinux.org/packages/tlrc) (from source) or [tlrc-bin](https://aur.archlinux.org/packages/tlrc-bin) (prebuilt) from the AUR.
+
+### From crates.io
+To build tlrc from a source tarball, run:
+```
+cargo install tlrc
+```
+**NOTE:** shell completion files and the man page will not be installed that way.
+
 ### From GitHub Releases
 You can find prebuilt binaries [here][latest-release].
 
