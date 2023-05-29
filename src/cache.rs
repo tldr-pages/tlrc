@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::fs::{self, File};
 use std::io::{self, Cursor, Read, Write};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::result::Result as StdResult;
 use std::sync::atomic::Ordering;
 use std::time::Duration;
@@ -176,7 +176,8 @@ impl Cache {
         Ok(())
     }
 
-    fn find_page(
+    /// Find a page for the given platform.
+    fn find_page_for(
         &self,
         page_file: &str,
         platform_dir: &str,
@@ -199,13 +200,13 @@ impl Cache {
 
         if platform != &Platform::Common {
             if let Some(page_path) =
-                self.find_page(&page_file, &platform.to_string(), &language_dirs)
+                self.find_page_for(&page_file, &platform.to_string(), &language_dirs)
             {
                 return Ok(page_path);
             }
         }
 
-        if let Some(page_path) = self.find_page(&page_file, "common", &language_dirs) {
+        if let Some(page_path) = self.find_page_for(&page_file, "common", &language_dirs) {
             return Ok(page_path);
         }
 
@@ -220,7 +221,7 @@ impl Cache {
 
         for alt_platform in platforms {
             if let Some(page_path) =
-                self.find_page(&page_file, &alt_platform.to_string(), &language_dirs)
+                self.find_page_for(&page_file, &alt_platform.to_string(), &language_dirs)
             {
                 if platform == &Platform::Common {
                     warnln!(
@@ -241,32 +242,37 @@ impl Cache {
     }
 
     /// List all available pages in `lang` for `platform`.
-    fn list_dir(&self, platform: &str, lang_dir: &str) -> Result<Vec<PathBuf>> {
+    fn list_dir(&self, platform: &str, lang_dir: &str) -> Result<Vec<String>> {
         if let Ok(entries) = fs::read_dir(self.0.join(lang_dir).join(platform)) {
             Ok(entries
-                .map(|res| res.map(|e| e.path()))
-                .collect::<StdResult<Vec<PathBuf>, io::Error>>()?)
+                .map(|res| res.map(|e| e.file_name().to_string_lossy().to_string()))
+                .collect::<StdResult<Vec<String>, io::Error>>()?)
         } else {
             // If the directory does not exist, return an empty Vec instead of an error.
             Ok(vec![])
         }
     }
 
-    fn print_basenames(entries: &[PathBuf]) -> Result<()> {
-        let mut pages: Vec<String> = entries
-            .iter()
-            .map(|x| Path::new(x.file_stem().unwrap()).display().to_string())
-            .collect();
-
+    fn print_basenames(pages: &mut Vec<String>) -> Result<()> {
         pages.sort();
         pages.dedup();
 
-        Ok(writeln!(io::stdout(), "{}", pages.join("\n"))?)
+        let mut stdout = io::stdout().lock();
+        for page in pages {
+            let page = page.strip_suffix(".md").ok_or_else(|| {
+                Error::new(format!(
+                    "'{page}': every page file should have a '.md' extension"
+                ))
+            })?;
+            writeln!(stdout, "{page}")?;
+        }
+
+        Ok(())
     }
 
     /// List all pages in English for `platform` and common.
     pub fn list_platform(&self, platform: &Platform) -> Result<()> {
-        let entries = if platform == &Platform::Common {
+        let mut pages = if platform == &Platform::Common {
             self.list_dir(&platform.to_string(), "pages")?
         } else {
             self.list_dir(&platform.to_string(), "pages")?
@@ -275,11 +281,11 @@ impl Cache {
                 .collect()
         };
 
-        Self::print_basenames(&entries)
+        Self::print_basenames(&mut pages)
     }
 
     /// List all pages in `lang` and return a `Vec`.
-    fn list_all_vec(&self, lang_dir: &str) -> Result<Vec<PathBuf>> {
+    fn list_all_vec(&self, lang_dir: &str) -> Result<Vec<String>> {
         Ok(self
             .list_dir("linux", lang_dir)?
             .into_iter()
@@ -293,7 +299,7 @@ impl Cache {
 
     /// List all pages in English.
     pub fn list_all(&self) -> Result<()> {
-        Self::print_basenames(&self.list_all_vec("pages")?)
+        Self::print_basenames(&mut self.list_all_vec("pages")?)
     }
 
     /// Return `true` if the cache is older than `max_age`.
