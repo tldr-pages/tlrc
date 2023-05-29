@@ -238,6 +238,10 @@ pub struct CacheConfig {
     pub languages: Vec<String>,
 }
 
+fn hyphen() -> String {
+    "- ".to_string()
+}
+
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct OutputConfig {
@@ -248,6 +252,10 @@ pub struct OutputConfig {
     /// Show hyphens before example descriptions.
     #[serde(default = "bool_false")]
     pub show_hyphens: bool,
+
+    /// Show a custom string instead of a hyphen.
+    #[serde(default = "hyphen")]
+    pub example_prefix: String,
 
     /// Strip empty lines from pages.
     #[serde(default = "bool_false")]
@@ -340,6 +348,7 @@ impl Default for Config {
             output: OutputConfig {
                 show_title: true,
                 show_hyphens: false,
+                example_prefix: "- ".to_string(),
                 compact: false,
                 raw_markdown: false,
             },

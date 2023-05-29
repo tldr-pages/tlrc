@@ -68,7 +68,7 @@ pub fn print_page(
     let placeholder: Style = stylecfg.placeholder.into();
 
     for (i, line) in reader.lines().enumerate() {
-        let line = line?;
+        let mut line = line?;
 
         if line.starts_with(TITLE) {
             if !outputcfg.show_title {
@@ -98,6 +98,7 @@ pub fn print_page(
             )?;
         } else if line.starts_with(BULLET) {
             let line = if outputcfg.show_hyphens {
+                line.replace_range(..2, &outputcfg.example_prefix);
                 line.as_str()
             } else {
                 line.strip_prefix(BULLET).unwrap()
