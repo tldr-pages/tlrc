@@ -40,7 +40,7 @@ impl FromStr for ColorMode {
     }
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq)]
 pub enum Platform {
     Linux,
     OsX,
@@ -129,8 +129,12 @@ pub struct Cli {
     pub list: bool,
 
     /// List all pages.
-    #[arg(long, group = "operations")]
+    #[arg(short = 'a', long, group = "operations")]
     pub list_all: bool,
+
+    /// Show cache information (installed languages and the number of pages).
+    #[arg(short, long, group = "operations")]
+    pub info: bool,
 
     /// Render the specified markdown file.
     #[arg(short, long, group = "operations", value_name = "FILE")]

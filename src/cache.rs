@@ -1,5 +1,5 @@
-use std::collections::HashMap;
-use std::ffi::OsString;
+use std::collections::{BTreeMap, HashMap};
+use std::ffi::{OsStr, OsString};
 use std::fs::{self, File};
 use std::io::{self, Cursor, Read, Write};
 use std::path::PathBuf;
@@ -195,11 +195,11 @@ impl Cache {
     }
 
     /// If the page exists, return the path to it.
-    pub fn find(&self, page: &str, languages: &[String], platform: &Platform) -> Result<PathBuf> {
+    pub fn find(&self, page: &str, languages: &[String], platform: Platform) -> Result<PathBuf> {
         let page_file = format!("{page}.md");
         let language_dirs = languages_to_langdirs(languages);
 
-        if platform != &Platform::Common {
+        if platform != Platform::Common {
             if let Some(page_path) =
                 self.find_page_for(&page_file, &platform.to_string(), &language_dirs)
             {
@@ -218,13 +218,13 @@ impl Cache {
             Platform::Android,
             Platform::SunOs,
         ];
-        platforms.retain(|item| item != platform);
+        platforms.retain(|item| item != &platform);
 
         for alt_platform in platforms {
             if let Some(page_path) =
                 self.find_page_for(&page_file, &alt_platform.to_string(), &language_dirs)
             {
-                if platform == &Platform::Common {
+                if platform == Platform::Common {
                     warnln!(
                         "showing page from platform '{alt_platform}', \
                         because '{page}' does not exist in 'common'"
@@ -243,8 +243,11 @@ impl Cache {
     }
 
     /// List all available pages in `lang` for `platform`.
-    fn list_dir(&self, platform: &str, lang_dir: &str) -> Result<Vec<OsString>> {
-        if let Ok(entries) = fs::read_dir(self.0.join(lang_dir).join(platform)) {
+    fn list_dir<S>(&self, platform: &str, lang_dir: S) -> Result<Vec<OsString>>
+    where
+        S: AsRef<OsStr>,
+    {
+        if let Ok(entries) = fs::read_dir(self.0.join(lang_dir.as_ref()).join(platform)) {
             Ok(entries
                 .map(|res| res.map(|e| e.file_name()))
                 .collect::<StdResult<Vec<OsString>, io::Error>>()?)
@@ -273,8 +276,8 @@ impl Cache {
     }
 
     /// List all pages in English for `platform` and common.
-    pub fn list_platform(&self, platform: &Platform) -> Result<()> {
-        let mut pages = if platform == &Platform::Common {
+    pub fn list_platform(&self, platform: Platform) -> Result<()> {
+        let mut pages = if platform == Platform::Common {
             self.list_dir(&platform.to_string(), "pages")?
         } else {
             self.list_dir(&platform.to_string(), "pages")?
@@ -287,21 +290,66 @@ impl Cache {
     }
 
     /// List all pages in `lang` and return a `Vec`.
-    fn list_all_vec(&self, lang_dir: &str) -> Result<Vec<OsString>> {
+    fn list_all_vec<S>(&self, lang_dir: S) -> Result<Vec<OsString>>
+    where
+        S: AsRef<OsStr>,
+    {
         Ok(self
-            .list_dir("linux", lang_dir)?
+            .list_dir("linux", &lang_dir)?
             .into_iter()
-            .chain(self.list_dir("osx", lang_dir)?)
-            .chain(self.list_dir("windows", lang_dir)?)
-            .chain(self.list_dir("android", lang_dir)?)
-            .chain(self.list_dir("sunos", lang_dir)?)
-            .chain(self.list_dir("common", lang_dir)?)
+            .chain(self.list_dir("osx", &lang_dir)?)
+            .chain(self.list_dir("windows", &lang_dir)?)
+            .chain(self.list_dir("android", &lang_dir)?)
+            .chain(self.list_dir("sunos", &lang_dir)?)
+            .chain(self.list_dir("common", &lang_dir)?)
             .collect())
     }
 
     /// List all pages in English.
     pub fn list_all(&self) -> Result<()> {
         Self::print_basenames(&mut self.list_all_vec("pages")?)
+    }
+
+    /// List installed languages.
+    pub fn info(&self) -> Result<()> {
+        let mut n_map = BTreeMap::new();
+        let mut n_total = 0;
+
+        for lang_dir in fs::read_dir(&self.0)? {
+            let lang_dir = lang_dir?.file_name();
+            let n = self.list_all_vec(&lang_dir)?.len();
+
+            let str = lang_dir.to_string_lossy();
+            let str = if str == "pages" {
+                "en".to_string()
+            } else {
+                str.split_once('.').unwrap_or(("", &str)).1.to_string()
+            };
+
+            n_map.insert(str, n);
+            n_total += n;
+        }
+
+        let mut stdout = io::stdout().lock();
+        writeln!(stdout, "Installed languages:")?;
+
+        for (lang, n) in n_map {
+            writeln!(
+                stdout,
+                "{lang}{} : {}",
+                // Language codes are at most 5 characters (ll_CC).
+                " ".repeat(5_usize.saturating_sub(lang.len())),
+                Paint::new(n).fg(Color::Green).bold(),
+            )?;
+        }
+
+        writeln!(
+            stdout,
+            "total : {} pages",
+            Paint::new(n_total).fg(Color::Green).bold(),
+        )?;
+
+        Ok(())
     }
 
     /// Return `true` if the cache is older than `max_age`.
