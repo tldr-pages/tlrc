@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::ffi::OsString;
 use std::fs::{self, File};
 use std::io::{self, Cursor, Read, Write};
 use std::path::PathBuf;
@@ -242,26 +243,27 @@ impl Cache {
     }
 
     /// List all available pages in `lang` for `platform`.
-    fn list_dir(&self, platform: &str, lang_dir: &str) -> Result<Vec<String>> {
+    fn list_dir(&self, platform: &str, lang_dir: &str) -> Result<Vec<OsString>> {
         if let Ok(entries) = fs::read_dir(self.0.join(lang_dir).join(platform)) {
             Ok(entries
-                .map(|res| res.map(|e| e.file_name().to_string_lossy().to_string()))
-                .collect::<StdResult<Vec<String>, io::Error>>()?)
+                .map(|res| res.map(|e| e.file_name()))
+                .collect::<StdResult<Vec<OsString>, io::Error>>()?)
         } else {
             // If the directory does not exist, return an empty Vec instead of an error.
             Ok(vec![])
         }
     }
 
-    fn print_basenames(pages: &mut Vec<String>) -> Result<()> {
+    fn print_basenames(pages: &mut Vec<OsString>) -> Result<()> {
         pages.sort();
         pages.dedup();
 
         let mut stdout = io::stdout().lock();
         for page in pages {
-            let page = page.strip_suffix(".md").ok_or_else(|| {
+            let str = page.to_string_lossy();
+            let page = str.strip_suffix(".md").ok_or_else(|| {
                 Error::new(format!(
-                    "'{page}': every page file should have a '.md' extension"
+                    "'{str}': every page file should have a '.md' extension",
                 ))
             })?;
             writeln!(stdout, "{page}")?;
@@ -285,7 +287,7 @@ impl Cache {
     }
 
     /// List all pages in `lang` and return a `Vec`.
-    fn list_all_vec(&self, lang_dir: &str) -> Result<Vec<String>> {
+    fn list_all_vec(&self, lang_dir: &str) -> Result<Vec<OsString>> {
         Ok(self
             .list_dir("linux", lang_dir)?
             .into_iter()
