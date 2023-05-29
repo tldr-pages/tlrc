@@ -1,9 +1,12 @@
+use std::collections::HashMap;
 use std::fs::{self, File};
 use std::io::{self, Cursor, Read, Write};
 use std::path::{Path, PathBuf};
 use std::result::Result as StdResult;
+use std::sync::atomic::Ordering;
 use std::time::Duration;
 
+use yansi::{Color, Paint};
 use zip::ZipArchive;
 
 use crate::args::Platform;
@@ -45,15 +48,25 @@ impl Cache {
         Ok(buf)
     }
 
-    /// Extract `dir` from `archive`.
+    /// Extract `dir` from `archive` and update the page counters.
     fn extract_dir(
         &self,
         archive: &mut ZipArchive<Cursor<Vec<u8>>>,
         files: &[String],
         dir: &str,
+        n_existing: usize,
+        all_downloaded: &mut usize,
+        all_new: &mut usize,
     ) -> Result<()> {
-        infoln!("extracting: '{dir}'...");
+        if !crate::QUIET.load(Ordering::Relaxed) {
+            write!(
+                io::stderr(),
+                "{} extracting '{dir}'...",
+                Paint::new("info:").fg(Color::Cyan).bold()
+            )?;
+        }
 
+        let mut n_downloaded = 0;
         for f in files {
             // Skip directory entries, files that are not in a directory (we want only pages)
             // and files that are not in the specified directory.
@@ -68,34 +81,83 @@ impl Cache {
             let mut file = File::create(&path)?;
 
             io::copy(&mut page, &mut file)?;
+            n_downloaded += 1;
+        }
+
+        let n_new = n_downloaded - n_existing;
+        *all_downloaded += n_downloaded;
+        *all_new += n_new;
+
+        if !crate::QUIET.load(Ordering::Relaxed) {
+            writeln!(
+                io::stderr(),
+                " {} pages , {} new",
+                Paint::new(n_downloaded).fg(Color::Green).bold(),
+                Paint::new(n_new).fg(Color::Green).bold(),
+            )?;
         }
 
         Ok(())
     }
 
     /// Delete the old cache and replace it with a fresh copy.
-    pub fn update(&self, languages_to_download: &[String]) -> Result<()> {
+    pub fn update(&self, languages: &[String]) -> Result<()> {
         let mut archive = ZipArchive::new(Cursor::new(Self::download()?))?;
         let files: Vec<String> = archive.file_names().map(String::from).collect();
-        let langdirs = languages_to_langdirs(languages_to_download);
+        let mut all_downloaded = 0;
+        let mut all_new = 0;
+
+        // This HashMap stores language directories and the number of pages
+        // in them before the update.
+        let mut dirs_npages = HashMap::new();
+        let lang_dirs = languages_to_langdirs(languages);
+
+        // English pages are always extracted, so we have to check if they are not
+        // explicitly specified.
+        if !languages.contains(&"en".to_string()) {
+            dirs_npages.insert("pages".to_string(), self.list_all_vec("pages")?.len());
+        }
+
+        for lang_dir in &lang_dirs {
+            dirs_npages.insert(lang_dir.to_string(), self.list_all_vec(lang_dir)?.len());
+        }
 
         self.clean()?;
 
         // Always extract English pages, even when not specified in the config.
-        if !languages_to_download.contains(&"en".to_string()) {
-            self.extract_dir(&mut archive, &files, "pages")?;
+        if !languages.contains(&"en".to_string()) {
+            self.extract_dir(
+                &mut archive,
+                &files,
+                "pages",
+                dirs_npages["pages"],
+                &mut all_downloaded,
+                &mut all_new,
+            )?;
         }
 
-        for langdir in langdirs {
+        for lang_dir in &lang_dirs {
             // Skip invalid languages.
-            if !files.contains(&format!("{langdir}/")) {
+            if !files.contains(&format!("{lang_dir}/")) {
                 continue;
             }
 
-            self.extract_dir(&mut archive, &files, &langdir)?;
+            self.extract_dir(
+                &mut archive,
+                &files,
+                lang_dir,
+                *dirs_npages.get(lang_dir).unwrap_or(&0),
+                &mut all_downloaded,
+                &mut all_new,
+            )?;
         }
 
-        infoln!("cache update successful.");
+        infoln!(
+            "cache update successful (total: {} pages, {} new).",
+            Paint::new(all_downloaded).fg(Color::Green).bold(),
+            Paint::new(all_new).fg(Color::Green).bold(),
+        );
+
         Ok(())
     }
 
@@ -178,13 +240,16 @@ impl Cache {
         Err(Error::new("page not found."))
     }
 
-    /// List all available pages in English for `platform`.
-    fn list_dir(&self, platform: &str) -> Result<Vec<PathBuf>> {
-        Ok(
-            fs::read_dir(format!("{}/pages/{platform}", self.0.display()))?
+    /// List all available pages in `lang` for `platform`.
+    fn list_dir(&self, platform: &str, lang_dir: &str) -> Result<Vec<PathBuf>> {
+        if let Ok(entries) = fs::read_dir(self.0.join(lang_dir).join(platform)) {
+            Ok(entries
                 .map(|res| res.map(|e| e.path()))
-                .collect::<StdResult<Vec<PathBuf>, io::Error>>()?,
-        )
+                .collect::<StdResult<Vec<PathBuf>, io::Error>>()?)
+        } else {
+            // If the directory does not exist, return an empty Vec instead of an error.
+            Ok(vec![])
+        }
     }
 
     fn print_basenames(entries: &[PathBuf]) -> Result<()> {
@@ -199,33 +264,36 @@ impl Cache {
         Ok(writeln!(io::stdout(), "{}", pages.join("\n"))?)
     }
 
-    /// List all pages in `platform` and common.
+    /// List all pages in English for `platform` and common.
     pub fn list_platform(&self, platform: &Platform) -> Result<()> {
-        let entries: Vec<PathBuf> = if platform == &Platform::Common {
-            self.list_dir(&platform.to_string())?
+        let entries = if platform == &Platform::Common {
+            self.list_dir(&platform.to_string(), "pages")?
         } else {
-            self.list_dir(&platform.to_string())?
+            self.list_dir(&platform.to_string(), "pages")?
                 .into_iter()
-                .chain(self.list_dir("common")?.into_iter())
+                .chain(self.list_dir("common", "pages")?.into_iter())
                 .collect()
         };
 
         Self::print_basenames(&entries)
     }
 
-    /// List all pages.
-    pub fn list_all(&self) -> Result<()> {
-        let entries: Vec<PathBuf> = self
-            .list_dir("linux")?
+    /// List all pages in `lang` and return a `Vec`.
+    fn list_all_vec(&self, lang_dir: &str) -> Result<Vec<PathBuf>> {
+        Ok(self
+            .list_dir("linux", lang_dir)?
             .into_iter()
-            .chain(self.list_dir("osx")?)
-            .chain(self.list_dir("windows")?)
-            .chain(self.list_dir("android")?)
-            .chain(self.list_dir("sunos")?)
-            .chain(self.list_dir("common")?)
-            .collect();
+            .chain(self.list_dir("osx", lang_dir)?)
+            .chain(self.list_dir("windows", lang_dir)?)
+            .chain(self.list_dir("android", lang_dir)?)
+            .chain(self.list_dir("sunos", lang_dir)?)
+            .chain(self.list_dir("common", lang_dir)?)
+            .collect())
+    }
 
-        Self::print_basenames(&entries)
+    /// List all pages in English.
+    pub fn list_all(&self) -> Result<()> {
+        Self::print_basenames(&self.list_all_vec("pages")?)
     }
 
     /// Return `true` if the cache is older than `max_age`.
