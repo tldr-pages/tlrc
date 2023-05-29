@@ -11,6 +11,7 @@ mod output;
 mod util;
 
 use std::env;
+use std::fs;
 use std::io::{self, Write};
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -49,7 +50,9 @@ fn run() -> Result<()> {
     let cli = Cli::parse();
 
     if cli.config_path {
-        writeln!(io::stdout(), "{}", Config::locate().display())?;
+        let config_path = Config::locate();
+        writeln!(io::stdout(), "{}", config_path.display())?;
+        fs::create_dir_all(config_path.parent().unwrap())?;
         return Ok(());
     }
 

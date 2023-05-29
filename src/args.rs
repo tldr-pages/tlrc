@@ -144,11 +144,11 @@ pub struct Cli {
     #[arg(long, group = "operations")]
     pub clean_cache: bool,
 
-    /// Print the default config to stdout.
+    /// Print the default config.
     #[arg(long, group = "operations")]
     pub gen_config: bool,
 
-    /// Print the default config path.
+    /// Print the default config path and create the config directory.
     #[arg(long, group = "operations")]
     pub config_path: bool,
 
