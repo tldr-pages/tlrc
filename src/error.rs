@@ -57,7 +57,7 @@ impl Error {
         Error::new(format!(
             "'{}' is not a valid tldr page. (line {}):\n\n    {}",
             page_path.display(),
-            i + 1,
+            i,
             Paint::new(line).bold(),
         ))
         .kind(ErrorKind::ParsePage)

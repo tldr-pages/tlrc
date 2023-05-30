@@ -23,7 +23,7 @@ use crate::args::{Cli, ColorMode};
 use crate::cache::Cache;
 use crate::config::Config;
 use crate::error::{ErrorKind, Result};
-use crate::output::print_page;
+use crate::output::PageRenderer;
 use crate::util::{get_languages_from_env, infoln, warnln};
 
 /// If this is set to true, do not print anything except pages and errors.
@@ -103,7 +103,7 @@ fn run() -> Result<()> {
     } else if cli.info {
         return cache.info();
     } else if let Some(path) = cli.render {
-        return print_page(&path, &config.output, &config.indent, config.style);
+        return PageRenderer::print(&path, &config.output, &config.indent, config.style);
     }
 
     if config.cache.auto_update && cache.is_stale(&config.cache_max_age())? {
@@ -156,7 +156,7 @@ fn run() -> Result<()> {
             }
         })?;
 
-    print_page(&page_path, &config.output, &config.indent, config.style)
+    PageRenderer::print(&page_path, &config.output, &config.indent, config.style)
 }
 
 fn main() {
