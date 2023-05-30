@@ -190,7 +190,7 @@ impl<'a> PageRenderer<'a> {
                     .strip_suffix("`\n")
                     .ok_or_else(|| {
                         Error::parse_page(self.path, self.lnum, &self.current_line)
-                            .describe("\nunclosed backtick '`'")
+                            .describe("\nEvery line with an example must end with a backtick '`'.")
                     })?,
                 &self.example,
                 &self.placeholder,
@@ -220,8 +220,11 @@ impl<'a> PageRenderer<'a> {
             } else if self.current_line == "\n" {
                 self.add_newline()?;
             } else {
-                return Err(Error::parse_page(self.path, self.lnum, &self.current_line)
-                    .describe("\nEvery line must begin with either '#', '> ', '- ' or '`'"));
+                return Err(
+                    Error::parse_page(self.path, self.lnum, &self.current_line).describe(
+                        "\nEvery non-empty line must begin with either '#', '> ', '- ' or '`'.",
+                    ),
+                );
             }
         }
         self.add_newline()?;
