@@ -2,7 +2,7 @@ use std::collections::{BTreeMap, HashMap};
 use std::ffi::{OsStr, OsString};
 use std::fs::{self, File};
 use std::io::{self, Cursor, Read, Write};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::result::Result as StdResult;
 use std::sync::atomic::Ordering;
 use std::time::Duration;
@@ -16,14 +16,11 @@ use crate::util::{infoln, languages_to_langdirs, warnln};
 
 const ARCHIVE: &str = "https://tldr.sh/assets/tldr.zip";
 
-pub struct Cache(PathBuf);
+pub struct Cache<'a>(&'a Path);
 
-impl Cache {
-    pub fn new<P>(dir: P) -> Self
-    where
-        P: Into<PathBuf>,
-    {
-        Self(dir.into())
+impl<'a> Cache<'a> {
+    pub fn new(dir: &'a Path) -> Self {
+        Self(dir)
     }
 
     /// Get the default path to the cache.
@@ -166,13 +163,13 @@ impl Cache {
     pub fn clean(&self) -> Result<()> {
         if !self.exists() {
             infoln!("cache does not exist, not cleaning.");
-            fs::create_dir_all(&self.0)?;
+            fs::create_dir_all(self.0)?;
             return Ok(());
         }
 
         infoln!("cleaning the cache directory...");
-        fs::remove_dir_all(&self.0)?;
-        fs::create_dir_all(&self.0)?;
+        fs::remove_dir_all(self.0)?;
+        fs::create_dir_all(self.0)?;
 
         Ok(())
     }
@@ -315,7 +312,7 @@ impl Cache {
         let mut n_map = BTreeMap::new();
         let mut n_total = 0;
 
-        for lang_dir in fs::read_dir(&self.0)? {
+        for lang_dir in fs::read_dir(self.0)? {
             let lang_dir = lang_dir?.file_name();
             let n = self.list_all_vec(&lang_dir)?.len();
 

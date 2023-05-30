@@ -1,5 +1,5 @@
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
@@ -299,8 +299,8 @@ pub struct Config {
 }
 
 impl Config {
-    fn parse(file: PathBuf) -> Result<Self> {
-        Ok(toml::from_str(&fs::read_to_string(file).map_err(|e| {
+    fn parse(path: &Path) -> Result<Self> {
+        Ok(toml::from_str(&fs::read_to_string(path).map_err(|e| {
             Error::new(format!("could not read the config: {e}")).kind(ErrorKind::Io)
         })?)?)
     }
@@ -310,7 +310,7 @@ impl Config {
         let config_location = cli_config_path.unwrap_or_else(Self::locate);
 
         if config_location.is_file() {
-            Self::parse(config_location)
+            Self::parse(&config_location)
         } else {
             if config_is_from_cli {
                 warnln!(
