@@ -73,9 +73,6 @@ fn run() -> Result<()> {
 
     let mut config = Config::new(cli.config)?;
     let cache = Cache::new(&config.cache.dir);
-    config.output.compact = !cli.no_compact && (cli.compact || config.output.compact);
-    config.output.raw_markdown = !cli.no_raw && (cli.raw || config.output.raw_markdown);
-
     let languages_are_from_cli = cli.languages.is_some();
     let languages = cli.languages.unwrap_or_else(get_languages_from_env);
     let languages_to_download = if config.cache.languages.is_empty() {
@@ -86,7 +83,8 @@ fn run() -> Result<()> {
 
     if cli.clean_cache {
         return cache.clean();
-    } else if cli.update {
+    }
+    if cli.update {
         return cache.update(languages_to_download);
     }
 
@@ -98,11 +96,17 @@ fn run() -> Result<()> {
     let platform = cli.platform.unwrap_or_default();
     if cli.list {
         return cache.list_platform(platform);
-    } else if cli.list_all {
+    }
+    if cli.list_all {
         return cache.list_all();
-    } else if cli.info {
+    }
+    if cli.info {
         return cache.info();
-    } else if let Some(path) = cli.render {
+    }
+
+    config.output.compact = !cli.no_compact && (cli.compact || config.output.compact);
+    config.output.raw_markdown = !cli.no_raw && (cli.raw || config.output.raw_markdown);
+    if let Some(path) = cli.render {
         return PageRenderer::print(&path, &config.output, &config.indent, config.style);
     }
 
@@ -124,7 +128,6 @@ fn run() -> Result<()> {
     }
 
     let page_name = cli.page.join("-").to_lowercase();
-
     let page_path = cache
         .find(&page_name, &languages, platform)
         .map_err(|mut e| {
