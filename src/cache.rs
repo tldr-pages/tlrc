@@ -193,34 +193,32 @@ impl<'a> Cache<'a> {
 
     /// If the page exists, return the path to it.
     pub fn find(&self, page: &str, languages: &[String], platform: Platform) -> Result<PathBuf> {
-        let page_file = format!("{page}.md");
-        let language_dirs = languages_to_langdirs(languages);
+        // https://github.com/tldr-pages/tldr/blob/main/CLIENT-SPECIFICATION.md#page-resolution
 
+        let file = format!("{page}.md");
+        let lang_dirs = languages_to_langdirs(languages);
+
+        // `common` is always searched, so we skip the search for the specified platform
+        // if the user has requested only `common` (to prevent searching twice)
         if platform != Platform::Common {
-            if let Some(page_path) =
-                self.find_page_for(&page_file, &platform.to_string(), &language_dirs)
-            {
-                return Ok(page_path);
+            if let Some(path) = self.find_page_for(&file, &platform.to_string(), &lang_dirs) {
+                return Ok(path);
             }
         }
 
-        if let Some(page_path) = self.find_page_for(&page_file, "common", &language_dirs) {
-            return Ok(page_path);
+        // Fall back to `common` if the page is not found in `platform`.
+        if let Some(path) = self.find_page_for(&file, "common", &lang_dirs) {
+            return Ok(path);
         }
 
-        let mut platforms = vec![
-            Platform::Linux,
-            Platform::Windows,
-            Platform::OsX,
-            Platform::Android,
-            Platform::SunOs,
-        ];
-        platforms.retain(|item| item != &platform);
+        // Fall back to all other platforms if the page is not found in`platform`.
+        for alt_platform in Platform::iterator() {
+            // `platform` was already searched, so we can skip it here.
+            if alt_platform == platform {
+                continue;
+            }
 
-        for alt_platform in platforms {
-            if let Some(page_path) =
-                self.find_page_for(&page_file, &alt_platform.to_string(), &language_dirs)
-            {
+            if let Some(path) = self.find_page_for(&file, &alt_platform.to_string(), &lang_dirs) {
                 if platform == Platform::Common {
                     warnln!(
                         "showing page from platform '{alt_platform}', \
@@ -232,7 +230,7 @@ impl<'a> Cache<'a> {
                         because '{page}' does not exist in '{platform}' and 'common'"
                     );
                 }
-                return Ok(page_path);
+                return Ok(path);
             }
         }
 
