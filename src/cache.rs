@@ -318,12 +318,12 @@ impl<'a> Cache<'a> {
 
             let str = lang_dir.to_string_lossy();
             let str = if str == "pages" {
-                "en".to_string()
+                "en"
             } else {
-                str.split_once('.').unwrap_or(("", &str)).1.to_string()
+                str.split_once('.').unwrap_or(("", &str)).1
             };
 
-            n_map.insert(str, n);
+            n_map.insert(str.to_string(), n);
             n_total += n;
         }
 
