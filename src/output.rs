@@ -131,7 +131,6 @@ impl<'a> PageRenderer<'a> {
             &self
                 .title
                 .paint(self.current_line.strip_prefix(TITLE).unwrap())
-                .to_string()
         )?)
     }
 
