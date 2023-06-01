@@ -4,10 +4,11 @@ use std::str::FromStr;
 
 use clap::{ArgAction, Parser};
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub enum ColorMode {
     Always,
     Never,
+    #[default]
     Auto,
 }
 
@@ -73,7 +74,7 @@ impl Default for Platform {
         Self::Windows
     }
 
-    #[cfg(not(any(target_os = "linux", target_os = "macos", target_os = "windows",)))]
+    #[cfg(not(any(target_os = "linux", target_os = "macos", target_os = "windows")))]
     fn default() -> Self {
         Self::Common
     }
@@ -119,11 +120,10 @@ impl Display for Platform {
     version = concat!(clap::crate_version!(), " (implementing the tldr client specification v1.5)"),
     disable_version_flag = true,
     after_help = "See 'man tldr' or https://acuteenvy.github.io/tlrc for more information.",
-    help_template = "{before-help}{name} {version}
-{about-with-newline}
-{usage-heading} {usage}
-
-{all-args}{after-help}"
+    help_template = "{before-help}{name} {version}\n\
+    {about-with-newline}\n\
+    {usage-heading} {usage}\n\n\
+    {all-args}{after-help}"
 )]
 pub struct Cli {
     /// The tldr page to show.
@@ -163,8 +163,8 @@ pub struct Cli {
     pub config_path: bool,
 
     /// Specify the platform to use [linux, macos/osx, windows, android, sunos, common].
-    #[arg(short, long)]
-    pub platform: Option<Platform>,
+    #[arg(short, long, default_value_t = Platform::default())]
+    pub platform: Platform,
 
     /// Specify the languages to use.
     #[arg(short = 'L', long = "language", value_name = "LANGUAGE")]
@@ -195,7 +195,7 @@ pub struct Cli {
     pub quiet: bool,
 
     /// Specify when to enable color [always, never, auto].
-    #[arg(long, value_name = "WHEN", default_value_t = ColorMode::Auto)]
+    #[arg(long, value_name = "WHEN", default_value_t = ColorMode::default())]
     pub color: ColorMode,
 
     /// Specify an alternative path to the config file.

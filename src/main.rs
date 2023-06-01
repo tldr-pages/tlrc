@@ -101,9 +101,8 @@ fn run() -> Result<()> {
         cache.update(languages_to_download)?;
     }
 
-    let platform = cli.platform.unwrap_or_default();
     if cli.list {
-        return cache.list_platform(platform);
+        return cache.list_platform(cli.platform);
     }
     if cli.list_all {
         return cache.list_all();
@@ -137,7 +136,7 @@ fn run() -> Result<()> {
 
     let page_name = cli.page.join("-").to_lowercase();
     let page_path = cache
-        .find(&page_name, &languages, platform)
+        .find(&page_name, &languages, cli.platform)
         .map_err(|mut e| {
             if languages_are_from_cli {
                 e = e.describe("Try running tldr without --language.");
