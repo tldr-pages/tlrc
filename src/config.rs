@@ -301,7 +301,7 @@ pub struct Config {
 impl Config {
     fn parse(path: &Path) -> Result<Self> {
         Ok(toml::from_str(&fs::read_to_string(path).map_err(|e| {
-            Error::new(format!("could not read the config: {e}")).kind(ErrorKind::Io)
+            Error::new(format!("'{}': {e}", path.display())).kind(ErrorKind::Io)
         })?)?)
     }
 

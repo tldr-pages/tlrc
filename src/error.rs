@@ -1,7 +1,7 @@
 use std::fmt::Display;
 use std::io::{self, Write};
 use std::path::Path;
-use std::process;
+use std::process::ExitCode;
 use std::result::Result as StdResult;
 
 use yansi::{Color, Paint};
@@ -63,21 +63,22 @@ impl Error {
         .kind(ErrorKind::ParsePage)
     }
 
-    /// Print the error message to stderr and exit.
-    pub fn exit(self) -> ! {
+    /// Print the error message to stderr and return an appropriate `ExitCode`.
+    pub fn exit_code(self) -> ExitCode {
         writeln!(
             io::stderr(),
             "{} {self}",
             Paint::new("error:").fg(Color::Red).bold()
         )
-        .unwrap_or_default();
+        .ok();
 
-        process::exit(match self.kind {
+        match self.kind {
             ErrorKind::Msg | ErrorKind::Io => 1,
             ErrorKind::ParseToml => 3,
             ErrorKind::Download => 4,
             ErrorKind::ParsePage => 5,
-        });
+        }
+        .into()
     }
 }
 

@@ -13,6 +13,7 @@ mod util;
 use std::env;
 use std::fs;
 use std::io::{self, Write};
+use std::process::ExitCode;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use clap::Parser;
@@ -28,6 +29,13 @@ use crate::util::{get_languages_from_env, infoln, warnln};
 
 /// If this is set to true, do not print anything except pages and errors.
 pub static QUIET: AtomicBool = AtomicBool::new(false);
+
+fn main() -> ExitCode {
+    match run() {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(e) => e.exit_code(),
+    }
+}
 
 fn init_color(color_mode: &ColorMode) {
     #[cfg(target_os = "windows")]
@@ -160,10 +168,4 @@ fn run() -> Result<()> {
         })?;
 
     PageRenderer::print(&page_path, &config.output, &config.indent, config.style)
-}
-
-fn main() {
-    if let Err(e) = run() {
-        e.exit();
-    }
 }

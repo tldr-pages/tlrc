@@ -5,7 +5,7 @@ use std::path::Path;
 use yansi::Style;
 
 use crate::config::{IndentConfig, OutputConfig, StyleConfig};
-use crate::error::{Error, Result};
+use crate::error::{Error, ErrorKind, Result};
 
 const TITLE: &str = "# ";
 const DESC: &str = "> ";
@@ -82,14 +82,17 @@ impl<'a> PageRenderer<'a> {
         indentcfg: &'a IndentConfig,
         stylecfg: StyleConfig,
     ) -> Result<()> {
+        let mut page = File::open(path)
+            .map_err(|e| Error::new(format!("'{}': {e}", path.display())).kind(ErrorKind::Io))?;
+
         if outputcfg.raw_markdown {
-            io::copy(&mut File::open(path)?, &mut io::stdout())?;
+            io::copy(&mut page, &mut io::stdout())?;
             return Ok(());
         }
 
         Self {
             path,
-            reader: BufReader::new(File::open(path)?),
+            reader: BufReader::new(page),
             stdout: BufWriter::new(io::stdout().lock()),
             current_line: String::new(),
             lnum: 0,
