@@ -89,7 +89,7 @@ impl<'a> Cache<'a> {
         if !crate::QUIET.load(Ordering::Relaxed) {
             writeln!(
                 io::stderr(),
-                " {} pages , {} new",
+                " {} pages, {} new",
                 Paint::new(n_downloaded).fg(Color::Green).bold(),
                 Paint::new(n_new).fg(Color::Green).bold(),
             )?;
