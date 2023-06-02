@@ -12,12 +12,11 @@ mod util;
 
 use std::env;
 use std::fs;
-use std::io::{self, Write};
+use std::io::{self, IsTerminal, Write};
 use std::process::ExitCode;
 use std::sync::atomic::{AtomicBool, Ordering::Relaxed};
 
 use clap::Parser;
-use is_terminal::IsTerminal;
 use yansi::Paint;
 
 use crate::args::{Cli, ColorMode};

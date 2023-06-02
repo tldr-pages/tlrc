@@ -551,7 +551,6 @@ dependencies = [
  "clap",
  "clap_complete",
  "dirs",
- "is-terminal",
  "serde",
  "toml",
  "ureq",
