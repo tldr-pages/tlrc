@@ -4,24 +4,24 @@ use std::hash::Hash;
 
 /// Prints a warning.
 macro_rules! warnln {
-    ( $( $arg:tt )*) => {
+    ( $( $arg:tt )* ) => {
         if !$crate::QUIET.load(std::sync::atomic::Ordering::Relaxed) {
             use std::io::Write;
-            let mut lock = std::io::stderr().lock();
-            write!(lock, "{} ", yansi::Paint::new("warning:").fg(yansi::Color::Yellow).bold())?;
-            writeln!(lock, $($arg)*)?;
+            let mut stderr = std::io::stderr().lock();
+            write!(stderr, "{} ", yansi::Paint::new("warning:").fg(yansi::Color::Yellow).bold())?;
+            writeln!(stderr, $($arg)*)?;
         }
     };
 }
 
 /// Prints a status message.
 macro_rules! infoln {
-    ( $( $arg:tt )*) => {
+    ( $( $arg:tt )* ) => {
         if !$crate::QUIET.load(std::sync::atomic::Ordering::Relaxed) {
             use std::io::Write;
-            let mut lock = std::io::stderr().lock();
-            write!(lock, "{} ", yansi::Paint::new("info:").fg(yansi::Color::Cyan).bold())?;
-            writeln!(lock, $($arg)*)?;
+            let mut stderr = std::io::stderr().lock();
+            write!(stderr, "{} ", yansi::Paint::new("info:").fg(yansi::Color::Cyan).bold())?;
+            writeln!(stderr, $($arg)*)?;
         }
     };
 }

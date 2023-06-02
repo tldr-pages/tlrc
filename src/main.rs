@@ -14,7 +14,7 @@ use std::env;
 use std::fs;
 use std::io::{self, Write};
 use std::process::ExitCode;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, Ordering::Relaxed};
 
 use clap::Parser;
 use is_terminal::IsTerminal;
@@ -74,7 +74,7 @@ fn run() -> Result<()> {
     }
 
     if cli.quiet {
-        QUIET.store(true, Ordering::Relaxed);
+        QUIET.store(true, Relaxed);
     }
 
     init_color(&cli.color);

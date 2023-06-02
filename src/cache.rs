@@ -4,7 +4,7 @@ use std::fs::{self, File};
 use std::io::{self, Cursor, Read, Write};
 use std::path::{Path, PathBuf};
 use std::result::Result as StdResult;
-use std::sync::atomic::Ordering;
+use std::sync::atomic::Ordering::Relaxed;
 use std::time::Duration;
 
 use yansi::{Color, Paint};
@@ -56,7 +56,7 @@ impl<'a> Cache<'a> {
         all_downloaded: &mut usize,
         all_new: &mut usize,
     ) -> Result<()> {
-        if !crate::QUIET.load(Ordering::Relaxed) {
+        if !crate::QUIET.load(Relaxed) {
             write!(
                 io::stderr(),
                 "{} extracting '{dir}'...",
@@ -86,7 +86,7 @@ impl<'a> Cache<'a> {
         *all_downloaded += n_downloaded;
         *all_new += n_new;
 
-        if !crate::QUIET.load(Ordering::Relaxed) {
+        if !crate::QUIET.load(Relaxed) {
             writeln!(
                 io::stderr(),
                 " {} pages, {} new",
