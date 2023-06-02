@@ -65,12 +65,11 @@ impl Error {
 
     /// Print the error message to stderr and return an appropriate `ExitCode`.
     pub fn exit_code(self) -> ExitCode {
-        writeln!(
+        let _ = writeln!(
             io::stderr(),
             "{} {self}",
             Paint::new("error:").fg(Color::Red).bold()
-        )
-        .ok();
+        );
 
         match self.kind {
             ErrorKind::Msg | ErrorKind::Io => 1,
