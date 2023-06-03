@@ -80,7 +80,7 @@ impl<'a> PageRenderer<'a> {
         path: &'a Path,
         outputcfg: &'a OutputConfig,
         indentcfg: &'a IndentConfig,
-        stylecfg: StyleConfig,
+        stylecfg: &StyleConfig,
     ) -> Result<()> {
         let mut page = File::open(path)
             .map_err(|e| Error::new(format!("'{}': {e}", path.display())).kind(ErrorKind::Io))?;

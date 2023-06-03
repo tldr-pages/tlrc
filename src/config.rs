@@ -9,7 +9,7 @@ use crate::cache::Cache;
 use crate::error::{Error, ErrorKind, Result};
 use crate::util::warnln;
 
-#[derive(Serialize, Deserialize, Default)]
+#[derive(Serialize, Deserialize, Default, Clone, Copy)]
 #[serde(rename_all = "lowercase")]
 pub enum OutputColor {
     Black,
@@ -44,7 +44,7 @@ impl From<OutputColor> for yansi::Color {
     }
 }
 
-#[derive(Serialize, Deserialize, Default)]
+#[derive(Serialize, Deserialize, Default, Clone, Copy)]
 #[serde(deny_unknown_fields, default)]
 pub struct OutputStyle {
     pub color: OutputColor,
