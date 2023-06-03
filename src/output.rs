@@ -4,7 +4,7 @@ use std::path::Path;
 
 use yansi::Style;
 
-use crate::config::{IndentConfig, OutputConfig, StyleConfig};
+use crate::config::Config;
 use crate::error::{Error, ErrorKind, Result};
 
 const TITLE: &str = "# ";
@@ -13,7 +13,7 @@ const BULLET: &str = "- ";
 const EXAMPLE: char = '`';
 
 /// Highlight a substring between `start` and `end` inside `s` and return a new `String`.
-fn highlight(start: &str, end: &str, s: &str, style_normal: &Style, style_hl: &Style) -> String {
+fn highlight(start: &str, end: &str, s: &str, style_normal: Style, style_hl: Style) -> String {
     let mut buf = String::new();
 
     for (i, spl) in s.split(start).enumerate() {
@@ -51,17 +51,7 @@ fn highlight(start: &str, end: &str, s: &str, style_normal: &Style, style_hl: &S
     buf
 }
 
-pub struct PageRenderer<'a> {
-    /// Path to the page.
-    path: &'a Path,
-    /// A BufReader containing the page.
-    reader: BufReader<File>,
-    stdout: BufWriter<io::StdoutLock<'static>>,
-    /// The line of the page that is currently being worked with.
-    current_line: String,
-    /// The line number of the current line.
-    lnum: usize,
-
+struct RenderStyles {
     title: Style,
     desc: Style,
     bullet: Style,
@@ -69,23 +59,32 @@ pub struct PageRenderer<'a> {
     url: Style,
     inline_code: Style,
     placeholder: Style,
+}
 
-    outputcfg: &'a OutputConfig,
-    indentcfg: &'a IndentConfig,
+pub struct PageRenderer<'a> {
+    /// Path to the page.
+    path: &'a Path,
+    /// A BufReader containing the page.
+    reader: BufReader<File>,
+    /// A buffered handle to standard output.
+    stdout: BufWriter<io::StdoutLock<'static>>,
+    /// The line of the page that is currently being worked with.
+    current_line: String,
+    /// The line number of the current line.
+    lnum: usize,
+    /// Style configuration.
+    style: RenderStyles,
+    /// Other options.
+    cfg: &'a Config,
 }
 
 impl<'a> PageRenderer<'a> {
     /// Print or render the page according to the provided config.
-    pub fn print(
-        path: &'a Path,
-        outputcfg: &'a OutputConfig,
-        indentcfg: &'a IndentConfig,
-        stylecfg: &StyleConfig,
-    ) -> Result<()> {
+    pub fn print(path: &'a Path, cfg: &'a Config) -> Result<()> {
         let mut page = File::open(path)
             .map_err(|e| Error::new(format!("'{}': {e}", path.display())).kind(ErrorKind::Io))?;
 
-        if outputcfg.raw_markdown {
+        if cfg.output.raw_markdown {
             io::copy(&mut page, &mut io::stdout())?;
             return Ok(());
         }
@@ -96,17 +95,16 @@ impl<'a> PageRenderer<'a> {
             stdout: BufWriter::new(io::stdout().lock()),
             current_line: String::new(),
             lnum: 0,
-
-            title: stylecfg.title.into(),
-            desc: stylecfg.description.into(),
-            bullet: stylecfg.bullet.into(),
-            example: stylecfg.example.into(),
-            url: stylecfg.url.into(),
-            inline_code: stylecfg.inline_code.into(),
-            placeholder: stylecfg.placeholder.into(),
-
-            outputcfg,
-            indentcfg,
+            style: RenderStyles {
+                title: cfg.style.title.into(),
+                desc: cfg.style.description.into(),
+                bullet: cfg.style.bullet.into(),
+                example: cfg.style.example.into(),
+                url: cfg.style.url.into(),
+                inline_code: cfg.style.inline_code.into(),
+                placeholder: cfg.style.placeholder.into(),
+            },
+            cfg,
         }
         .render()
     }
@@ -120,20 +118,19 @@ impl<'a> PageRenderer<'a> {
 
     /// Write the current line to the page buffer as a title.
     fn add_title(&mut self) -> Result<()> {
-        if !self.outputcfg.show_title {
+        if !self.cfg.output.show_title {
             return Ok(());
         }
-        if !self.outputcfg.compact {
+        if !self.cfg.output.compact {
             writeln!(self.stdout)?;
         }
 
+        let line = self.current_line.strip_prefix(TITLE).unwrap();
         Ok(write!(
             self.stdout,
             "{}{}",
-            " ".repeat(self.indentcfg.title),
-            &self
-                .title
-                .paint(self.current_line.strip_prefix(TITLE).unwrap())
+            " ".repeat(self.cfg.indent.title),
+            self.style.title.paint(line)
         )?)
     }
 
@@ -142,7 +139,7 @@ impl<'a> PageRenderer<'a> {
         Ok(write!(
             self.stdout,
             "{}{}",
-            " ".repeat(self.indentcfg.description),
+            " ".repeat(self.cfg.indent.description),
             highlight(
                 "`",
                 "`",
@@ -150,20 +147,20 @@ impl<'a> PageRenderer<'a> {
                     "<",
                     ">",
                     self.current_line.strip_prefix(DESC).unwrap(),
-                    &self.desc,
-                    &self.url,
+                    self.style.desc,
+                    self.style.url,
                 ),
-                &self.desc,
-                &self.inline_code,
+                self.style.desc,
+                self.style.inline_code,
             )
         )?)
     }
 
     /// Write the current line to the page buffer as a bullet point.
     fn add_bullet(&mut self) -> Result<()> {
-        let line = if self.outputcfg.show_hyphens {
+        let line = if self.cfg.output.show_hyphens {
             self.current_line
-                .replace_range(..2, &self.outputcfg.example_prefix);
+                .replace_range(..2, &self.cfg.output.example_prefix);
             self.current_line.as_str()
         } else {
             self.current_line.strip_prefix(BULLET).unwrap()
@@ -172,8 +169,8 @@ impl<'a> PageRenderer<'a> {
         Ok(write!(
             self.stdout,
             "{}{}",
-            " ".repeat(self.indentcfg.bullet),
-            highlight("`", "`", line, &self.bullet, &self.inline_code),
+            " ".repeat(self.cfg.indent.bullet),
+            highlight("`", "`", line, self.style.bullet, self.style.inline_code),
         )?)
     }
 
@@ -182,7 +179,7 @@ impl<'a> PageRenderer<'a> {
         Ok(writeln!(
             self.stdout,
             "{}{}",
-            " ".repeat(self.indentcfg.example),
+            " ".repeat(self.cfg.indent.example),
             highlight(
                 "{{",
                 "}}",
@@ -194,15 +191,15 @@ impl<'a> PageRenderer<'a> {
                         Error::parse_page(self.path, self.lnum, &self.current_line)
                             .describe("\nEvery line with an example must end with a backtick '`'.")
                     })?,
-                &self.example,
-                &self.placeholder,
+                self.style.example,
+                self.style.placeholder,
             )
         )?)
     }
 
     /// Write a newline to the page buffer if compact mode is not turned on.
     fn add_newline(&mut self) -> Result<()> {
-        if !self.outputcfg.compact {
+        if !self.cfg.output.compact {
             writeln!(self.stdout)?;
         }
         Ok(())

@@ -113,7 +113,7 @@ fn run() -> Result<()> {
     config.output.compact = !cli.no_compact && (cli.compact || config.output.compact);
     config.output.raw_markdown = !cli.no_raw && (cli.raw || config.output.raw_markdown);
     if let Some(path) = cli.render {
-        return PageRenderer::print(&path, &config.output, &config.indent, &config.style);
+        return PageRenderer::print(&path, &config);
     }
 
     if config.cache.auto_update && cache.is_stale(&config.cache_max_age())? {
@@ -165,5 +165,5 @@ fn run() -> Result<()> {
             }
         })?;
 
-    PageRenderer::print(&page_path, &config.output, &config.indent, &config.style)
+    PageRenderer::print(&page_path, &config)
 }
