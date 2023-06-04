@@ -25,7 +25,7 @@ impl<'a> Cache<'a> {
 
     /// Get the default path to the cache.
     pub fn locate() -> PathBuf {
-        dirs::cache_dir().unwrap().join(clap::crate_name!())
+        dirs::cache_dir().unwrap().join(env!("CARGO_PKG_NAME"))
     }
 
     /// Return `true` if the cache directory exists.

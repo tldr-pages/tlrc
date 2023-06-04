@@ -117,7 +117,7 @@ impl Display for Platform {
 #[command(
     arg_required_else_help = true,
     about,
-    version = concat!(clap::crate_version!(), " (implementing the tldr client specification v1.5)"),
+    version = concat!('v', env!("CARGO_PKG_VERSION"), " (implementing the tldr client specification v1.5)"),
     disable_version_flag = true,
     after_help = "See 'man tldr' or https://acuteenvy.github.io/tlrc for more information.",
     help_template = "{before-help}{name} {version}\n\

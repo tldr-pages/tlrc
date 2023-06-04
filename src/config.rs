@@ -273,7 +273,7 @@ impl Config {
     pub fn locate() -> PathBuf {
         dirs::config_dir()
             .unwrap()
-            .join(clap::crate_name!())
+            .join(env!("CARGO_PKG_NAME"))
             .join("config.toml")
     }
 
