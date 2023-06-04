@@ -71,6 +71,8 @@ languages = []
 show_title = true
 # Prefix descriptions of examples with hyphens.
 show_hyphens = false
+# Use a custom string instead of a hyphen.
+example_prefix = "- "
 # Strip empty lines from output.
 compact = false
 # Print pages in raw markdown.

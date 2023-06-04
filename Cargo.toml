@@ -1,6 +1,6 @@
 [package]
 name = "tlrc"
-version = "1.3.0"
+version = "1.4.0"
 description = "A tldr client written in Rust"
 categories = ["command-line-utilities"]
 homepage = "https://github.com/acuteenvy/tlrc"
@@ -12,17 +12,17 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-clap = { version = "4.2.7", features = ["derive"] }
+clap = { version = "4.3.1", features = ["derive"] }
 dirs = "5.0.1"
 serde = { version = "1.0.163", features = ["derive"] }
-toml = "0.7.3"
+toml = "0.7.4"
 ureq = { version = "2.6.2", default-features = false, features = ["tls"] }
 yansi = "0.5.1"
-zip = { version = "0.6.5", default-features = false, features = ["deflate"] }
+zip = { version = "0.6.6", default-features = false, features = ["deflate"] }
 
 [build-dependencies]
-clap = { version = "4.2.7", features = ["derive"] }
-clap_complete = "4.3.0"
+clap = { version = "4.3.1", features = ["derive"] }
+clap_complete = "4.3.1"
 
 [[bin]]
 name = "tldr"
