@@ -58,10 +58,12 @@ jobs:
         if: ${{ contains(matrix.target, 'musl') }}
         run: sudo apt install musl-tools
 
-      - name: Install the rust target
-        run: rustup target add ${{ matrix.target }}
+      - name: Set up Rust
+        run: rustup update stable && rustup target add ${{ matrix.target }}
 
       - name: Build
+        env:
+          COMPLETION_DIR: completions
         run: cargo build --release --target ${{ matrix.target }}
 
       - name: Create the archive
