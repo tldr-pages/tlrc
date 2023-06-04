@@ -15,6 +15,7 @@ use crate::error::{Error, Result};
 use crate::util::{infoln, languages_to_langdirs, warnln};
 
 const ARCHIVE: &str = "https://tldr.sh/assets/tldr.zip";
+const USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), '/', env!("CARGO_PKG_VERSION"));
 
 pub struct Cache<'a>(&'a Path);
 
@@ -39,6 +40,7 @@ impl<'a> Cache<'a> {
 
         infoln!("downloading tldr pages from '{ARCHIVE}'...");
         ureq::get(ARCHIVE)
+            .set("User-Agent", USER_AGENT)
             .call()?
             .into_reader()
             .read_to_end(&mut buf)?;
