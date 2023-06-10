@@ -14,15 +14,12 @@ pub enum ColorMode {
 
 impl Display for ColorMode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                Self::Always => "always",
-                Self::Never => "never",
-                Self::Auto => "auto",
-            }
-        )
+        match self {
+            Self::Always => "always",
+            Self::Never => "never",
+            Self::Auto => "auto",
+        }
+        .fmt(f)
     }
 }
 
@@ -98,18 +95,15 @@ impl FromStr for Platform {
 
 impl Display for Platform {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                Self::Linux => "linux",
-                Self::OsX => "osx",
-                Self::Windows => "windows",
-                Self::Android => "android",
-                Self::SunOs => "sunos",
-                Self::Common => "common",
-            }
-        )
+        match self {
+            Self::Linux => "linux",
+            Self::OsX => "osx",
+            Self::Windows => "windows",
+            Self::Android => "android",
+            Self::SunOs => "sunos",
+            Self::Common => "common",
+        }
+        .fmt(f)
     }
 }
 
