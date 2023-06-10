@@ -333,9 +333,8 @@ impl<'a> Cache<'a> {
         for (lang, n) in n_map {
             writeln!(
                 stdout,
-                "{lang}{} : {}",
                 // Language codes are at most 5 characters (ll_CC).
-                " ".repeat(5_usize.saturating_sub(lang.len())),
+                "{lang:5} : {}",
                 Paint::new(n).fg(Color::Green).bold(),
             )?;
         }
