@@ -198,5 +198,5 @@ pub struct Cli {
 
     /// Print version.
     #[arg(short, long, action = ArgAction::Version)]
-    pub version: (),
+    version: (),
 }
