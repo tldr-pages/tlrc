@@ -1,7 +1,6 @@
-use std::collections::HashSet;
 use std::env;
-use std::hash::Hash;
 use std::iter;
+use std::mem;
 
 /// Prints a warning.
 macro_rules! warnln {
@@ -86,10 +85,14 @@ trait Dedup {
 
 impl<T> Dedup for Vec<T>
 where
-    T: Hash + Eq + Copy,
+    T: PartialEq,
 {
     fn dedup_nosort(&mut self) {
-        let mut set = HashSet::new();
-        self.retain(|x| set.insert(*x));
+        let old = mem::replace(self, Vec::with_capacity(self.len()));
+        for x in old {
+            if !self.contains(&x) {
+                self.push(x);
+            }
+        }
     }
 }
