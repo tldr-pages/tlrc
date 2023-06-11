@@ -81,26 +81,17 @@ impl Error {
     }
 }
 
-impl From<io::Error> for Error {
-    fn from(e: io::Error) -> Self {
-        Error::new(e).kind(ErrorKind::Io)
-    }
+macro_rules! from_impl {
+    ( $from:ty, $kind:tt ) => {
+        impl From<$from> for Error {
+            fn from(e: $from) -> Self {
+                Error::new(e).kind(ErrorKind::$kind)
+            }
+        }
+    };
 }
 
-impl From<toml::de::Error> for Error {
-    fn from(e: toml::de::Error) -> Self {
-        Error::new(e).kind(ErrorKind::ParseToml)
-    }
-}
-
-impl From<ureq::Error> for Error {
-    fn from(e: ureq::Error) -> Self {
-        Error::new(e).kind(ErrorKind::Download)
-    }
-}
-
-impl From<zip::result::ZipError> for Error {
-    fn from(e: zip::result::ZipError) -> Self {
-        Error::new(e).kind(ErrorKind::Download)
-    }
-}
+from_impl! { io::Error, Io }
+from_impl! { toml::de::Error, ParseToml }
+from_impl! { ureq::Error, Download }
+from_impl! { zip::result::ZipError, Download }
