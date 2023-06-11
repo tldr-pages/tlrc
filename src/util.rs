@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 use std::env;
 use std::hash::Hash;
+use std::iter;
 
 /// Prints a warning.
 macro_rules! warnln {
@@ -45,7 +46,7 @@ pub fn get_languages_from_env() -> Vec<String> {
     let languages = var_language
         .unwrap_or("")
         .split(':')
-        .chain([var_lang.as_str()]);
+        .chain(iter::once(&*var_lang));
 
     for lang in languages {
         if lang.len() >= 5 && lang.chars().nth(2) == Some('_') {

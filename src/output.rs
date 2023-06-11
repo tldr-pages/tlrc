@@ -161,7 +161,7 @@ impl<'a> PageRenderer<'a> {
         let line = if self.cfg.output.show_hyphens {
             self.current_line
                 .replace_range(..2, &self.cfg.output.example_prefix);
-            self.current_line.as_str()
+            &self.current_line
         } else {
             self.current_line.strip_prefix(BULLET).unwrap()
         };
