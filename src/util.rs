@@ -96,3 +96,47 @@ where
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::env;
+
+    fn prepare_env(lang: Option<&str>, language: Option<&str>) {
+        if let Some(lang) = lang {
+            env::set_var("LANG", lang);
+        } else {
+            env::remove_var("LANG");
+        }
+
+        if let Some(language) = language {
+            env::set_var("LANGUAGE", language);
+        } else {
+            env::remove_var("LANGUAGE");
+        }
+    }
+
+    #[test]
+    fn env_languages() {
+        prepare_env(Some("cz"), Some("it:cz:de"));
+        assert_eq!(get_languages_from_env(), ["it", "cz", "de", "en"]);
+
+        prepare_env(Some("cz"), Some("it:de:fr"));
+        assert_eq!(get_languages_from_env(), ["it", "de", "fr", "cz", "en"]);
+
+        prepare_env(Some("it"), None);
+        assert_eq!(get_languages_from_env(), ["it", "en"]);
+
+        prepare_env(None, Some("it:cz"));
+        assert_eq!(get_languages_from_env(), ["en"]);
+
+        prepare_env(None, None);
+        assert_eq!(get_languages_from_env(), ["en"]);
+
+        prepare_env(Some("en_US.UTF-8"), Some("de_DE.UTF-8:pl:en"));
+        assert_eq!(
+            get_languages_from_env(),
+            ["de_DE", "de", "pl", "en", "en_US"]
+        );
+    }
+}
