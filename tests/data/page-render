@@ -1,0 +1,14 @@
+
+  test page
+
+  This is a test page.
+  More information: https://example.org.
+
+  This is a description of a command example:
+
+    command --opt1 --opt2 placeholder
+
+  Another one:
+
+    command --opt1 placeholder1 placeholder2 ...
+
