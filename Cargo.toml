@@ -14,7 +14,7 @@ edition = "2021"
 [dependencies]
 clap = { version = "4.3.3", features = ["derive"] }
 dirs = "5.0.1"
-serde = { version = "1.0.163", features = ["derive"] }
+serde = { version = "1.0.164", features = ["derive"] }
 toml = "0.7.4"
 ureq = { version = "2.6.2", default-features = false, features = ["tls"] }
 yansi = "0.5.1"
