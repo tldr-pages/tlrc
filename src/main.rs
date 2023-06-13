@@ -36,7 +36,7 @@ fn main() -> ExitCode {
     }
 }
 
-fn init_color(color_mode: &ColorMode) {
+fn init_color(color_mode: ColorMode) {
     #[cfg(target_os = "windows")]
     let color_support = yansi::Paint::enable_windows_ascii();
     #[cfg(not(target_os = "windows"))]
@@ -76,7 +76,7 @@ fn run() -> Result<()> {
         QUIET.store(true, Relaxed);
     }
 
-    init_color(&cli.color);
+    init_color(cli.color);
 
     let mut config = Config::new(cli.config)?;
     let cache = Cache::new(&config.cache.dir);
