@@ -2,41 +2,7 @@ use std::fmt::Display;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use clap::{ArgAction, Parser};
-
-#[derive(Copy, Clone, Default)]
-pub enum ColorMode {
-    Always,
-    Never,
-    #[default]
-    Auto,
-}
-
-impl Display for ColorMode {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Always => "always",
-            Self::Never => "never",
-            Self::Auto => "auto",
-        }
-        .fmt(f)
-    }
-}
-
-impl FromStr for ColorMode {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "always" => Ok(Self::Always),
-            "never" => Ok(Self::Never),
-            "auto" => Ok(Self::Auto),
-            _ => Err(format!(
-                "invalid value '{s}' for '--color' (possible values: always, never, auto)"
-            )),
-        }
-    }
-}
+use clap::{ArgAction, ColorChoice, Parser};
 
 #[derive(Copy, Clone, PartialEq)]
 pub enum Platform {
@@ -188,9 +154,9 @@ pub struct Cli {
     #[arg(short, long)]
     pub quiet: bool,
 
-    /// Specify when to enable color [always, never, auto].
-    #[arg(long, value_name = "WHEN", default_value_t = ColorMode::default())]
-    pub color: ColorMode,
+    /// Specify when to enable color.
+    #[arg(long, value_name = "WHEN", default_value_t = ColorChoice::default())]
+    pub color: ColorChoice,
 
     /// Specify an alternative path to the config file.
     #[arg(long, value_name = "FILE")]

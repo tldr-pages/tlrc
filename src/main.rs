@@ -16,10 +16,10 @@ use std::io::{self, IsTerminal, Write};
 use std::process::ExitCode;
 use std::sync::atomic::{AtomicBool, Ordering::Relaxed};
 
-use clap::Parser;
+use clap::{ColorChoice, Parser};
 use yansi::Paint;
 
-use crate::args::{Cli, ColorMode};
+use crate::args::Cli;
 use crate::cache::Cache;
 use crate::config::Config;
 use crate::error::{ErrorKind, Result};
@@ -36,17 +36,17 @@ fn main() -> ExitCode {
     }
 }
 
-fn init_color(color_mode: ColorMode) {
+fn init_color(color_mode: ColorChoice) {
     #[cfg(target_os = "windows")]
     let color_support = yansi::Paint::enable_windows_ascii();
     #[cfg(not(target_os = "windows"))]
     let color_support = true;
 
     match color_mode {
-        ColorMode::Always => {}
-        ColorMode::Never => yansi::Paint::disable(),
-        ColorMode::Auto => {
-            if !(color_support && env::var("NO_COLOR").is_err() && io::stdout().is_terminal()) {
+        ColorChoice::Always => {}
+        ColorChoice::Never => yansi::Paint::disable(),
+        ColorChoice::Auto => {
+            if !(color_support && env::var_os("NO_COLOR").is_none() && io::stdout().is_terminal()) {
                 yansi::Paint::disable();
             }
         }
