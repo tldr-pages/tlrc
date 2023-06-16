@@ -1,15 +1,16 @@
 use std::fmt::Display;
 use std::path::PathBuf;
-use std::str::FromStr;
 
-use clap::{ArgAction, ColorChoice, Parser};
+use clap::{ArgAction, ColorChoice, Parser, ValueEnum};
 
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, ValueEnum)]
 pub enum Platform {
     Linux,
+    #[value(name = "osx", alias = "macos")]
     OsX,
     Windows,
     Android,
+    #[value(name = "sunos")]
     SunOs,
     Common,
 }
@@ -40,22 +41,6 @@ impl Default for Platform {
     #[cfg(not(any(target_os = "linux", target_os = "macos", target_os = "windows")))]
     fn default() -> Self {
         Self::Common
-    }
-}
-
-impl FromStr for Platform {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "linux" => Ok(Self::Linux),
-            "macos" | "osx" => Ok(Self::OsX),
-            "windows" => Ok(Self::Windows),
-            "android" => Ok(Self::Android),
-            "sunos" => Ok(Self::SunOs),
-            "common" => Ok(Self::Common),
-            _ => Err(format!("invalid platform '{s}' (possible values: linux, macos, osx, windows, android, sunos, common)'"))
-        }
     }
 }
 
@@ -122,7 +107,7 @@ pub struct Cli {
     #[arg(long, group = "operations")]
     pub config_path: bool,
 
-    /// Specify the platform to use [linux, macos/osx, windows, android, sunos, common].
+    /// Specify the platform to use.
     #[arg(short, long, default_value_t = Platform::default())]
     pub platform: Platform,
 
