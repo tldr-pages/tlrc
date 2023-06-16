@@ -193,24 +193,30 @@ impl<'a> Cache<'a> {
         None
     }
 
-    /// If the page exists, return the path to it.
-    pub fn find(&self, page: &str, languages: &[String], platform: Platform) -> Result<PathBuf> {
+    /// Find all pages with the given name.
+    pub fn find(
+        &self,
+        name: &str,
+        languages: &[String],
+        platform: Platform,
+    ) -> Result<Vec<PathBuf>> {
         // https://github.com/tldr-pages/tldr/blob/main/CLIENT-SPECIFICATION.md#page-resolution
 
-        let file = format!("{page}.md");
+        let file = format!("{name}.md");
         let lang_dirs = languages_to_langdirs(languages);
+        let mut result = vec![];
 
         // `common` is always searched, so we skip the search for the specified platform
         // if the user has requested only `common` (to prevent searching twice)
         if platform != Platform::Common {
             if let Some(path) = self.find_page_for(&file, &platform.to_string(), &lang_dirs) {
-                return Ok(path);
+                result.push(path);
             }
         }
 
         // Fall back to `common` if the page is not found in `platform`.
         if let Some(path) = self.find_page_for(&file, "common", &lang_dirs) {
-            return Ok(path);
+            result.push(path);
         }
 
         // Fall back to all other platforms if the page is not found in`platform`.
@@ -221,22 +227,28 @@ impl<'a> Cache<'a> {
             }
 
             if let Some(path) = self.find_page_for(&file, &alt_platform.to_string(), &lang_dirs) {
-                if platform == Platform::Common {
-                    warnln!(
-                        "showing page from platform '{alt_platform}', \
-                        because '{page}' does not exist in 'common'"
-                    );
-                } else {
-                    warnln!(
-                        "showing page from platform '{alt_platform}', \
-                        because '{page}' does not exist in '{platform}' and 'common'"
-                    );
+                if result.is_empty() {
+                    if platform == Platform::Common {
+                        warnln!(
+                            "showing page from platform '{alt_platform}', \
+                            because '{name}' does not exist in 'common'"
+                        );
+                    } else {
+                        warnln!(
+                            "showing page from platform '{alt_platform}', \
+                            because '{name}' does not exist in '{platform}' and 'common'"
+                        );
+                    }
                 }
-                return Ok(path);
+                result.push(path);
             }
         }
 
-        Err(Error::new("page not found."))
+        if result.is_empty() {
+            Err(Error::new("page not found."))
+        } else {
+            Ok(result)
+        }
     }
 
     /// List all available pages in `lang` for `platform`.

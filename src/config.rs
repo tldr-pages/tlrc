@@ -193,6 +193,8 @@ impl Default for CacheConfig {
 pub struct OutputConfig {
     /// Show the page title.
     pub show_title: bool,
+    /// Show the platform in the title.
+    pub platform_title: bool,
     /// Show hyphens before example descriptions.
     pub show_hyphens: bool,
     /// Show a custom string instead of a hyphen.
@@ -207,6 +209,7 @@ impl Default for OutputConfig {
     fn default() -> Self {
         Self {
             show_title: true,
+            platform_title: false,
             show_hyphens: false,
             example_prefix: "- ".to_string(),
             compact: false,

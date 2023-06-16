@@ -134,7 +134,7 @@ fn run() -> Result<()> {
     }
 
     let page_name = cli.page.join("-").to_lowercase();
-    let page_path = cache
+    let page_paths = cache
         .find(&page_name, &languages, cli.platform)
         .map_err(|mut e| {
             if languages_are_from_cli {
@@ -165,5 +165,5 @@ fn run() -> Result<()> {
             }
         })?;
 
-    PageRenderer::print(&page_path, &config)
+    PageRenderer::print_cache_result(&page_paths, &config)
 }

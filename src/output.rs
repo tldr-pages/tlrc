@@ -1,11 +1,14 @@
+use std::borrow::Cow;
 use std::fs::File;
 use std::io::{self, BufRead, BufReader, BufWriter, Write};
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use std::sync::atomic::Ordering::Relaxed;
 
-use yansi::Style;
+use yansi::{Color, Paint, Style};
 
 use crate::config::Config;
 use crate::error::{Error, ErrorKind, Result};
+use crate::util::{warnln, PagePathExt};
 
 const TITLE: &str = "# ";
 const DESC: &str = "> ";
@@ -109,6 +112,35 @@ impl<'a> PageRenderer<'a> {
         .render()
     }
 
+    /// Print the first page that was found and warnings for every other page.
+    pub fn print_cache_result(paths: &'a [PathBuf], cfg: &'a Config) -> Result<()> {
+        if !crate::QUIET.load(Relaxed) {
+            if let Some(others) = paths.get(1..) {
+                if !others.is_empty() {
+                    warnln!("{} page(s) found for other platforms:", others.len());
+                }
+
+                let mut stderr = io::stderr().lock();
+                for (i, path) in others.iter().enumerate() {
+                    // The path always ends with the page file, and its parent is always the
+                    // platform directory. This is safe to unwrap.
+                    let name = path.page_name().unwrap();
+                    let platform = path.page_platform().unwrap();
+                    writeln!(
+                        stderr,
+                        "{} '{platform}' (tldr --platform {platform} {name})",
+                        Paint::new(format!("{}.", i + 1)).fg(Color::Green).bold()
+                    )?;
+                }
+            }
+        }
+
+        // This is safe to unwrap, as cache.find() would have returned an error if no page was
+        // found.
+        let first = paths.first().unwrap();
+        Self::print(first, cfg)
+    }
+
     /// Load the next line into the line buffer.
     fn next_line(&mut self) -> Result<usize> {
         self.current_line.clear();
@@ -126,11 +158,21 @@ impl<'a> PageRenderer<'a> {
         }
 
         let line = self.current_line.strip_prefix(TITLE).unwrap();
+        let title = if self.cfg.output.platform_title {
+            if let Some(platform) = self.path.page_platform() {
+                Cow::Owned(format!("{platform}/{line}"))
+            } else {
+                Cow::Borrowed(line)
+            }
+        } else {
+            Cow::Borrowed(line)
+        };
+
         Ok(write!(
             self.stdout,
             "{}{}",
             " ".repeat(self.cfg.indent.title),
-            self.style.title.paint(line)
+            self.style.title.paint(title)
         )?)
     }
 

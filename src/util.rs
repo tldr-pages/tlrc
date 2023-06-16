@@ -1,6 +1,9 @@
+use std::borrow::Cow;
 use std::env;
+use std::ffi::OsStr;
 use std::iter;
 use std::mem;
+use std::path::Path;
 
 /// Prints a warning.
 macro_rules! warnln {
@@ -94,6 +97,24 @@ where
                 self.push(x);
             }
         }
+    }
+}
+
+pub trait PagePathExt {
+    /// Extracts the page name from its path.
+    fn page_name(&self) -> Option<Cow<str>>;
+    /// Extracts the platform from the page path.
+    fn page_platform(&self) -> Option<Cow<str>>;
+}
+
+impl PagePathExt for Path {
+    fn page_name(&self) -> Option<Cow<str>> {
+        self.file_stem().map(OsStr::to_string_lossy)
+    }
+
+    fn page_platform(&self) -> Option<Cow<str>> {
+        self.parent()
+            .and_then(|parent| parent.file_name().map(OsStr::to_string_lossy))
     }
 }
 
