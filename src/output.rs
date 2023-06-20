@@ -145,7 +145,9 @@ impl<'a> PageRenderer<'a> {
     fn next_line(&mut self) -> Result<usize> {
         self.current_line.clear();
         self.lnum += 1;
-        Ok(self.reader.read_line(&mut self.current_line)?)
+        self.reader
+            .read_line(&mut self.current_line)
+            .map_err(|e| Error::new(format!("'{}': {e}", self.path.display())))
     }
 
     /// Write the current line to the page buffer as a title.
