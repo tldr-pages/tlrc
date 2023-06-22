@@ -88,7 +88,9 @@ impl<'a> PageRenderer<'a> {
             .map_err(|e| Error::new(format!("'{}': {e}", path.display())).kind(ErrorKind::Io))?;
 
         if cfg.output.raw_markdown {
-            io::copy(&mut page, &mut io::stdout())?;
+            io::copy(&mut page, &mut io::stdout()).map_err(|e| {
+                Error::new(format!("'{}': {e}", path.display())).kind(ErrorKind::Io)
+            })?;
             return Ok(());
         }
 
