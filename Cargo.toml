@@ -16,7 +16,7 @@ clap = { version = "4.3.4", features = ["derive"] }
 dirs = "5.0.1"
 serde = { version = "1.0.164", features = ["derive"] }
 toml = "0.7.4"
-ureq = { version = "2.7.0", default-features = false, features = ["tls"] }
+ureq = { version = "2.7.1", default-features = false, features = ["tls"] }
 yansi = "0.5.1"
 zip = { version = "0.6.6", default-features = false, features = ["deflate"] }
 
