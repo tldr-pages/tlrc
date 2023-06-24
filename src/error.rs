@@ -63,6 +63,14 @@ impl Error {
         .kind(ErrorKind::ParsePage)
     }
 
+    pub fn parse_sumfile(sums: &str) -> Self {
+        Error::new(format!(
+            "failed to parse the checksum file \
+            (the archive checksum should be on the second line before any whitespace):\n{sums}"
+        ))
+        .kind(ErrorKind::Download)
+    }
+
     /// Print the error message to stderr and return an appropriate `ExitCode`.
     pub fn exit_code(self) -> ExitCode {
         let _ = writeln!(

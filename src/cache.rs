@@ -4,7 +4,6 @@ use std::fs::{self, File};
 use std::io::{self, Cursor, Read, Write};
 use std::path::{Path, PathBuf};
 use std::result::Result as StdResult;
-use std::sync::atomic::Ordering::Relaxed;
 use std::time::Duration;
 
 use yansi::{Color, Paint};
@@ -12,9 +11,10 @@ use zip::ZipArchive;
 
 use crate::args::Platform;
 use crate::error::{Error, Result};
-use crate::util::{infoln, languages_to_langdirs, warnln};
+use crate::util::{info_end, info_start, infoln, languages_to_langdirs, sha256_hexdigest, warnln};
 
 const ARCHIVE: &str = "https://tldr.sh/assets/tldr.zip";
+const CHECKSUMS: &str = "https://tldr.sh/assets/tldr.sha256sums";
 const USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), '/', env!("CARGO_PKG_VERSION"));
 
 pub struct Cache<'a>(&'a Path);
@@ -36,16 +36,40 @@ impl<'a> Cache<'a> {
 
     /// Download the tldr pages archive.
     fn download() -> Result<Vec<u8>> {
-        let mut buf = vec![];
+        let agent = ureq::builder().user_agent(USER_AGENT).build();
+        let mut archive = vec![];
 
         infoln!("downloading tldr pages from '{ARCHIVE}'...");
-        ureq::get(ARCHIVE)
-            .set("User-Agent", USER_AGENT)
+        agent
+            .get(ARCHIVE)
             .call()?
             .into_reader()
-            .read_to_end(&mut buf)?;
+            .read_to_end(&mut archive)?;
 
-        Ok(buf)
+        infoln!("downloading checksums from '{CHECKSUMS}'...");
+        let sums = agent.get(CHECKSUMS).call()?.into_string()?;
+        let sum = sums
+            .lines()
+            .nth(1)
+            .ok_or_else(|| Error::parse_sumfile(sums.trim_end()))?
+            .split_whitespace()
+            .next()
+            .ok_or_else(|| Error::parse_sumfile(sums.trim_end()))?;
+
+        info_start!("validating checksums...");
+        let actual_sum = sha256_hexdigest(&archive);
+
+        if sum != actual_sum {
+            info_end!(" {}", Paint::new("FAILED").fg(Color::Red).bold());
+            return Err(Error::new(format!(
+                "SHA256 sum mismatch!\n\
+                expected : {sum}\n\
+                got      : {actual_sum}"
+            )));
+        }
+
+        info_end!(" {}", Paint::new("OK").fg(Color::Green).bold());
+        Ok(archive)
     }
 
     /// Extract `dir` from `archive` and update the page counters.
@@ -58,13 +82,7 @@ impl<'a> Cache<'a> {
         all_downloaded: &mut usize,
         all_new: &mut usize,
     ) -> Result<()> {
-        if !crate::QUIET.load(Relaxed) {
-            write!(
-                io::stderr(),
-                "{} extracting '{dir}'...",
-                Paint::new("info:").fg(Color::Cyan).bold()
-            )?;
-        }
+        info_start!("extracting '{dir}'...");
 
         let mut n_downloaded = 0;
         for f in files {
@@ -88,14 +106,11 @@ impl<'a> Cache<'a> {
         *all_downloaded += n_downloaded;
         *all_new += n_new;
 
-        if !crate::QUIET.load(Relaxed) {
-            writeln!(
-                io::stderr(),
-                " {} pages, {} new",
-                Paint::new(n_downloaded).fg(Color::Green).bold(),
-                Paint::new(n_new).fg(Color::Green).bold(),
-            )?;
-        }
+        info_end!(
+            " {} pages, {} new",
+            Paint::new(n_downloaded).fg(Color::Green).bold(),
+            Paint::new(n_new).fg(Color::Green).bold()
+        );
 
         Ok(())
     }

@@ -5,6 +5,8 @@ use std::iter;
 use std::mem;
 use std::path::Path;
 
+use ring::digest::{digest, SHA256};
+
 /// Prints a warning.
 macro_rules! warnln {
     ( $( $arg:tt )* ) => {
@@ -17,7 +19,7 @@ macro_rules! warnln {
     };
 }
 
-/// Prints a status message.
+/// Prints a status message with a trailing newline.
 macro_rules! infoln {
     ( $( $arg:tt )* ) => {
         if !$crate::QUIET.load(std::sync::atomic::Ordering::Relaxed) {
@@ -29,7 +31,29 @@ macro_rules! infoln {
     };
 }
 
-pub(crate) use {infoln, warnln};
+/// Prints a status message without a trailing newline.
+macro_rules! info_start {
+    ( $( $arg:tt )* ) => {
+        if !$crate::QUIET.load(std::sync::atomic::Ordering::Relaxed) {
+            use std::io::Write;
+            let mut stderr = std::io::stderr().lock();
+            write!(stderr, "{} ", yansi::Paint::new("info:").fg(yansi::Color::Cyan).bold())?;
+            write!(stderr, $($arg)*)?;
+        }
+    };
+}
+
+/// End the status message started using `info_start`.
+macro_rules! info_end {
+    ( $( $arg:tt )* ) => {
+        if !$crate::QUIET.load(std::sync::atomic::Ordering::Relaxed) {
+            use std::io::Write;
+            writeln!(std::io::stderr(), $($arg)*)?;
+        }
+    };
+}
+
+pub(crate) use {info_end, info_start, infoln, warnln};
 
 pub fn get_languages_from_env() -> Vec<String> {
     // https://github.com/tldr-pages/tldr/blob/main/CLIENT-SPECIFICATION.md#language
@@ -118,6 +142,18 @@ impl PagePathExt for Path {
     }
 }
 
+/// Calculates the SHA256 hash and returns a hexadecimal string.
+pub fn sha256_hexdigest(data: &[u8]) -> String {
+    let digest = digest(&SHA256, data);
+    let mut hex = String::new();
+
+    for part in digest.as_ref() {
+        hex.push_str(&format!("{part:02x}"));
+    }
+
+    hex
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -158,6 +194,14 @@ mod tests {
         assert_eq!(
             get_languages_from_env(),
             ["de_DE", "de", "pl", "en", "en_US"]
+        );
+    }
+
+    #[test]
+    fn sha256() {
+        assert_eq!(
+            sha256_hexdigest(b"This is a test."),
+            "a8a2f6ebe286697c527eb35a58b5539532e9b3ae3b64d4eb0a46fb657b41562c"
         );
     }
 }

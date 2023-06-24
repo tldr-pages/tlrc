@@ -560,6 +560,7 @@ dependencies = [
  "clap",
  "clap_complete",
  "dirs",
+ "ring",
  "serde",
  "toml",
  "ureq",
