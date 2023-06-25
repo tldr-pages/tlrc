@@ -19,7 +19,13 @@ const EXAMPLE: char = '`';
 fn highlight(start: &str, end: &str, s: &str, style_normal: Style, style_hl: Style) -> String {
     let mut buf = String::new();
 
-    for (i, spl) in s.split(start).enumerate() {
+    let split: Vec<&str> = s.split(start).collect();
+    // Highlight beginning not found.
+    if split.len() == 1 {
+        return style_normal.paint(s).to_string();
+    }
+
+    for (i, spl) in split.iter().enumerate() {
         if start == end {
             // Only odd indexes contain the part to be highlighted.
             // "aa `bb` cc `dd` ee"
@@ -42,6 +48,12 @@ fn highlight(start: &str, end: &str, s: &str, style_normal: Style, style_hl: Sty
             // 2: "dd}} ee"  => 0: "dd"  (highlighted)
             //                  1: " ee"
             let mut spl2 = spl.split(end);
+
+            // "<http" is used to detect documentation URLs and it is removed during split(),
+            // we have to add it back again.
+            if end == ">" {
+                buf.push_str(&style_hl.paint("http").to_string());
+            }
 
             buf.push_str(&style_hl.paint(spl2.next().unwrap()).to_string());
             buf.push_str(&style_normal.paint(spl2.next().unwrap()).to_string());
@@ -190,7 +202,7 @@ impl<'a> PageRenderer<'a> {
                 "`",
                 "`",
                 &highlight(
-                    "<",
+                    "<http",
                     ">",
                     self.current_line.strip_prefix(DESC).unwrap(),
                     self.style.desc,
