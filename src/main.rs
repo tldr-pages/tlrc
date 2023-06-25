@@ -116,7 +116,7 @@ fn run() -> Result<()> {
         return PageRenderer::print(&path, &config);
     }
 
-    if config.cache.auto_update && cache.is_stale(&config.cache_max_age())? {
+    if config.cache.auto_update && cache.is_stale(config.cache_max_age())? {
         if cli.offline {
             warnln!("cache is stale. Run tldr without --offline to update.");
         } else {

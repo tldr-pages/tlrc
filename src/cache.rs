@@ -376,7 +376,7 @@ impl<'a> Cache<'a> {
     }
 
     /// Return `true` if the cache is older than `max_age`.
-    pub fn is_stale(&self, max_age: &Duration) -> Result<bool> {
+    pub fn is_stale(&self, max_age: Duration) -> Result<bool> {
         let since = fs::metadata(self.0.join("pages"))?
             .modified()?
             .elapsed()
@@ -388,7 +388,7 @@ impl<'a> Cache<'a> {
                 )
             })?;
 
-        if &since > max_age {
+        if since > max_age {
             return Ok(true);
         }
 
