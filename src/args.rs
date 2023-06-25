@@ -3,15 +3,22 @@ use std::path::PathBuf;
 
 use clap::{ArgAction, ColorChoice, Parser, ValueEnum};
 
-#[derive(Copy, Clone, PartialEq, ValueEnum)]
+#[derive(Copy, Clone, PartialEq, ValueEnum, Default)]
 pub enum Platform {
+    #[cfg_attr(target_os = "linux", default)]
     Linux,
     #[value(name = "osx", alias = "macos")]
+    #[cfg_attr(target_os = "macos", default)]
     OsX,
+    #[cfg_attr(target_os = "windows", default)]
     Windows,
     Android,
     #[value(name = "sunos")]
     SunOs,
+    #[cfg_attr(
+        not(any(target_os = "linux", target_os = "macos", target_os = "windows")),
+        default
+    )]
     Common,
 }
 
@@ -19,28 +26,6 @@ impl Platform {
     pub fn iterator() -> impl Iterator<Item = Platform> {
         use self::Platform::{Android, Linux, OsX, SunOs, Windows};
         [Linux, OsX, Windows, Android, SunOs].into_iter()
-    }
-}
-
-impl Default for Platform {
-    #[cfg(target_os = "linux")]
-    fn default() -> Self {
-        Self::Linux
-    }
-
-    #[cfg(target_os = "macos")]
-    fn default() -> Self {
-        Self::OsX
-    }
-
-    #[cfg(target_os = "windows")]
-    fn default() -> Self {
-        Self::Windows
-    }
-
-    #[cfg(not(any(target_os = "linux", target_os = "macos", target_os = "windows")))]
-    fn default() -> Self {
-        Self::Common
     }
 }
 
