@@ -67,8 +67,10 @@ max_age = 336
 languages = []
 
 [output]
-# Show the command name in the page.
+# Show the title in the rendered page.
 show_title = true
+# Show the platform name ('common', 'linux', etc.) in the title.
+platform_title = false
 # Prefix descriptions of examples with hyphens.
 show_hyphens = false
 # Use a custom string instead of a hyphen.
