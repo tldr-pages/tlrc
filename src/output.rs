@@ -228,7 +228,13 @@ impl<'a> PageRenderer<'a> {
             self.stdout,
             "{}{}",
             " ".repeat(self.cfg.indent.bullet),
-            highlight("`", "`", line, self.style.bullet, self.style.inline_code),
+            highlight(
+                "`",
+                "`",
+                &highlight("<http", ">", line, self.style.bullet, self.style.url),
+                self.style.bullet,
+                self.style.inline_code,
+            )
         )?)
     }
 
