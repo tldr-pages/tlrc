@@ -23,6 +23,12 @@ A [tldr](https://tldr.sh) client written in Rust.
 ### Arch Linux
 Install [tlrc](https://aur.archlinux.org/packages/tlrc) (from source) or [tlrc-bin](https://aur.archlinux.org/packages/tlrc-bin) (prebuilt) from the AUR.
 
+### NetBSD
+Install [tlrc](https://ftp.netbsd.org/pub/NetBSD/NetBSD-current/pkgsrc/net/tlrc/index.html) with `pkgin`.
+```
+pkgin install tlrc
+```
+
 ### From crates.io
 To build tlrc from a source tarball, run:
 ```
