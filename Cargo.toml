@@ -15,7 +15,7 @@ edition = "2021"
 clap = { version = "4.3.21", features = ["derive"] }
 dirs = "5.0.1"
 ring = "0.16.20"
-serde = { version = "1.0.183", features = ["derive"] }
+serde = { version = "1.0.185", features = ["derive"] }
 toml = "0.7.6"
 ureq = { version = "2.7.1", default-features = false, features = ["tls"] }
 yansi = "0.5.1"
