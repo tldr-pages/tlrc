@@ -348,7 +348,7 @@ impl<'a> Cache<'a> {
         } else {
             self.list_dir(&platform.to_string(), "pages")?
                 .into_iter()
-                .chain(self.list_dir("common", "pages")?.into_iter())
+                .chain(self.list_dir("common", "pages")?)
                 .collect()
         };
 
