@@ -19,7 +19,7 @@ const CHECKSUMS: &str =
     "https://raw.githubusercontent.com/tldr-pages/tldr-pages.github.io/main/assets/tldr.sha256sums";
 const USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), '/', env!("CARGO_PKG_VERSION"));
 
-type LangDirArchiveMap = HashMap<String, ZipArchive<Cursor<Vec<u8>>>>;
+type PagesArchive = ZipArchive<Cursor<Vec<u8>>>;
 
 pub struct Cache<'a>(&'a Path);
 
@@ -39,7 +39,7 @@ impl<'a> Cache<'a> {
     }
 
     /// Download the tldr pages archives.
-    fn download_and_verify(languages: &[String]) -> Result<LangDirArchiveMap> {
+    fn download_and_verify(languages: &[String]) -> Result<HashMap<String, PagesArchive>> {
         let agent = ureq::builder().user_agent(USER_AGENT).build();
         let mut langdir_archive_map = HashMap::new();
 
@@ -132,7 +132,7 @@ impl<'a> Cache<'a> {
     fn extract_lang_archive(
         &self,
         lang_dir: &str,
-        archive: &mut ZipArchive<Cursor<Vec<u8>>>,
+        archive: &mut PagesArchive,
         n_existing: usize,
         all_downloaded: &mut usize,
         all_new: &mut usize,
