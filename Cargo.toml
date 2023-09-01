@@ -23,7 +23,7 @@ zip = { version = "0.6.6", default-features = false, features = ["deflate"] }
 
 [build-dependencies]
 clap = { version = "4.3.23", features = ["derive"] }
-clap_complete = "4.3.2"
+clap_complete = "4.4.0"
 
 [[bin]]
 name = "tldr"
