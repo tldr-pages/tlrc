@@ -285,7 +285,7 @@ impl<'a> PageRenderer<'a> {
             } else {
                 return Err(
                     Error::parse_page(self.path, self.lnum, &self.current_line).describe(
-                        "\nEvery non-empty line must begin with either '#', '> ', '- ' or '`'.",
+                        "\nEvery non-empty line must begin with either '# ', '> ', '- ' or '`'.",
                     ),
                 );
             }
