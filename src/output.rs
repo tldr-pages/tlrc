@@ -17,13 +17,13 @@ const EXAMPLE: char = '`';
 
 /// Highlight a substring between `start` and `end` inside `s` and return a new `String`.
 fn highlight(start: &str, end: &str, s: &str, style_normal: Style, style_hl: Style) -> String {
-    let mut buf = String::new();
-
     let split: Vec<&str> = s.split(start).collect();
     // Highlight beginning not found.
     if split.len() == 1 {
         return style_normal.paint(s).to_string();
     }
+
+    let mut buf = String::new();
 
     for (i, spl) in split.iter().enumerate() {
         if start == end {
