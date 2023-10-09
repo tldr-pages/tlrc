@@ -47,7 +47,11 @@ impl Display for Platform {
 #[command(
     arg_required_else_help = true,
     about,
-    version = concat!('v', env!("CARGO_PKG_VERSION"), " (implementing the tldr client specification v1.5)"),
+    // VERSION_STRING is generated and set in the build script.
+    // A fallback must be set here because this file is included as a module
+    // in build.rs to generate completions, and it will refuse to compile
+    // (the variable is not present yet in the build script).
+    version = option_env!("VERSION_STRING").unwrap_or(env!("CARGO_PKG_VERSION")),
     disable_version_flag = true,
     after_help = "See 'man tldr' or https://acuteenvy.github.io/tlrc for more information.",
     help_template = "{before-help}{name} {version}\n\
