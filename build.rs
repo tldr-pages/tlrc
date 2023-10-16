@@ -4,27 +4,17 @@
 mod args;
 
 use std::env;
-use std::ffi::OsString;
 use std::fs;
 use std::io;
 use std::process;
 
 use clap::CommandFactory;
-use clap_complete::{shells, Generator};
+use clap::ValueEnum;
 
 use crate::args::Cli;
 
 /// The version of the tldr client specification being implemented.
 const CLIENT_SPEC: &str = "1.5";
-
-fn gen_completions<G, D>(gen: G, cmd: &mut clap::Command, dir: D) -> Result<(), io::Error>
-where
-    G: Generator,
-    D: Into<OsString>,
-{
-    clap_complete::generate_to(gen, cmd, "tldr", dir)?;
-    Ok(())
-}
 
 fn is_debug_build() -> bool {
     env::var("PROFILE").unwrap() == "debug"
@@ -55,17 +45,15 @@ fn pkgver_and_spec() -> String {
 }
 
 fn main() -> Result<(), io::Error> {
-    let completion_dir = env::var("COMPLETION_DIR")
-        .or_else(|_| env::var("OUT_DIR"))
+    let completion_dir = env::var_os("COMPLETION_DIR")
+        .or_else(|| env::var_os("OUT_DIR"))
         .unwrap();
 
     fs::create_dir_all(&completion_dir)?;
 
-    let cmd = &mut Cli::command();
-    gen_completions(shells::Bash, cmd, &completion_dir)?;
-    gen_completions(shells::Zsh, cmd, &completion_dir)?;
-    gen_completions(shells::Fish, cmd, &completion_dir)?;
-    gen_completions(shells::PowerShell, cmd, &completion_dir)?;
+    for &shell in clap_complete::Shell::value_variants() {
+        clap_complete::generate_to(shell, &mut Cli::command(), "tldr", &completion_dir)?;
+    }
 
     let ver = if is_debug_build() {
         if let Some(hash) = commit_hash() {
