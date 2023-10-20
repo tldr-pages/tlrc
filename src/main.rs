@@ -38,16 +38,16 @@ fn main() -> ExitCode {
 
 fn init_color(color_mode: ColorChoice) {
     #[cfg(target_os = "windows")]
-    let color_support = yansi::Paint::enable_windows_ascii();
+    let color_support = Paint::enable_windows_ascii();
     #[cfg(not(target_os = "windows"))]
     let color_support = true;
 
     match color_mode {
         ColorChoice::Always => {}
-        ColorChoice::Never => yansi::Paint::disable(),
+        ColorChoice::Never => Paint::disable(),
         ColorChoice::Auto => {
             if !(color_support && env::var_os("NO_COLOR").is_none() && io::stdout().is_terminal()) {
-                yansi::Paint::disable();
+                Paint::disable();
             }
         }
     }
