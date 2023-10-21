@@ -364,6 +364,7 @@ impl<'a> Cache<'a> {
             .list_dir("linux", &lang_dir)?
             .into_iter()
             .chain(self.list_dir("osx", &lang_dir)?)
+            .chain(self.list_dir("openbsd", &lang_dir)?)
             .chain(self.list_dir("windows", &lang_dir)?)
             .chain(self.list_dir("android", &lang_dir)?)
             .chain(self.list_dir("sunos", &lang_dir)?)
