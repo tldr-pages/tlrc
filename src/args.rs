@@ -7,16 +7,30 @@ use clap::{ArgAction, ColorChoice, Parser, ValueEnum};
 pub enum Platform {
     #[cfg_attr(target_os = "linux", default)]
     Linux,
+
     #[value(name = "osx", alias = "macos")]
     #[cfg_attr(target_os = "macos", default)]
     OsX,
+
+    #[value(name = "openbsd")]
+    #[cfg_attr(target_os = "openbsd", default)]
+    OpenBsd,
+
     #[cfg_attr(target_os = "windows", default)]
     Windows,
+
     Android,
+
     #[value(name = "sunos")]
     SunOs,
+
     #[cfg_attr(
-        not(any(target_os = "linux", target_os = "macos", target_os = "windows")),
+        not(any(
+            target_os = "linux",
+            target_os = "macos",
+            target_os = "openbsd",
+            target_os = "windows"
+        )),
         default
     )]
     Common,
@@ -24,16 +38,18 @@ pub enum Platform {
 
 impl Platform {
     pub fn iterator() -> impl Iterator<Item = Platform> {
-        use self::Platform::{Android, Linux, OsX, SunOs, Windows};
-        [Linux, OsX, Windows, Android, SunOs].into_iter()
+        use self::Platform::{Android, Linux, OpenBsd, OsX, SunOs, Windows};
+        [Linux, OsX, OpenBsd, Windows, Android, SunOs].into_iter()
     }
 }
 
+// These are the directory names.
 impl Display for Platform {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Linux => "linux",
             Self::OsX => "osx",
+            Self::OpenBsd => "openbsd",
             Self::Windows => "windows",
             Self::Android => "android",
             Self::SunOs => "sunos",
