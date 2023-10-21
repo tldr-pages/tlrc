@@ -19,6 +19,7 @@ pub enum Platform {
     #[cfg_attr(target_os = "windows", default)]
     Windows,
 
+    #[cfg_attr(target_os = "android", default)]
     Android,
 
     #[value(name = "sunos")]
@@ -29,7 +30,8 @@ pub enum Platform {
             target_os = "linux",
             target_os = "macos",
             target_os = "openbsd",
-            target_os = "windows"
+            target_os = "windows",
+            target_os = "android"
         )),
         default
     )]
