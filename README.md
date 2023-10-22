@@ -16,48 +16,62 @@ A [tldr](https://tldr.sh) client written in Rust.
 
 </div>
 
-
 ## Installation
+
 [![Packaging status](https://repology.org/badge/vertical-allrepos/tlrc.svg)](https://repology.org/project/tlrc/versions)
 
 ### Arch Linux
+
 Install [tlrc](https://aur.archlinux.org/packages/tlrc) (from source) or [tlrc-bin](https://aur.archlinux.org/packages/tlrc-bin) (prebuilt) from the AUR.
 
 ### NetBSD
+
 Install [tlrc](https://ftp.netbsd.org/pub/NetBSD/NetBSD-current/pkgsrc/net/tlrc/index.html) with `pkgin`.
-```
+
+```shell
 pkgin install tlrc
 ```
 
 ### From crates.io
+
 To build tlrc from a source tarball, run:
-```
+
+```shell
 cargo install tlrc
 ```
+
 **NOTE:** shell completion files and the man page will not be installed that way.
 
 ### From GitHub Releases
+
 You can find prebuilt binaries [here][latest-release].
 
-
 ## Usage
+
 See `man tldr` or the [online manpage](https://tldr.sh/tlrc). For a brief description, you can also run:
-```
+
+```shell
 tldr --help
 ```
 
 ## Configuration
+
 Tlrc can be customized with a [TOML](https://toml.io) configuration file. To get the default path for your system, run:
-```
+
+```shell
 tldr --config-path
 ```
+
 To generate a default config file, run:
-```bash
+
+```shell
 tldr --gen-config > $(tldr --config-path)
 ```
+
 or copy the below example.
 
 ### Configuration options
+
 ```toml
 [cache]
 # Override the cache directory.

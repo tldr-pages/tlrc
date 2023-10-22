@@ -14,7 +14,7 @@ jobs:
 
     steps:
       - name: Checkout the repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Update Rust
         run: rustup update stable
       - name: Run rustfmt
@@ -26,7 +26,7 @@ jobs:
 
       steps:
         - name: Checkout the repository
-          uses: actions/checkout@v3
+          uses: actions/checkout@v4
         - name: Update Rust
           run: rustup update stable
         - name: Run clippy
