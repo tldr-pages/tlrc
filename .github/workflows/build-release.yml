@@ -21,7 +21,7 @@ jobs:
 
     steps:
       - name: Checkout the repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Create the release
         env:
@@ -52,7 +52,7 @@ jobs:
 
     steps:
       - name: Checkout the repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install musl libc
         if: ${{ contains(matrix.target, 'musl') }}
