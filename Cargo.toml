@@ -1,11 +1,11 @@
 [package]
 name = "tlrc"
-version = "1.5.1"
+version = "1.6.0"
 description = "A tldr client written in Rust"
 categories = ["command-line-utilities"]
-homepage = "https://github.com/acuteenvy/tlrc"
-repository = "https://github.com/acuteenvy/tlrc"
-documentation = "https://acuteenvy.github.io/tlrc"
+homepage = "https://github.com/tldr-pages/tlrc"
+repository = "https://github.com/tldr-pages/tlrc"
+documentation = "https://tldr.sh/tlrc"
 license = "MIT"
 edition = "2021"
 

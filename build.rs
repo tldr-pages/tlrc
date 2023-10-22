@@ -14,7 +14,7 @@ use clap::ValueEnum;
 use crate::args::Cli;
 
 /// The version of the tldr client specification being implemented.
-const CLIENT_SPEC: &str = "1.5";
+const CLIENT_SPEC: &str = "2.0";
 
 fn is_debug_build() -> bool {
     env::var("PROFILE").unwrap() == "debug"

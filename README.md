@@ -4,12 +4,12 @@
 
 A [tldr](https://tldr.sh) client written in Rust.
 
-[![CI](https://img.shields.io/github/actions/workflow/status/acuteenvy/tlrc/ci.yml?label=CI&logo=github&labelColor=363a4f&logoColor=d9e0ee)](https://github.com/acuteenvy/tlrc/actions/workflows/ci.yml)
-[![release](https://img.shields.io/github/v/release/acuteenvy/tlrc?&logo=github&color=cba6f7&logoColor=d9e0ee&labelColor=363a4f)][latest-release]
+[![CI](https://img.shields.io/github/actions/workflow/status/tldr-pages/tlrc/ci.yml?label=CI&logo=github&labelColor=363a4f&logoColor=d9e0ee)](https://github.com/tldr-pages/tlrc/actions/workflows/ci.yml)
+[![release](https://img.shields.io/github/v/release/tldr-pages/tlrc?&logo=github&color=cba6f7&logoColor=d9e0ee&labelColor=363a4f)][latest-release]
 [![crates.io](https://img.shields.io/crates/v/tlrc?&logo=rust&color=cba6f7&logoColor=d9e0ee&labelColor=363a4f)][crate]
-[![license](https://img.shields.io/github/license/acuteenvy/tlrc?color=b4befe&labelColor=363a4f)](/LICENSE)
+[![license](https://img.shields.io/github/license/tldr-pages/tlrc?color=b4befe&labelColor=363a4f)](/LICENSE)
 <br>
-[![github downloads](https://img.shields.io/github/downloads/acuteenvy/tlrc/total?logo=github&color=94e2d5&logoColor=d9e0ee&labelColor=363a4f)][latest-release]
+[![github downloads](https://img.shields.io/github/downloads/tldr-pages/tlrc/total?logo=github&color=94e2d5&logoColor=d9e0ee&labelColor=363a4f)][latest-release]
 [![crates.io downloads](https://img.shields.io/crates/d/tlrc?logo=rust&color=94e2d5&logoColor=d9e0ee&labelColor=363a4f)][crate]
 
 ![screenshot](https://user-images.githubusercontent.com/126529524/234939306-d3da4f33-a2b4-472f-abb7-aab7e4ee84be.png)
@@ -41,7 +41,7 @@ You can find prebuilt binaries [here][latest-release].
 
 
 ## Usage
-See `man tldr` or the [online manpage](https://acuteenvy.github.io/tlrc). For a brief description, you can also run:
+See `man tldr` or the [online manpage](https://tldr.sh/tlrc). For a brief description, you can also run:
 ```
 tldr --help
 ```
@@ -171,5 +171,5 @@ dim = false
 strikethrough = false
 ```
 
-[latest-release]: https://github.com/acuteenvy/tlrc/releases/latest
+[latest-release]: https://github.com/tldr-pages/tlrc/releases/latest
 [crate]: https://crates.io/crates/tlrc

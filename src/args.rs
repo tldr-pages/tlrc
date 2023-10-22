@@ -71,7 +71,7 @@ impl Display for Platform {
     // (the variable is not present yet in the build script).
     version = option_env!("VERSION_STRING").unwrap_or(env!("CARGO_PKG_VERSION")),
     disable_version_flag = true,
-    after_help = "See 'man tldr' or https://acuteenvy.github.io/tlrc for more information.",
+    after_help = "See 'man tldr' or https://tldr.sh/tlrc for more information.",
     help_template = "{before-help}{name} {version}\n\
     {about-with-newline}\n\
     {usage-heading} {usage}\n\n\
