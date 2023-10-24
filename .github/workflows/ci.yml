@@ -32,14 +32,14 @@ jobs:
         - name: Run clippy
           run: cargo clippy -- --deny warnings
 
-  #tests:
-  #  name: Tests
-  #  runs-on: ubuntu-latest
-  #
-  #  steps:
-  #    - name: Checkout the repository
-  #      uses: actions/checkout@v3
-  #    - name: Update Rust
-  #      run: rustup update stable
-  #    - name: Run tests
-  #      run: cargo test
+  tests:
+    name: Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v4
+      - name: Update Rust
+        run: rustup update stable
+      - name: Run tests
+        run: cargo test
