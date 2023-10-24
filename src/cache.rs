@@ -18,6 +18,7 @@ const BASE_ARCHIVE_URL: &str =
 const CHECKSUMS: &str =
     "https://raw.githubusercontent.com/tldr-pages/tldr-pages.github.io/main/assets/tldr.sha256sums";
 const USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), '/', env!("CARGO_PKG_VERSION"));
+const ENGLISH_DIR: &str = "pages.en";
 
 type PagesArchive = ZipArchive<Cursor<Vec<u8>>>;
 
@@ -35,7 +36,7 @@ impl<'a> Cache<'a> {
 
     /// Return `true` if the cache directory exists.
     pub fn exists(&self) -> bool {
-        self.0.join("pages").is_dir()
+        self.0.join(ENGLISH_DIR).is_dir()
     }
 
     /// Download the tldr pages archives.
@@ -55,17 +56,11 @@ impl<'a> Cache<'a> {
             }
             let sum = sum.unwrap();
 
-            let url = if lang == "en" {
-                infoln!("downloading 'tldr-pages.zip'...");
-                format!("{BASE_ARCHIVE_URL}/tldr-pages.zip")
-            } else {
-                infoln!("downloading 'tldr-pages.{lang}.zip'...");
-                format!("{BASE_ARCHIVE_URL}/tldr-pages.{lang}.zip")
-            };
+            infoln!("downloading 'tldr-pages.{lang}.zip'...");
 
             let mut archive = vec![];
             agent
-                .get(&url)
+                .get(&format!("{BASE_ARCHIVE_URL}/tldr-pages.{lang}.zip"))
                 .call()?
                 .into_reader()
                 .read_to_end(&mut archive)?;
@@ -84,13 +79,10 @@ impl<'a> Cache<'a> {
 
             info_end!(" {}", Paint::new("OK").fg(Color::Green).bold());
 
-            let lang_dir = if lang == "en" {
-                "pages".to_string()
-            } else {
-                format!("pages.{lang}")
-            };
-
-            langdir_archive_map.insert(lang_dir, ZipArchive::new(Cursor::new(archive))?);
+            langdir_archive_map.insert(
+                format!("pages.{lang}"),
+                ZipArchive::new(Cursor::new(archive))?,
+            );
         }
 
         Ok(langdir_archive_map)
@@ -104,25 +96,22 @@ impl<'a> Cache<'a> {
             // sha256sum     path/to/tldr-pages.lang.zip
             // sha256sum     path/to/tldr-pages.lang.zip
             // ...
-            // The English archive is named tldr-pages.zip
 
             let mut spl = l.split_whitespace();
             let sum = spl.next().ok_or_else(Error::parse_sumfile)?;
             let path = spl.next().ok_or_else(Error::parse_sumfile)?;
 
-            // Skip other files and the full archive.
-            if !path.ends_with("zip") || path.ends_with("tldr.zip") {
+            // Skip other files, the full archive, and the old English archive
+            // (tldr-pages.en.zip is now available).
+            if !path.ends_with("zip")
+                || path.ends_with("tldr.zip")
+                || path.ends_with("tldr-pages.zip")
+            {
                 continue;
             }
 
             let lang = path.split('.').nth(1).ok_or_else(Error::parse_sumfile)?;
-
-            // Because the English archive has no language code in its name, `lang` will be equal to zip.
-            if lang == "zip" {
-                map.insert("en".to_string(), sum.to_string());
-            } else {
-                map.insert(lang.to_string(), sum.to_string());
-            }
+            map.insert(lang.to_string(), sum.to_string());
         }
 
         Ok(map)
@@ -174,7 +163,7 @@ impl<'a> Cache<'a> {
     /// Delete the old cache and replace it with a fresh copy.
     pub fn update(&self, languages: &[String]) -> Result<()> {
         // English pages should always be extracted, so we have to add English if it is not
-        // explicitly specified.
+        // explicitly specified (when the config has `language = ["something"]` without "en").
         let mut languages = languages.to_vec();
         if !languages.iter().any(|x| x == "en") {
             languages.push("en".to_string());
@@ -184,14 +173,9 @@ impl<'a> Cache<'a> {
         let mut all_downloaded = 0;
         let mut all_new = 0;
 
-        // This HashMap stores language directories and the number of pages
-        // in them before the update.
+        // (language_dir, pages_number_before_update)
         let mut dirs_npages = HashMap::new();
         let lang_dirs = languages_to_langdirs(&languages);
-
-        if !languages.iter().any(|x| x == "en") {
-            dirs_npages.insert("pages".to_string(), self.list_all_vec("pages")?.len());
-        }
 
         for lang_dir in &lang_dirs {
             dirs_npages.insert(lang_dir.to_string(), self.list_all_vec(lang_dir)?.len());
@@ -220,7 +204,7 @@ impl<'a> Cache<'a> {
 
     /// Delete the cache directory.
     pub fn clean(&self) -> Result<()> {
-        if !self.exists() {
+        if !self.0.is_dir() {
             infoln!("cache does not exist, not cleaning.");
             fs::create_dir_all(self.0)?;
             return Ok(());
@@ -344,11 +328,11 @@ impl<'a> Cache<'a> {
     /// List all pages in English for `platform` and common.
     pub fn list_platform(&self, platform: Platform) -> Result<()> {
         let mut pages = if platform == Platform::Common {
-            self.list_dir(&platform.to_string(), "pages")?
+            self.list_dir(&platform.to_string(), ENGLISH_DIR)?
         } else {
-            self.list_dir(&platform.to_string(), "pages")?
+            self.list_dir(&platform.to_string(), ENGLISH_DIR)?
                 .into_iter()
-                .chain(self.list_dir("common", "pages")?)
+                .chain(self.list_dir("common", ENGLISH_DIR)?)
                 .collect()
         };
 
@@ -374,7 +358,7 @@ impl<'a> Cache<'a> {
 
     /// List all pages in English.
     pub fn list_all(&self) -> Result<()> {
-        Self::print_basenames(&mut self.list_all_vec("pages")?)
+        Self::print_basenames(&mut self.list_all_vec(ENGLISH_DIR)?)
     }
 
     /// List installed languages.
@@ -387,11 +371,7 @@ impl<'a> Cache<'a> {
             let n = self.list_all_vec(&lang_dir)?.len();
 
             let str = lang_dir.to_string_lossy();
-            let str = if str == "pages" {
-                "en"
-            } else {
-                str.split_once('.').unwrap_or(("", &str)).1
-            };
+            let str = str.split_once('.').unwrap_or(("", &str)).1;
 
             n_map.insert(str.to_string(), n);
             n_total += n;
@@ -420,7 +400,7 @@ impl<'a> Cache<'a> {
 
     /// Return `true` if the cache is older than `max_age`.
     pub fn is_stale(&self, max_age: Duration) -> Result<bool> {
-        let since = fs::metadata(self.0.join("pages"))?
+        let since = fs::metadata(self.0.join(ENGLISH_DIR))?
             .modified()?
             .elapsed()
             .map_err(|_| {

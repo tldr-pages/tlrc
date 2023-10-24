@@ -91,17 +91,11 @@ pub fn get_languages_from_env() -> Vec<String> {
     result.into_iter().map(String::from).collect()
 }
 
-/// Convert language codes to directory names in the cache.
+/// Prepend `pages.` to each `String`.
 pub fn languages_to_langdirs(languages: &[String]) -> Vec<String> {
     languages
         .iter()
-        .map(|lang| {
-            if lang == "en" {
-                "pages".to_string()
-            } else {
-                format!("pages.{lang}")
-            }
-        })
+        .map(|lang| format!("pages.{lang}"))
         .collect()
 }
 
