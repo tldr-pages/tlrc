@@ -36,7 +36,7 @@ impl<'a> Cache<'a> {
 
     /// Return `true` if the cache directory exists.
     pub fn exists(&self) -> bool {
-        self.0.join(ENGLISH_DIR).is_dir()
+        self.0.is_dir()
     }
 
     /// Download the tldr pages archives.
@@ -49,6 +49,8 @@ impl<'a> Cache<'a> {
         let lang_sum_map = Self::parse_sumfile(&sums)?;
 
         languages.sort_unstable();
+        // The user can put duplicates in the config file.
+        languages.dedup();
         for lang in &languages {
             let sum = lang_sum_map.get(lang);
             // Skip nonexistent languages.
@@ -204,7 +206,7 @@ impl<'a> Cache<'a> {
 
     /// Delete the cache directory.
     pub fn clean(&self) -> Result<()> {
-        if !self.0.is_dir() {
+        if !self.exists() {
             infoln!("cache does not exist, not cleaning.");
             fs::create_dir_all(self.0)?;
             return Ok(());
@@ -400,16 +402,13 @@ impl<'a> Cache<'a> {
 
     /// Return `true` if the cache is older than `max_age`.
     pub fn is_stale(&self, max_age: Duration) -> Result<bool> {
-        let since = fs::metadata(self.0.join(ENGLISH_DIR))?
-            .modified()?
-            .elapsed()
-            .map_err(|_| {
-                Error::new(
-                    "the system clock is not functioning correctly.\n\
-                    Modification time of the cache is later than the current system time.\n\
-                    Please fix your system clock.",
-                )
-            })?;
+        let since = fs::metadata(self.0)?.modified()?.elapsed().map_err(|_| {
+            Error::new(
+                "the system clock is not functioning correctly.\n\
+                Modification time of the cache is later than the current system time.\n\
+                Please fix your system clock.",
+            )
+        })?;
 
         if since > max_age {
             return Ok(true);
