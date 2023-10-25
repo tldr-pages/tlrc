@@ -40,15 +40,16 @@ impl<'a> Cache<'a> {
     }
 
     /// Download the tldr pages archives.
-    fn download_and_verify(languages: &[String]) -> Result<HashMap<String, PagesArchive>> {
+    fn download_and_verify(mut languages: Vec<String>) -> Result<BTreeMap<String, PagesArchive>> {
         let agent = ureq::builder().user_agent(USER_AGENT).build();
-        let mut langdir_archive_map = HashMap::new();
+        let mut langdir_archive_map = BTreeMap::new();
 
         infoln!("downloading 'tldr.sha256sums'...");
         let sums = agent.get(CHECKSUMS).call()?.into_string()?;
         let lang_sum_map = Self::parse_sumfile(&sums)?;
 
-        for lang in languages {
+        languages.sort_unstable();
+        for lang in &languages {
             let sum = lang_sum_map.get(lang);
             // Skip nonexistent languages.
             if sum.is_none() {
@@ -169,18 +170,17 @@ impl<'a> Cache<'a> {
             languages.push("en".to_string());
         }
 
-        let archives = Self::download_and_verify(&languages)?;
-        let mut all_downloaded = 0;
-        let mut all_new = 0;
-
         // (language_dir, pages_number_before_update)
         let mut dirs_npages = HashMap::new();
+        let mut all_downloaded = 0;
+        let mut all_new = 0;
         let lang_dirs = languages_to_langdirs(&languages);
 
         for lang_dir in &lang_dirs {
             dirs_npages.insert(lang_dir.to_string(), self.list_all_vec(lang_dir)?.len());
         }
 
+        let archives = Self::download_and_verify(languages)?;
         self.clean()?;
 
         for (lang_dir, mut archive) in archives {
