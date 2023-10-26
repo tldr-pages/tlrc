@@ -11,8 +11,7 @@ mod output;
 mod util;
 
 use std::env;
-use std::fs;
-use std::io::{self, IsTerminal, Write};
+use std::io::{self, IsTerminal};
 use std::process::ExitCode;
 use std::sync::atomic::{AtomicBool, Ordering::Relaxed};
 
@@ -53,23 +52,25 @@ fn init_color(color_mode: ColorChoice) {
     }
 }
 
+fn get_languages(config: &mut Config) -> Vec<String> {
+    if config.cache.languages.is_empty() {
+        get_languages_from_env()
+    } else {
+        // English pages should always be downloaded and searched.
+        config.cache.languages.push("en".to_string());
+        config.cache.languages.clone()
+    }
+}
+
 fn run() -> Result<()> {
     let cli = Cli::parse();
 
     if cli.config_path {
-        let config_path = Config::locate();
-        writeln!(io::stdout(), "{}", config_path.display())?;
-        fs::create_dir_all(config_path.parent().unwrap())?;
-        return Ok(());
+        return Config::print_path();
     }
 
     if cli.gen_config {
-        write!(
-            io::stdout(),
-            "{}",
-            toml::ser::to_string_pretty(&Config::default()).unwrap()
-        )?;
-        return Ok(());
+        return Config::print_default();
     }
 
     if cli.quiet {
@@ -79,25 +80,28 @@ fn run() -> Result<()> {
     init_color(cli.color);
 
     let mut config = Config::new(cli.config)?;
-    let cache = Cache::new(&config.cache.dir);
     let languages_are_from_cli = cli.languages.is_some();
-    let languages = cli.languages.unwrap_or_else(get_languages_from_env);
-    let languages_to_download = if config.cache.languages.is_empty() {
-        &languages
+    let mut languages = cli.languages.unwrap_or_else(|| get_languages(&mut config));
+    let languages_to_download = if languages_are_from_cli {
+        // update() should never use languages from `--language`.
+        get_languages(&mut config)
     } else {
-        &config.cache.languages
+        // get_languages() has already been called, we need to clone() because this vector will
+        // be sorted alphabetically, unlike the first one.
+        languages.clone()
     };
+    let cache = Cache::new(&config.cache.dir);
 
     if cli.clean_cache {
         return cache.clean();
     }
     if cli.update {
-        return cache.update(languages_to_download);
+        return cache.update(&languages_to_download);
     }
 
     if !cache.exists() {
         infoln!("cache is empty, downloading...");
-        cache.update(languages_to_download)?;
+        cache.update(&languages_to_download)?;
     }
 
     if cli.list {
@@ -122,7 +126,7 @@ fn run() -> Result<()> {
         } else {
             infoln!("cache is stale, updating...");
             cache
-                .update(languages_to_download)
+                .update(&languages_to_download)
                 .map_err(|e| match e.kind {
                     ErrorKind::Download => e.describe(
                         "\n\nA download error occurred. \
@@ -135,7 +139,7 @@ fn run() -> Result<()> {
 
     let page_name = cli.page.join("-").to_lowercase();
     let page_paths = cache
-        .find(&page_name, &languages, cli.platform)
+        .find(&page_name, &mut languages, cli.platform)
         .map_err(|mut e| {
             if languages_are_from_cli {
                 e = e.describe("Try running tldr without --language.");

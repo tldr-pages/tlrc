@@ -1,4 +1,5 @@
 use std::fs;
+use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
@@ -278,6 +279,21 @@ impl Config {
             .unwrap()
             .join(env!("CARGO_PKG_NAME"))
             .join("config.toml")
+    }
+
+    /// Print the default path to the config file and create the config directory.
+    pub fn print_path() -> Result<()> {
+        let config_path = Config::locate();
+        writeln!(io::stdout(), "{}", config_path.display())?;
+        fs::create_dir_all(config_path.parent().unwrap())?;
+        Ok(())
+    }
+
+    /// Print the default config.
+    pub fn print_default() -> Result<()> {
+        let default = toml::ser::to_string_pretty(&Config::default()).unwrap();
+        write!(io::stdout(), "{default}")?;
+        Ok(())
     }
 
     /// Convert the number of hours from config to a `Duration`.

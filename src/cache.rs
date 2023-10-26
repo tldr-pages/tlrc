@@ -11,7 +11,9 @@ use zip::ZipArchive;
 
 use crate::args::Platform;
 use crate::error::{Error, Result};
-use crate::util::{info_end, info_start, infoln, languages_to_langdirs, sha256_hexdigest, warnln};
+use crate::util::{
+    info_end, info_start, infoln, languages_to_langdirs, sha256_hexdigest, warnln, Dedup,
+};
 
 const BASE_ARCHIVE_URL: &str =
     "https://raw.githubusercontent.com/tldr-pages/tldr-pages.github.io/main/assets";
@@ -40,7 +42,7 @@ impl<'a> Cache<'a> {
     }
 
     /// Download the tldr pages archives.
-    fn download_and_verify(mut languages: Vec<String>) -> Result<BTreeMap<String, PagesArchive>> {
+    fn download_and_verify(languages: &[String]) -> Result<BTreeMap<String, PagesArchive>> {
         let agent = ureq::builder().user_agent(USER_AGENT).build();
         let mut langdir_archive_map = BTreeMap::new();
 
@@ -48,10 +50,7 @@ impl<'a> Cache<'a> {
         let sums = agent.get(CHECKSUMS).call()?.into_string()?;
         let lang_sum_map = Self::parse_sumfile(&sums)?;
 
-        languages.sort_unstable();
-        // The user can put duplicates in the config file.
-        languages.dedup();
-        for lang in &languages {
+        for lang in languages {
             let sum = lang_sum_map.get(lang);
             // Skip nonexistent languages.
             if sum.is_none() {
@@ -165,24 +164,23 @@ impl<'a> Cache<'a> {
 
     /// Delete the old cache and replace it with a fresh copy.
     pub fn update(&self, languages: &[String]) -> Result<()> {
-        // English pages should always be extracted, so we have to add English if it is not
-        // explicitly specified (when the config has `language = ["something"]` without "en").
-        let mut languages = languages.to_vec();
-        if !languages.iter().any(|x| x == "en") {
-            languages.push("en".to_string());
-        }
-
         // (language_dir, pages_number_before_update)
         let mut dirs_npages = HashMap::new();
         let mut all_downloaded = 0;
         let mut all_new = 0;
+
+        let mut languages = languages.to_vec();
+        // Sort to always download archives in alphabetical order.
+        languages.sort_unstable();
+        // The user can put duplicates in the config file.
+        languages.dedup();
         let lang_dirs = languages_to_langdirs(&languages);
 
         for lang_dir in &lang_dirs {
             dirs_npages.insert(lang_dir.to_string(), self.list_all_vec(lang_dir)?.len());
         }
 
-        let archives = Self::download_and_verify(languages)?;
+        let archives = Self::download_and_verify(&languages)?;
         self.clean()?;
 
         for (lang_dir, mut archive) in archives {
@@ -240,12 +238,14 @@ impl<'a> Cache<'a> {
     pub fn find(
         &self,
         name: &str,
-        languages: &[String],
+        languages: &mut Vec<String>,
         platform: Platform,
     ) -> Result<Vec<PathBuf>> {
         // https://github.com/tldr-pages/tldr/blob/main/CLIENT-SPECIFICATION.md#page-resolution
 
         let file = format!("{name}.md");
+        // We can't sort here - order is defined by the user.
+        languages.dedup_nosort();
         let lang_dirs = languages_to_langdirs(languages);
         let mut result = vec![];
 

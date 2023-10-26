@@ -86,7 +86,6 @@ pub fn get_languages_from_env() -> Vec<String> {
     }
 
     result.push("en");
-    result.dedup_nosort();
 
     result.into_iter().map(String::from).collect()
 }
@@ -99,7 +98,7 @@ pub fn languages_to_langdirs(languages: &[String]) -> Vec<String> {
         .collect()
 }
 
-trait Dedup {
+pub trait Dedup {
     /// Deduplicate a vector in place preserving the order of elements.
     fn dedup_nosort(&mut self);
 }
@@ -169,8 +168,11 @@ mod tests {
 
     #[test]
     fn env_languages() {
+        // These vectors contain duplicates - de-dupping is done in cache.update()
+        // and cache.find(), because update() requires a sorted vector, whereas
+        // find() - an unsorted one.
         prepare_env(Some("cz"), Some("it:cz:de"));
-        assert_eq!(get_languages_from_env(), ["it", "cz", "de", "en"]);
+        assert_eq!(get_languages_from_env(), ["it", "cz", "de", "cz", "en"]);
 
         prepare_env(Some("cz"), Some("it:de:fr"));
         assert_eq!(get_languages_from_env(), ["it", "de", "fr", "cz", "en"]);
@@ -187,7 +189,7 @@ mod tests {
         prepare_env(Some("en_US.UTF-8"), Some("de_DE.UTF-8:pl:en"));
         assert_eq!(
             get_languages_from_env(),
-            ["de_DE", "de", "pl", "en", "en_US"]
+            ["de_DE", "de", "pl", "en", "en_US", "en", "en"]
         );
     }
 
