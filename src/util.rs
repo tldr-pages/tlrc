@@ -1,11 +1,16 @@
 use std::borrow::Cow;
 use std::env;
 use std::ffi::OsStr;
+use std::io::{self, IsTerminal};
 use std::iter;
 use std::mem;
 use std::path::Path;
 
+use clap::ColorChoice;
 use ring::digest::{digest, SHA256};
+use yansi::Paint;
+
+use crate::config::Config;
 
 /// Prints a warning.
 macro_rules! warnln {
@@ -55,7 +60,8 @@ macro_rules! info_end {
 
 pub(crate) use {info_end, info_start, infoln, warnln};
 
-pub fn get_languages_from_env() -> Vec<String> {
+/// Get languages from environment variables according to the tldr client specification.
+fn get_languages_from_env() -> Vec<String> {
     // https://github.com/tldr-pages/tldr/blob/main/CLIENT-SPECIFICATION.md#language
 
     let var_lang = env::var("LANG").ok();
@@ -90,12 +96,41 @@ pub fn get_languages_from_env() -> Vec<String> {
     result.into_iter().map(String::from).collect()
 }
 
+/// Return languages from the config + English or run `get_languages_from_env()` if the language config is empty.
+pub fn get_languages(config: &mut Config) -> Vec<String> {
+    if config.cache.languages.is_empty() {
+        get_languages_from_env()
+    } else {
+        // English pages should always be downloaded and searched.
+        config.cache.languages.push("en".to_string());
+        config.cache.languages.clone()
+    }
+}
+
 /// Prepend `pages.` to each `String`.
 pub fn languages_to_langdirs(languages: &[String]) -> Vec<String> {
     languages
         .iter()
         .map(|lang| format!("pages.{lang}"))
         .collect()
+}
+
+/// Initialize color outputting.
+pub fn init_color(color_mode: ColorChoice) {
+    #[cfg(target_os = "windows")]
+    let color_support = Paint::enable_windows_ascii();
+    #[cfg(not(target_os = "windows"))]
+    let color_support = true;
+
+    match color_mode {
+        ColorChoice::Always => {}
+        ColorChoice::Never => Paint::disable(),
+        ColorChoice::Auto => {
+            if !(color_support && env::var_os("NO_COLOR").is_none() && io::stdout().is_terminal()) {
+                Paint::disable();
+            }
+        }
+    }
 }
 
 pub trait Dedup {

@@ -10,12 +10,10 @@ mod error;
 mod output;
 mod util;
 
-use std::env;
-use std::io::{self, IsTerminal};
 use std::process::ExitCode;
 use std::sync::atomic::{AtomicBool, Ordering::Relaxed};
 
-use clap::{ColorChoice, Parser};
+use clap::Parser;
 use yansi::Paint;
 
 use crate::args::Cli;
@@ -23,7 +21,7 @@ use crate::cache::Cache;
 use crate::config::Config;
 use crate::error::{ErrorKind, Result};
 use crate::output::PageRenderer;
-use crate::util::{get_languages_from_env, infoln, warnln};
+use crate::util::{get_languages, infoln, init_color, warnln};
 
 /// If this is set to true, do not print anything except pages and errors.
 pub static QUIET: AtomicBool = AtomicBool::new(false);
@@ -32,33 +30,6 @@ fn main() -> ExitCode {
     match run() {
         Ok(()) => ExitCode::SUCCESS,
         Err(e) => e.exit_code(),
-    }
-}
-
-fn init_color(color_mode: ColorChoice) {
-    #[cfg(target_os = "windows")]
-    let color_support = Paint::enable_windows_ascii();
-    #[cfg(not(target_os = "windows"))]
-    let color_support = true;
-
-    match color_mode {
-        ColorChoice::Always => {}
-        ColorChoice::Never => Paint::disable(),
-        ColorChoice::Auto => {
-            if !(color_support && env::var_os("NO_COLOR").is_none() && io::stdout().is_terminal()) {
-                Paint::disable();
-            }
-        }
-    }
-}
-
-fn get_languages(config: &mut Config) -> Vec<String> {
-    if config.cache.languages.is_empty() {
-        get_languages_from_env()
-    } else {
-        // English pages should always be downloaded and searched.
-        config.cache.languages.push("en".to_string());
-        config.cache.languages.clone()
     }
 }
 
