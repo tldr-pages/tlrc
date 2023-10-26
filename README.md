@@ -18,7 +18,9 @@ A [tldr](https://tldr.sh) client written in Rust.
 
 ## Installation
 
-[![Packaging status](https://repology.org/badge/vertical-allrepos/tlrc.svg)](https://repology.org/project/tlrc/versions)
+<a href="https://repology.org/project/tlrc/versions">
+    <img src="https://repology.org/badge/vertical-allrepos/tlrc.svg" alt="Packaging status" align="right">
+</a>
 
 ### Arch Linux
 
@@ -36,7 +38,7 @@ pkgin install tlrc
 
 Install [tlrc](https://github.com/microsoft/winget-pkgs/tree/master/manifests/t/tldr-pages/tlrc) with `winget`:
 
-```powershell
+```shell
 winget install tldr-pages.tlrc
 ```
 
