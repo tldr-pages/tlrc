@@ -26,10 +26,18 @@ Install [tlrc](https://aur.archlinux.org/packages/tlrc) (from source) or [tlrc-b
 
 ### NetBSD
 
-Install [tlrc](https://ftp.netbsd.org/pub/NetBSD/NetBSD-current/pkgsrc/net/tlrc/index.html) with `pkgin`.
+Install [tlrc](https://ftp.netbsd.org/pub/NetBSD/NetBSD-current/pkgsrc/net/tlrc/index.html) with `pkgin`:
 
 ```shell
 pkgin install tlrc
+```
+
+### Windows
+
+Install [tlrc](https://github.com/microsoft/winget-pkgs/tree/master/manifests/t/tldr-pages/tlrc) with `winget`:
+
+```powershell
+winget install tldr-pages.tlrc
 ```
 
 ### From crates.io
