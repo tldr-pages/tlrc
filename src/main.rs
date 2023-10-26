@@ -69,6 +69,12 @@ fn run() -> Result<()> {
         return cache.update(&languages_to_download);
     }
 
+    config.output.compact = !cli.no_compact && (cli.compact || config.output.compact);
+    config.output.raw_markdown = !cli.no_raw && (cli.raw || config.output.raw_markdown);
+    if let Some(path) = cli.render {
+        return PageRenderer::print(&path, &config);
+    }
+
     if !cache.exists() {
         infoln!("cache is empty, downloading...");
         cache.update(&languages_to_download)?;
@@ -82,12 +88,6 @@ fn run() -> Result<()> {
     }
     if cli.info {
         return cache.info();
-    }
-
-    config.output.compact = !cli.no_compact && (cli.compact || config.output.compact);
-    config.output.raw_markdown = !cli.no_raw && (cli.raw || config.output.raw_markdown);
-    if let Some(path) = cli.render {
-        return PageRenderer::print(&path, &config);
     }
 
     if config.cache.auto_update && cache.is_stale(config.cache_max_age())? {
