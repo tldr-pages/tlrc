@@ -28,6 +28,15 @@ impl Display for Error {
 }
 
 impl Error {
+    pub const DESC_DOWNLOAD_ERR: &str = "\n\nA download error occurred. \
+        To skip updating the cache, run tldr with --offline.";
+
+    pub const DESC_LANG_NOT_INSTALLED: &str =
+        "\n\nThe language you are trying to view the page in \
+        may not be installed.\n\
+        You can run 'tldr --info' to see currently installed languages.\n\
+        Please update your config and run 'tldr --update' to install a new language.";
+
     pub fn new<T>(message: T) -> Self
     where
         T: Display,
@@ -65,6 +74,18 @@ impl Error {
 
     pub fn parse_sumfile() -> Self {
         Error::new("failed to parse the checksum file").kind(ErrorKind::Download)
+    }
+
+    pub fn desc_page_does_not_exist() -> String {
+        format!(
+            "Try running 'tldr --update'.\n\n\
+            If the page does not exist, you can create an issue here:\n\
+            {}\n\
+            or document it yourself and create a pull request here:\n\
+            {}",
+            Paint::new("https://github.com/tldr-pages/tldr/issues").bold(),
+            Paint::new("https://github/com/tldr-pages/tldr/pulls").bold()
+        )
     }
 
     /// Print the error message to stderr and return an appropriate `ExitCode`.

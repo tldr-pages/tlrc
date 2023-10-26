@@ -14,12 +14,11 @@ use std::process::ExitCode;
 use std::sync::atomic::{AtomicBool, Ordering::Relaxed};
 
 use clap::Parser;
-use yansi::Paint;
 
 use crate::args::Cli;
 use crate::cache::Cache;
 use crate::config::Config;
-use crate::error::{ErrorKind, Result};
+use crate::error::{Error, ErrorKind, Result};
 use crate::output::PageRenderer;
 use crate::util::{get_languages, infoln, init_color, warnln};
 
@@ -99,10 +98,7 @@ fn run() -> Result<()> {
             cache
                 .update(&languages_to_download)
                 .map_err(|e| match e.kind {
-                    ErrorKind::Download => e.describe(
-                        "\n\nA download error occurred. \
-                        To skip updating the cache, run tldr with --offline.",
-                    ),
+                    ErrorKind::Download => e.describe(Error::DESC_DOWNLOAD_ERR),
                     _ => e,
                 })?;
         }
@@ -118,25 +114,12 @@ fn run() -> Result<()> {
                 // This checks whether any language specified on the cli would not be downloaded
                 // during a cache update.
                 if !languages_to_download.iter().all(|x| languages.contains(x)) {
-                    e = e.describe(
-                        "\n\nThe language you are trying to view the page in \
-                        may not be installed.\n\
-                        You can run 'tldr --info' to see currently installed languages.\n\
-                        Please update your config and run 'tldr --update' to install a new language.",
-                    );
+                    e = e.describe(Error::DESC_LANG_NOT_INSTALLED);
                 }
 
                 e
             } else {
-                e.describe(format!(
-                    "Try running 'tldr --update'.\n\n\
-                    If the page does not exist, you can create an issue here:\n\
-                    {}\n\
-                    or document it yourself and create a pull request here:\n\
-                    {}",
-                    Paint::new("https://github.com/tldr-pages/tldr/issues").bold(),
-                    Paint::new("https://github/com/tldr-pages/tldr/pulls").bold()
-                ))
+                e.describe(Error::desc_page_does_not_exist())
             }
         })?;
 
