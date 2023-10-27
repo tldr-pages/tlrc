@@ -8,6 +8,7 @@ repository = "https://github.com/tldr-pages/tlrc"
 documentation = "https://tldr.sh/tlrc"
 license = "MIT"
 edition = "2021"
+rust-version = "1.70"
 
 [dependencies]
 clap = { version = "4.4.6", features = ["derive"] }
