@@ -14,7 +14,15 @@ pub enum Platform {
 
     #[value(name = "openbsd")]
     #[cfg_attr(target_os = "openbsd", default)]
-    OpenBsd,
+    OpenBSD,
+
+    #[value(name = "freebsd")]
+    #[cfg_attr(target_os = "freebsd", default)]
+    FreeBSD,
+
+    #[value(name = "netbsd")]
+    #[cfg_attr(target_os = "netbsd", default)]
+    NetBSD,
 
     #[cfg_attr(target_os = "windows", default)]
     Windows,
@@ -23,13 +31,15 @@ pub enum Platform {
     Android,
 
     #[value(name = "sunos")]
-    SunOs,
+    SunOS,
 
     #[cfg_attr(
         not(any(
             target_os = "linux",
             target_os = "macos",
             target_os = "openbsd",
+            target_os = "freebsd",
+            target_os = "netbsd",
             target_os = "windows",
             target_os = "android"
         )),
@@ -40,24 +50,30 @@ pub enum Platform {
 
 impl Platform {
     pub fn iterator() -> impl Iterator<Item = Platform> {
-        use self::Platform::{Android, Linux, OpenBsd, OsX, SunOs, Windows};
-        [Linux, OsX, OpenBsd, Windows, Android, SunOs].into_iter()
+        use self::Platform::{Android, FreeBSD, Linux, NetBSD, OpenBSD, OsX, SunOS, Windows};
+        [
+            Android, FreeBSD, Linux, NetBSD, OpenBSD, OsX, SunOS, Windows,
+        ]
+        .iter()
+        .copied()
     }
 }
 
 // These are the directory names.
 impl Display for Platform {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Linux => "linux",
-            Self::OsX => "osx",
-            Self::OpenBsd => "openbsd",
-            Self::Windows => "windows",
+        let platform_str = match self {
             Self::Android => "android",
-            Self::SunOs => "sunos",
             Self::Common => "common",
-        }
-        .fmt(f)
+            Self::FreeBSD => "freebsd",
+            Self::Linux => "linux",
+            Self::NetBSD => "netbsd",
+            Self::OsX => "osx",
+            Self::OpenBSD => "openbsd",
+            Self::SunOS => "sunos",
+            Self::Windows => "windows",
+        };
+        write!(f, "{platform_str}")
     }
 }
 
@@ -142,7 +158,7 @@ pub struct Cli {
     #[arg(long)]
     pub no_raw: bool,
 
-    /// Supress status messages.
+    /// Suppress status messages.
     #[arg(short, long)]
     pub quiet: bool,
 
