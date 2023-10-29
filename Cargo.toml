@@ -1,6 +1,6 @@
 [package]
 name = "tlrc"
-version = "1.7.0"
+version = "1.7.1"
 description = "A tldr client written in Rust"
 categories = ["command-line-utilities"]
 homepage = "https://github.com/tldr-pages/tlrc"

@@ -219,8 +219,16 @@ impl<'a> Cache<'a> {
     /// Find out what platforms are available.
     fn get_platforms(&self) -> Result<Vec<OsString>> {
         let mut result = vec![];
+        let read_dir = fs::read_dir(self.0.join(ENGLISH_DIR));
 
-        for entry in fs::read_dir(self.0.join(ENGLISH_DIR))? {
+        match &read_dir {
+            // Return an empty Vec if the cache does not exist
+            // in order not to fail.
+            Err(e) if e.kind() == io::ErrorKind::NotFound => return Ok(vec![]),
+            _ => {}
+        }
+
+        for entry in read_dir.unwrap() {
             let entry = entry?;
             let path = entry.path();
             let platform = path.file_name().unwrap();
@@ -239,7 +247,9 @@ impl<'a> Cache<'a> {
     fn get_platforms_and_check(&self, platform: &str) -> Result<Vec<OsString>> {
         let platforms = self.get_platforms()?;
 
-        if platforms.iter().all(|x| x != platform) {
+        // The !platforms.is_empty() check is here to get a "page not found" error instead of "invalid platform"
+        // when `pages.en` does not exist (because the dir was named `pages` in previous versions).
+        if platforms.iter().all(|x| x != platform) && !platforms.is_empty() {
             Err(Error::new(format!(
                 "platform '{platform}' does not exist.\n{} {}.",
                 Paint::new("Possible values:").bold(),
