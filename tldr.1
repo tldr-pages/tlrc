@@ -45,9 +45,6 @@ Print the default config path and create the config directory if it does not exi
 .TP 4
 \fB-p, --platform\fR <PLATFORM>
 Specify the platform to use.
-.br
-Can be one of the following: '\fBlinux\fR', '\fBosx\fR', '\fBmacos\fR'
-(alias for '\fBosx\fR'), \fBandroid\fR', '\fBsunos\fR', '\fBcommon\fR'.
 .sp
 Default: the os you are \fBcurrently running\fR
 
@@ -56,7 +53,7 @@ Default: the os you are \fBcurrently running\fR
 Specify the language to use.\&
 Can be used multiple times.
 .sp
-Default: taken from the \fBLANG\fR and \fBLANGUAGE\fR environment variables.\&
+Default: taken from the config or the \fBLANG\fR and \fBLANGUAGE\fR environment variables.\&
 See \fBhttps://github.com/tldr-pages/tldr/blob/main/CLIENT-SPECIFICATION.md#language\fR
 for a detailed description of how \fItlrc\fR determines the language.
 

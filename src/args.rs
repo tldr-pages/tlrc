@@ -1,65 +1,38 @@
-use std::fmt::Display;
 use std::path::PathBuf;
 
-use clap::{ArgAction, ColorChoice, Parser, ValueEnum};
+use clap::{ArgAction, ColorChoice, Parser};
 
-#[derive(Copy, Clone, PartialEq, ValueEnum, Default)]
-pub enum Platform {
-    #[cfg_attr(target_os = "linux", default)]
-    Linux,
+#[cfg(target_os = "linux")]
+pub const DEFAULT_PLATFORM: &str = "linux";
 
-    #[value(name = "osx", alias = "macos")]
-    #[cfg_attr(target_os = "macos", default)]
-    OsX,
+#[cfg(target_os = "macos")]
+pub const DEFAULT_PLATFORM: &str = "osx";
 
-    #[value(name = "openbsd")]
-    #[cfg_attr(target_os = "openbsd", default)]
-    OpenBsd,
+#[cfg(target_os = "windows")]
+pub const DEFAULT_PLATFORM: &str = "windows";
 
-    #[cfg_attr(target_os = "windows", default)]
-    Windows,
+#[cfg(target_os = "freebsd")]
+pub const DEFAULT_PLATFORM: &str = "freebsd";
 
-    #[cfg_attr(target_os = "android", default)]
-    Android,
+#[cfg(target_os = "openbsd")]
+pub const DEFAULT_PLATFORM: &str = "openbsd";
 
-    #[value(name = "sunos")]
-    SunOs,
+#[cfg(target_os = "netbsd")]
+pub const DEFAULT_PLATFORM: &str = "netbsd";
 
-    #[cfg_attr(
-        not(any(
-            target_os = "linux",
-            target_os = "macos",
-            target_os = "openbsd",
-            target_os = "windows",
-            target_os = "android"
-        )),
-        default
-    )]
-    Common,
-}
+#[cfg(target_os = "android")]
+pub const DEFAULT_PLATFORM: &str = "android";
 
-impl Platform {
-    pub fn iterator() -> impl Iterator<Item = Platform> {
-        use self::Platform::{Android, Linux, OpenBsd, OsX, SunOs, Windows};
-        [Linux, OsX, OpenBsd, Windows, Android, SunOs].into_iter()
-    }
-}
-
-// These are the directory names.
-impl Display for Platform {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Linux => "linux",
-            Self::OsX => "osx",
-            Self::OpenBsd => "openbsd",
-            Self::Windows => "windows",
-            Self::Android => "android",
-            Self::SunOs => "sunos",
-            Self::Common => "common",
-        }
-        .fmt(f)
-    }
-}
+#[cfg(not(any(
+    target_os = "linux",
+    target_os = "macos",
+    target_os = "windows",
+    target_os = "freebsd",
+    target_os = "openbsd",
+    target_os = "netbsd",
+    target_os = "android"
+)))]
+pub const DEFAULT_PLATFORM: &str = "common";
 
 #[derive(Parser)]
 #[command(
@@ -115,8 +88,8 @@ pub struct Cli {
     pub config_path: bool,
 
     /// Specify the platform to use.
-    #[arg(short, long, default_value_t = Platform::default())]
-    pub platform: Platform,
+    #[arg(short, long, default_value = DEFAULT_PLATFORM)]
+    pub platform: String,
 
     /// Specify the languages to use.
     #[arg(short = 'L', long = "language", value_name = "LANGUAGE")]

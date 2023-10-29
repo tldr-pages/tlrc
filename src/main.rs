@@ -80,8 +80,17 @@ fn run() -> Result<()> {
         cache.update(&languages_to_download)?;
     }
 
+    // "macos" should be an alias of "osx".
+    // Since the `macos` directory doesn't exist, this has to be changed before it
+    // gets passed to cache functions (which expect directory names).
+    let platform = if cli.platform == "macos" {
+        "osx"
+    } else {
+        &cli.platform
+    };
+
     if cli.list {
-        return cache.list_platform(cli.platform);
+        return cache.list_platform(platform);
     }
     if cli.list_all {
         return cache.list_all();
@@ -105,23 +114,24 @@ fn run() -> Result<()> {
     }
 
     let page_name = cli.page.join("-").to_lowercase();
-    let page_paths = cache
-        .find(&page_name, &mut languages, cli.platform)
-        .map_err(|mut e| {
-            if languages_are_from_cli {
-                e = e.describe("Try running tldr without --language.");
+    let page_paths = cache.find(&page_name, &mut languages, platform)?;
 
-                // This checks whether any language specified on the cli would not be downloaded
-                // during a cache update.
-                if !languages_to_download.iter().all(|x| languages.contains(x)) {
-                    e = e.describe(Error::DESC_LANG_NOT_INSTALLED);
-                }
+    if page_paths.is_empty() {
+        let mut e = Error::new("page not found.");
+        return if languages_are_from_cli {
+            e = e.describe("Try running tldr without --language.");
 
-                e
-            } else {
-                e.describe(Error::desc_page_does_not_exist())
+            // This checks whether any language specified on the cli would not be downloaded
+            // during a cache update.
+            if !languages_to_download.iter().all(|x| languages.contains(x)) {
+                e = e.describe(Error::DESC_LANG_NOT_INSTALLED);
             }
-        })?;
+
+            Err(e)
+        } else {
+            Err(e.describe(Error::desc_page_does_not_exist()))
+        };
+    }
 
     PageRenderer::print_cache_result(&page_paths, &config)
 }
