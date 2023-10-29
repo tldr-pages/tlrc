@@ -10,7 +10,7 @@ A [tldr](https://tldr.sh) client written in Rust.
 [![license](https://img.shields.io/github/license/tldr-pages/tlrc?color=b4befe&labelColor=363a4f)](/LICENSE)
 <br>
 [![github downloads](https://img.shields.io/github/downloads/tldr-pages/tlrc/total?logo=github&color=94e2d5&logoColor=d9e0ee&labelColor=363a4f)][latest-release]
-[![crates.io downloads](https://img.shields.io/crates/d/tlrc?logo=rust&color=94e2d5&logoColor=d9e0ee&labelColor=363a4f)][crate]
+[![matrix](https://img.shields.io/matrix/tldr-pages%3Amatrix.org?logo=matrix&color=94e2d5&logoColor=d9e0ee&labelColor=363a4f&label=tldr-pages%20matrix)](https://matrix.to/#/#tldr-pages:matrix.org)
 
 ![screenshot](https://user-images.githubusercontent.com/126529524/234939306-d3da4f33-a2b4-472f-abb7-aab7e4ee84be.png)
 
@@ -26,20 +26,20 @@ A [tldr](https://tldr.sh) client written in Rust.
 
 Install [tlrc](https://aur.archlinux.org/packages/tlrc) (from source) or [tlrc-bin](https://aur.archlinux.org/packages/tlrc-bin) (prebuilt) from the AUR.
 
-### NetBSD
-
-Install [tlrc](https://ftp.netbsd.org/pub/NetBSD/NetBSD-current/pkgsrc/net/tlrc/index.html) with `pkgin`:
-
-```shell
-pkgin install tlrc
-```
-
 ### Windows
 
 Install [tlrc](https://github.com/microsoft/winget-pkgs/tree/master/manifests/t/tldr-pages/tlrc) with `winget`:
 
 ```shell
 winget install tldr-pages.tlrc
+```
+
+### NetBSD
+
+Install [tlrc](https://ftp.netbsd.org/pub/NetBSD/NetBSD-current/pkgsrc/net/tlrc/index.html) with `pkgin`:
+
+```shell
+pkgin install tlrc
 ```
 
 ### From crates.io
@@ -50,7 +50,8 @@ To build tlrc from a source tarball, run:
 cargo install tlrc
 ```
 
-**NOTE:** shell completion files and the man page will not be installed that way.
+> [!NOTE]
+> Shell completion files and the man page will not be installed that way.
 
 ### From GitHub Releases
 
