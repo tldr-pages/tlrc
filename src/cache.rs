@@ -1,5 +1,5 @@
 use std::collections::{BTreeMap, HashMap};
-use std::ffi::{OsStr, OsString};
+use std::ffi::OsString;
 use std::fs::{self, File};
 use std::io::{self, Cursor, Read, Write};
 use std::path::{Path, PathBuf};
@@ -9,7 +9,6 @@ use std::time::Duration;
 use yansi::{Color, Paint};
 use zip::ZipArchive;
 
-use crate::args::Platform;
 use crate::error::{Error, Result};
 use crate::util::{
     info_end, info_start, infoln, languages_to_langdirs, sha256_hexdigest, warnln, Dedup,
@@ -217,20 +216,62 @@ impl<'a> Cache<'a> {
         Ok(())
     }
 
+    /// Find out what platforms are available.
+    fn get_platforms(&self) -> Result<Vec<OsString>> {
+        let mut result = vec![];
+
+        for entry in fs::read_dir(self.0.join(ENGLISH_DIR))? {
+            let entry = entry?;
+            let path = entry.path();
+            let platform = path.file_name().unwrap();
+
+            result.push(platform.to_os_string());
+        }
+
+        // read_dir() order can differ across runs, so it's
+        // better to sort the Vec for consistency.
+        result.sort_unstable();
+
+        Ok(result)
+    }
+
+    /// Find out what platforms are available and check if the provided platform exists.
+    fn get_platforms_and_check(&self, platform: &str) -> Result<Vec<OsString>> {
+        let platforms = self.get_platforms()?;
+
+        if platforms.iter().all(|x| x != platform) {
+            Err(Error::new(format!(
+                "platform '{platform}' does not exist.\n{} {}.",
+                Paint::new("Possible values:").bold(),
+                platforms
+                    .iter()
+                    .map(|x| format!("'{}'", x.to_string_lossy()))
+                    .collect::<Vec<String>>()
+                    .join(", ")
+            )))
+        } else {
+            Ok(platforms)
+        }
+    }
+
     /// Find a page for the given platform.
-    fn find_page_for(
+    fn find_page_for<P>(
         &self,
         page_file: &str,
-        platform_dir: &str,
+        platform: P,
         language_dirs: &[String],
-    ) -> Option<PathBuf> {
+    ) -> Option<PathBuf>
+    where
+        P: AsRef<Path>,
+    {
         for lang_dir in language_dirs {
-            let path = self.0.join(lang_dir).join(platform_dir).join(page_file);
+            let path = self.0.join(lang_dir).join(&platform).join(page_file);
 
             if path.is_file() {
                 return Some(path);
             }
         }
+
         None
     }
 
@@ -239,11 +280,13 @@ impl<'a> Cache<'a> {
         &self,
         name: &str,
         languages: &mut Vec<String>,
-        platform: Platform,
+        platform: &str,
     ) -> Result<Vec<PathBuf>> {
         // https://github.com/tldr-pages/tldr/blob/main/CLIENT-SPECIFICATION.md#page-resolution
 
+        let platforms = self.get_platforms_and_check(platform)?;
         let file = format!("{name}.md");
+
         // We can't sort here - order is defined by the user.
         languages.dedup_nosort();
         let lang_dirs = languages_to_langdirs(languages);
@@ -251,8 +294,8 @@ impl<'a> Cache<'a> {
 
         // `common` is always searched, so we skip the search for the specified platform
         // if the user has requested only `common` (to prevent searching twice)
-        if platform != Platform::Common {
-            if let Some(path) = self.find_page_for(&file, &platform.to_string(), &lang_dirs) {
+        if platform != "common" {
+            if let Some(path) = self.find_page_for(&file, platform, &lang_dirs) {
                 result.push(path);
             }
         }
@@ -263,15 +306,17 @@ impl<'a> Cache<'a> {
         }
 
         // Fall back to all other platforms if the page is not found in`platform`.
-        for alt_platform in Platform::iterator() {
-            // `platform` was already searched, so we can skip it here.
-            if alt_platform == platform {
+        for alt_platform in platforms {
+            // `platform` and `common` were already searched, so we can skip them here.
+            if alt_platform == platform || alt_platform == "common" {
                 continue;
             }
 
-            if let Some(path) = self.find_page_for(&file, &alt_platform.to_string(), &lang_dirs) {
+            if let Some(path) = self.find_page_for(&file, &alt_platform, &lang_dirs) {
+                let alt_platform = alt_platform.to_string_lossy();
+
                 if result.is_empty() {
-                    if platform == Platform::Common {
+                    if platform == "common" {
                         warnln!(
                             "showing page from platform '{alt_platform}', \
                             because '{name}' does not exist in 'common'"
@@ -287,30 +332,31 @@ impl<'a> Cache<'a> {
             }
         }
 
-        if result.is_empty() {
-            Err(Error::new("page not found."))
-        } else {
-            Ok(result)
-        }
+        Ok(result)
     }
 
     /// List all available pages in `lang` for `platform`.
-    fn list_dir<S>(&self, platform: &str, lang_dir: S) -> Result<Vec<OsString>>
+    fn list_dir<P, Q>(&self, platform: P, lang_dir: Q) -> Result<Vec<OsString>>
     where
-        S: AsRef<OsStr>,
+        P: AsRef<Path>,
+        Q: AsRef<Path>,
     {
         if let Ok(entries) = fs::read_dir(self.0.join(lang_dir.as_ref()).join(platform)) {
             Ok(entries
                 .map(|res| res.map(|e| e.file_name()))
                 .collect::<StdResult<Vec<OsString>, io::Error>>()?)
         } else {
-            // If the directory does not exist, return an empty Vec instead of an error.
+            // If the directory does not exist, return an empty Vec instead of an error
+            // (some platform directories do not exist in some translations).
             Ok(vec![])
         }
     }
 
     fn print_basenames(pages: &mut Vec<OsString>) -> Result<()> {
+        // Show pages in alphabetical order.
         pages.sort();
+        // There are pages with the same name across multiple platforms.
+        // Listing these multiple times makes no sense.
         pages.dedup();
 
         let mut stdout = io::stdout().lock();
@@ -328,11 +374,13 @@ impl<'a> Cache<'a> {
     }
 
     /// List all pages in English for `platform` and common.
-    pub fn list_platform(&self, platform: Platform) -> Result<()> {
-        let mut pages = if platform == Platform::Common {
-            self.list_dir(&platform.to_string(), ENGLISH_DIR)?
+    pub fn list_platform(&self, platform: &str) -> Result<()> {
+        self.get_platforms_and_check(platform)?;
+
+        let mut pages = if platform == "common" {
+            self.list_dir(platform, ENGLISH_DIR)?
         } else {
-            self.list_dir(&platform.to_string(), ENGLISH_DIR)?
+            self.list_dir(platform, ENGLISH_DIR)?
                 .into_iter()
                 .chain(self.list_dir("common", ENGLISH_DIR)?)
                 .collect()
@@ -344,20 +392,15 @@ impl<'a> Cache<'a> {
     /// List all pages in `lang` and return a `Vec`.
     fn list_all_vec<S>(&self, lang_dir: S) -> Result<Vec<OsString>>
     where
-        S: AsRef<OsStr>,
+        S: AsRef<Path>,
     {
-        Ok(self
-            .list_dir("linux", &lang_dir)?
-            .into_iter()
-            .chain(self.list_dir("osx", &lang_dir)?)
-            .chain(self.list_dir("openbsd", &lang_dir)?)
-            .chain(self.list_dir("freebsd", &lang_dir)?)
-            .chain(self.list_dir("netbsd", &lang_dir)?)
-            .chain(self.list_dir("windows", &lang_dir)?)
-            .chain(self.list_dir("android", &lang_dir)?)
-            .chain(self.list_dir("sunos", &lang_dir)?)
-            .chain(self.list_dir("common", &lang_dir)?)
-            .collect())
+        let mut result = vec![];
+
+        for platform in self.get_platforms()? {
+            result.append(&mut self.list_dir(&platform, &lang_dir)?);
+        }
+
+        Ok(result)
     }
 
     /// List all pages in English.

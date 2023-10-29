@@ -149,8 +149,7 @@ impl<'a> PageRenderer<'a> {
             }
         }
 
-        // This is safe to unwrap, as cache.find() would have returned an error if no page was
-        // found.
+        // This is safe to unwrap - errors would have already been catched in run().
         let first = paths.first().unwrap();
         Self::print(first, cfg)
     }
