@@ -115,7 +115,7 @@ pub struct Cli {
     #[arg(long)]
     pub no_raw: bool,
 
-    /// Supress status messages.
+    /// Suppress status messages.
     #[arg(short, long)]
     pub quiet: bool,
 
