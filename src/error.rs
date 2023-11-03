@@ -33,7 +33,7 @@ impl Error {
 
     pub const DESC_LANG_NOT_INSTALLED: &str =
         "\n\nThe language you are trying to view the page in \
-        may not be installed.\n\
+        may not be installed (it's not defined in the config).\n\
         You can run 'tldr --info' to see currently installed languages.\n\
         Please update your config and run 'tldr --update' to install a new language.";
 

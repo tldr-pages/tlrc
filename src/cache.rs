@@ -228,7 +228,7 @@ impl<'a> Cache<'a> {
             _ => {}
         }
 
-        for entry in read_dir.unwrap() {
+        for entry in read_dir? {
             let entry = entry?;
             let path = entry.path();
             let platform = path.file_name().unwrap();

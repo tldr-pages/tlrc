@@ -123,7 +123,7 @@ fn run() -> Result<()> {
 
             // This checks whether any language specified on the cli would not be downloaded
             // during a cache update.
-            if !languages_to_download.iter().all(|x| languages.contains(x)) {
+            if !languages.iter().all(|x| languages_to_download.contains(x)) {
                 e = e.describe(Error::DESC_LANG_NOT_INSTALLED);
             }
 
