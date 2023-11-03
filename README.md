@@ -26,9 +26,17 @@ A [tldr](https://tldr.sh) client written in Rust.
 
 Install [tlrc](https://aur.archlinux.org/packages/tlrc) (from source) or [tlrc-bin](https://aur.archlinux.org/packages/tlrc-bin) (prebuilt) from the AUR.
 
+### macOS/Linux using Homebrew
+
+Install [tlrc](https://formulae.brew.sh/formula/tlrc) with Homebrew:
+
+```shell
+brew install tlrc
+```
+
 ### Windows
 
-Install [tlrc](https://github.com/microsoft/winget-pkgs/tree/master/manifests/t/tldr-pages/tlrc) with `winget`:
+Install [tlrc](https://github.com/microsoft/winget-pkgs/tree/master/manifests/t/tldr-pages/tlrc) with Winget:
 
 ```shell
 winget install tldr-pages.tlrc
