@@ -119,15 +119,15 @@ pub fn languages_to_langdirs(languages: &[String]) -> Vec<String> {
 pub fn init_color(color_mode: ColorChoice) {
     #[cfg(target_os = "windows")]
     let color_support = Paint::enable_windows_ascii();
-    #[cfg(not(target_os = "windows"))]
-    let color_support = true;
-
-    let no_color = env::var_os("NO_COLOR").is_some_and(|x| !x.is_empty());
 
     match color_mode {
         ColorChoice::Always => {}
         ColorChoice::Never => Paint::disable(),
         ColorChoice::Auto => {
+            #[cfg(not(target_os = "windows"))]
+            let color_support = true;
+            let no_color = env::var_os("NO_COLOR").is_some_and(|x| !x.is_empty());
+
             if !(color_support && !no_color && io::stdout().is_terminal()) {
                 Paint::disable();
             }

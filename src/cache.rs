@@ -123,9 +123,9 @@ impl<'a> Cache<'a> {
         &self,
         lang_dir: &str,
         archive: &mut PagesArchive,
-        n_existing: usize,
-        all_downloaded: &mut usize,
-        all_new: &mut usize,
+        n_existing: i32,
+        all_downloaded: &mut i32,
+        all_new: &mut i32,
     ) -> Result<()> {
         info_start!("extracting '{lang_dir}'...");
 
@@ -183,10 +183,11 @@ impl<'a> Cache<'a> {
         self.clean()?;
 
         for (lang_dir, mut archive) in archives {
+            #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
             self.extract_lang_archive(
                 &lang_dir,
                 &mut archive,
-                *dirs_npages.get(&lang_dir).unwrap_or(&0),
+                (*dirs_npages.get(&lang_dir).unwrap_or(&0)) as i32,
                 &mut all_downloaded,
                 &mut all_new,
             )?;
