@@ -28,7 +28,7 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - uses: acuteenvy/deploy-manpage-to-pages@master
+      - uses: acuteenvy/deploy-manpage-to-pages@main
         with:
           manpage: tldr.1
           title: tlrc manual
