@@ -84,7 +84,7 @@ impl Error {
             or document it yourself and create a pull request here:\n\
             {}",
             Paint::new("https://github.com/tldr-pages/tldr/issues").bold(),
-            Paint::new("https://github/com/tldr-pages/tldr/pulls").bold()
+            Paint::new("https://github.com/tldr-pages/tldr/pulls").bold()
         )
     }
 

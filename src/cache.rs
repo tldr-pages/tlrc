@@ -316,7 +316,7 @@ impl<'a> Cache<'a> {
             result.push(path);
         }
 
-        // Fall back to all other platforms if the page is not found in`platform`.
+        // Fall back to all other platforms if the page is not found in `platform`.
         for alt_platform in platforms {
             // `platform` and `common` were already searched, so we can skip them here.
             if alt_platform == platform || alt_platform == "common" {
@@ -324,9 +324,9 @@ impl<'a> Cache<'a> {
             }
 
             if let Some(path) = self.find_page_for(&file, &alt_platform, &lang_dirs) {
-                let alt_platform = alt_platform.to_string_lossy();
-
                 if result.is_empty() {
+                    let alt_platform = alt_platform.to_string_lossy();
+
                     if platform == "common" {
                         warnln!(
                             "showing page from platform '{alt_platform}', \
@@ -339,6 +339,7 @@ impl<'a> Cache<'a> {
                         );
                     }
                 }
+
                 result.push(path);
             }
         }
