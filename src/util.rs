@@ -128,7 +128,7 @@ pub fn init_color(color_mode: ColorChoice) {
             let color_support = true;
             let no_color = env::var_os("NO_COLOR").is_some_and(|x| !x.is_empty());
 
-            if !(color_support && !no_color && io::stdout().is_terminal()) {
+            if !color_support || no_color || !io::stdout().is_terminal() {
                 Paint::disable();
             }
         }
@@ -184,6 +184,42 @@ pub fn sha256_hexdigest(data: &[u8]) -> String {
     hex
 }
 
+const DAY: u64 = 86400;
+const HOUR: u64 = 3600;
+const MINUTE: u64 = 60;
+
+/// Convert time in seconds to a human-readable `String`.
+pub fn duration_fmt(secs: u64) -> String {
+    let days = secs / DAY;
+    let hours = (secs % DAY) / HOUR;
+
+    if days == 0 {
+        let minutes = ((secs % DAY) % HOUR) / MINUTE;
+
+        if hours == 0 {
+            if minutes == 0 {
+                format!("{secs}s")
+            } else {
+                let seconds = secs % MINUTE;
+
+                if seconds == 0 {
+                    format!("{minutes}min")
+                } else {
+                    format!("{minutes}min, {seconds}s")
+                }
+            }
+        } else if minutes == 0 {
+            format!("{hours}h")
+        } else {
+            format!("{hours}h, {minutes}min")
+        }
+    } else if hours == 0 {
+        format!("{days}d")
+    } else {
+        format!("{days}d, {hours}h")
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -236,5 +272,25 @@ mod tests {
             sha256_hexdigest(b"This is a test."),
             "a8a2f6ebe286697c527eb35a58b5539532e9b3ae3b64d4eb0a46fb657b41562c"
         );
+    }
+
+    #[test]
+    fn dur_fmt() {
+        const SECOND: u64 = 1;
+
+        assert_eq!(duration_fmt(SECOND), "1s");
+
+        assert_eq!(duration_fmt(MINUTE), "1min");
+        assert_eq!(duration_fmt(MINUTE + SECOND), "1min, 1s");
+
+        assert_eq!(duration_fmt(HOUR), "1h");
+        assert_eq!(duration_fmt(HOUR + SECOND), "1h");
+        assert_eq!(duration_fmt(HOUR + MINUTE), "1h, 1min");
+        assert_eq!(duration_fmt(HOUR + MINUTE + SECOND), "1h, 1min");
+
+        assert_eq!(duration_fmt(DAY), "1d");
+        assert_eq!(duration_fmt(DAY + SECOND), "1d");
+        assert_eq!(duration_fmt(DAY + HOUR), "1d, 1h");
+        assert_eq!(duration_fmt(DAY + HOUR + SECOND), "1d, 1h");
     }
 }

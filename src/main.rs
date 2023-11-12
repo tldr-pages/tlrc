@@ -14,6 +14,7 @@ use std::process::ExitCode;
 use std::sync::atomic::{AtomicBool, Ordering::Relaxed};
 
 use clap::Parser;
+use yansi::{Color, Paint};
 
 use crate::args::Cli;
 use crate::cache::Cache;
@@ -99,11 +100,15 @@ fn run() -> Result<()> {
         return cache.info();
     }
 
-    if config.cache.auto_update && cache.is_stale(config.cache_max_age())? {
+    let cache_age = cache.age()?;
+    if config.cache.auto_update && cache_age > config.cache_max_age() {
+        let cache_age = util::duration_fmt(cache_age.as_secs());
+        let cache_age = Paint::new(cache_age).fg(Color::Green).bold();
+
         if cli.offline {
-            warnln!("cache is stale. Run tldr without --offline to update.");
+            warnln!("cache is stale (last update: {cache_age} ago). Run tldr without --offline to update.");
         } else {
-            infoln!("cache is stale, updating...");
+            infoln!("cache is stale (last update: {cache_age} ago), updating...");
             cache
                 .update(&languages_to_download)
                 .map_err(|e| match e.kind {

@@ -10,9 +10,7 @@ use yansi::{Color, Paint};
 use zip::ZipArchive;
 
 use crate::error::{Error, Result};
-use crate::util::{
-    info_end, info_start, infoln, languages_to_langdirs, sha256_hexdigest, warnln, Dedup,
-};
+use crate::util::{self, info_end, info_start, infoln, warnln, Dedup};
 
 const BASE_ARCHIVE_URL: &str =
     "https://raw.githubusercontent.com/tldr-pages/tldr-pages.github.io/main/assets";
@@ -67,7 +65,7 @@ impl<'a> Cache<'a> {
                 .read_to_end(&mut archive)?;
 
             info_start!("validating sha256sums...");
-            let actual_sum = sha256_hexdigest(&archive);
+            let actual_sum = util::sha256_hexdigest(&archive);
 
             if sum != &actual_sum {
                 info_end!(" {}", Paint::new("FAILED").fg(Color::Red).bold());
@@ -173,7 +171,7 @@ impl<'a> Cache<'a> {
         languages.sort_unstable();
         // The user can put duplicates in the config file.
         languages.dedup();
-        let lang_dirs = languages_to_langdirs(&languages);
+        let lang_dirs = util::languages_to_langdirs(&languages);
 
         for lang_dir in &lang_dirs {
             dirs_npages.insert(lang_dir.to_string(), self.list_all_vec(lang_dir)?.len());
@@ -300,7 +298,7 @@ impl<'a> Cache<'a> {
 
         // We can't sort here - order is defined by the user.
         languages.dedup_nosort();
-        let lang_dirs = languages_to_langdirs(languages);
+        let lang_dirs = util::languages_to_langdirs(languages);
         let mut result = vec![];
 
         // `common` is always searched, so we skip the search for the specified platform
@@ -420,7 +418,7 @@ impl<'a> Cache<'a> {
         Self::print_basenames(&mut self.list_all_vec(ENGLISH_DIR)?)
     }
 
-    /// List installed languages.
+    /// List installed languages and show the age of the cache.
     pub fn info(&self) -> Result<()> {
         let mut n_map = BTreeMap::new();
         let mut n_total = 0;
@@ -448,29 +446,26 @@ impl<'a> Cache<'a> {
             )?;
         }
 
+        let age = util::duration_fmt(self.age()?.as_secs());
+
         writeln!(
             stdout,
-            "total : {} pages",
+            "total : {} pages\nLast cache update: {} ago",
             Paint::new(n_total).fg(Color::Green).bold(),
+            Paint::new(age).fg(Color::Green).bold()
         )?;
 
         Ok(())
     }
 
-    /// Return `true` if the cache is older than `max_age`.
-    pub fn is_stale(&self, max_age: Duration) -> Result<bool> {
-        let since = fs::metadata(self.0)?.modified()?.elapsed().map_err(|_| {
+    /// Get the age of the cache.
+    pub fn age(&self) -> Result<Duration> {
+        fs::metadata(self.0)?.modified()?.elapsed().map_err(|_| {
             Error::new(
                 "the system clock is not functioning correctly.\n\
                 Modification time of the cache is later than the current system time.\n\
                 Please fix your system clock.",
             )
-        })?;
-
-        if since > max_age {
-            return Ok(true);
-        }
-
-        Ok(false)
+        })
     }
 }
