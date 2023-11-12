@@ -14,7 +14,8 @@ use std::process::ExitCode;
 use std::sync::atomic::{AtomicBool, Ordering::Relaxed};
 
 use clap::Parser;
-use yansi::{Color, Paint};
+use yansi::Color::Green;
+use yansi::Paint;
 
 use crate::args::Cli;
 use crate::cache::Cache;
@@ -103,7 +104,7 @@ fn run() -> Result<()> {
     let cache_age = cache.age()?;
     if config.cache.auto_update && cache_age > config.cache_max_age() {
         let cache_age = util::duration_fmt(cache_age.as_secs());
-        let cache_age = Paint::new(cache_age).fg(Color::Green).bold();
+        let cache_age = Paint::new(cache_age).fg(Green).bold();
 
         if cli.offline {
             warnln!("cache is stale (last update: {cache_age} ago). Run tldr without --offline to update.");

@@ -4,7 +4,8 @@ use std::io::{self, BufRead, BufReader, BufWriter, Write};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::Ordering::Relaxed;
 
-use yansi::{Color, Paint, Style};
+use yansi::Color::Green;
+use yansi::{Paint, Style};
 
 use crate::config::Config;
 use crate::error::{Error, ErrorKind, Result};
@@ -143,7 +144,7 @@ impl<'a> PageRenderer<'a> {
                     writeln!(
                         stderr,
                         "{} '{platform}' (tldr --platform {platform} {name})",
-                        Paint::new(format!("{}.", i + 1)).fg(Color::Green).bold()
+                        Paint::new(format!("{}.", i + 1)).fg(Green).bold()
                     )?;
                 }
             }

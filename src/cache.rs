@@ -6,7 +6,8 @@ use std::path::{Path, PathBuf};
 use std::result::Result as StdResult;
 use std::time::Duration;
 
-use yansi::{Color, Paint};
+use yansi::Color::{Green, Red};
+use yansi::Paint;
 use zip::ZipArchive;
 
 use crate::error::{Error, Result};
@@ -68,7 +69,7 @@ impl<'a> Cache<'a> {
             let actual_sum = util::sha256_hexdigest(&archive);
 
             if sum != &actual_sum {
-                info_end!(" {}", Paint::new("FAILED").fg(Color::Red).bold());
+                info_end!(" {}", Paint::new("FAILED").fg(Red).bold());
                 return Err(Error::new(format!(
                     "SHA256 sum mismatch!\n\
                     expected : {sum}\n\
@@ -76,7 +77,7 @@ impl<'a> Cache<'a> {
                 )));
             }
 
-            info_end!(" {}", Paint::new("OK").fg(Color::Green).bold());
+            info_end!(" {}", Paint::new("OK").fg(Green).bold());
 
             langdir_archive_map.insert(
                 format!("pages.{lang}"),
@@ -152,8 +153,8 @@ impl<'a> Cache<'a> {
 
         info_end!(
             " {} pages, {} new",
-            Paint::new(n_downloaded).fg(Color::Green).bold(),
-            Paint::new(n_new).fg(Color::Green).bold()
+            Paint::new(n_downloaded).fg(Green).bold(),
+            Paint::new(n_new).fg(Green).bold()
         );
 
         Ok(())
@@ -193,8 +194,8 @@ impl<'a> Cache<'a> {
 
         infoln!(
             "cache update successful (total: {} pages, {} new).",
-            Paint::new(all_downloaded).fg(Color::Green).bold(),
-            Paint::new(all_new).fg(Color::Green).bold(),
+            Paint::new(all_downloaded).fg(Green).bold(),
+            Paint::new(all_new).fg(Green).bold(),
         );
 
         Ok(())
@@ -442,7 +443,7 @@ impl<'a> Cache<'a> {
                 stdout,
                 // Language codes are at most 5 characters (ll_CC).
                 "{lang:5} : {}",
-                Paint::new(n).fg(Color::Green).bold(),
+                Paint::new(n).fg(Green).bold(),
             )?;
         }
 
@@ -451,8 +452,8 @@ impl<'a> Cache<'a> {
         writeln!(
             stdout,
             "total : {} pages\nLast cache update: {} ago",
-            Paint::new(n_total).fg(Color::Green).bold(),
-            Paint::new(age).fg(Color::Green).bold()
+            Paint::new(n_total).fg(Green).bold(),
+            Paint::new(age).fg(Green).bold()
         )?;
 
         Ok(())
