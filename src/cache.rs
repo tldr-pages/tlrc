@@ -10,6 +10,7 @@ use yansi::Color::{Green, Red};
 use yansi::Paint;
 use zip::ZipArchive;
 
+use crate::config::Config;
 use crate::error::{Error, Result};
 use crate::util::{self, info_end, info_start, infoln, warnln, Dedup};
 
@@ -419,8 +420,8 @@ impl<'a> Cache<'a> {
         Self::print_basenames(&mut self.list_all_vec(ENGLISH_DIR)?)
     }
 
-    /// List installed languages and show the age of the cache.
-    pub fn info(&self) -> Result<()> {
+    /// Show cache information.
+    pub fn info(&self, cfg: &Config) -> Result<()> {
         let mut n_map = BTreeMap::new();
         let mut n_total = 0;
 
@@ -436,13 +437,28 @@ impl<'a> Cache<'a> {
         }
 
         let mut stdout = io::stdout().lock();
-        let age = util::duration_fmt(self.age()?.as_secs());
+        let age = self.age()?.as_secs();
+
         writeln!(
             stdout,
-            "Cache: {} (last update: {} ago)\nInstalled languages:",
+            "Cache: {} (last update: {} ago)",
             Paint::new(self.0.display()).fg(Red),
-            Paint::new(age).fg(Green).bold()
+            Paint::new(util::duration_fmt(age)).fg(Green).bold()
         )?;
+
+        if cfg.cache.auto_update {
+            let age_diff = cfg.cache_max_age().as_secs() - age;
+
+            writeln!(
+                stdout,
+                "Automatic update in {}",
+                Paint::new(util::duration_fmt(age_diff)).fg(Green).bold()
+            )?;
+        } else {
+            writeln!(stdout, "Automatic updates are disabled")?;
+        }
+
+        writeln!(stdout, "Installed languages:")?;
 
         for (lang, n) in n_map {
             writeln!(
