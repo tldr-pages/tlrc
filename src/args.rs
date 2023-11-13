@@ -3,25 +3,25 @@ use std::path::PathBuf;
 use clap::{ArgAction, ColorChoice, Parser};
 
 #[cfg(target_os = "linux")]
-pub const DEFAULT_PLATFORM: &str = "linux";
+const DEFAULT_PLATFORM: &str = "linux";
 
 #[cfg(target_os = "macos")]
-pub const DEFAULT_PLATFORM: &str = "osx";
+const DEFAULT_PLATFORM: &str = "osx";
 
 #[cfg(target_os = "windows")]
-pub const DEFAULT_PLATFORM: &str = "windows";
+const DEFAULT_PLATFORM: &str = "windows";
 
 #[cfg(target_os = "freebsd")]
-pub const DEFAULT_PLATFORM: &str = "freebsd";
+const DEFAULT_PLATFORM: &str = "freebsd";
 
 #[cfg(target_os = "openbsd")]
-pub const DEFAULT_PLATFORM: &str = "openbsd";
+const DEFAULT_PLATFORM: &str = "openbsd";
 
 #[cfg(target_os = "netbsd")]
-pub const DEFAULT_PLATFORM: &str = "netbsd";
+const DEFAULT_PLATFORM: &str = "netbsd";
 
 #[cfg(target_os = "android")]
-pub const DEFAULT_PLATFORM: &str = "android";
+const DEFAULT_PLATFORM: &str = "android";
 
 #[cfg(not(any(
     target_os = "linux",
@@ -32,7 +32,7 @@ pub const DEFAULT_PLATFORM: &str = "android";
     target_os = "netbsd",
     target_os = "android"
 )))]
-pub const DEFAULT_PLATFORM: &str = "common";
+const DEFAULT_PLATFORM: &str = "common";
 
 #[derive(Parser)]
 #[command(
