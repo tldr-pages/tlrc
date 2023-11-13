@@ -91,16 +91,6 @@ fn run() -> Result<()> {
         &cli.platform
     };
 
-    if cli.list {
-        return cache.list_platform(platform);
-    }
-    if cli.list_all {
-        return cache.list_all();
-    }
-    if cli.info {
-        return cache.info();
-    }
-
     let cache_age = cache.age()?;
     if config.cache.auto_update && cache_age > config.cache_max_age() {
         let cache_age = util::duration_fmt(cache_age.as_secs());
@@ -117,6 +107,16 @@ fn run() -> Result<()> {
                     _ => e,
                 })?;
         }
+    }
+
+    if cli.list {
+        return cache.list_platform(platform);
+    }
+    if cli.list_all {
+        return cache.list_all();
+    }
+    if cli.info {
+        return cache.info(&config);
     }
 
     let page_name = cli.page.join("-").to_lowercase();
