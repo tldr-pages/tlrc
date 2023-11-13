@@ -2,37 +2,23 @@ use std::path::PathBuf;
 
 use clap::{ArgAction, ColorChoice, Parser};
 
-#[cfg(target_os = "linux")]
-const DEFAULT_PLATFORM: &str = "linux";
-
-#[cfg(target_os = "macos")]
-const DEFAULT_PLATFORM: &str = "osx";
-
-#[cfg(target_os = "windows")]
-const DEFAULT_PLATFORM: &str = "windows";
-
-#[cfg(target_os = "freebsd")]
-const DEFAULT_PLATFORM: &str = "freebsd";
-
-#[cfg(target_os = "openbsd")]
-const DEFAULT_PLATFORM: &str = "openbsd";
-
-#[cfg(target_os = "netbsd")]
-const DEFAULT_PLATFORM: &str = "netbsd";
-
-#[cfg(target_os = "android")]
-const DEFAULT_PLATFORM: &str = "android";
-
-#[cfg(not(any(
-    target_os = "linux",
-    target_os = "macos",
-    target_os = "windows",
-    target_os = "freebsd",
-    target_os = "openbsd",
-    target_os = "netbsd",
-    target_os = "android"
-)))]
-const DEFAULT_PLATFORM: &str = "common";
+const DEFAULT_PLATFORM: &str = if cfg!(target_os = "linux") {
+    "linux"
+} else if cfg!(target_os = "macos") {
+    "osx"
+} else if cfg!(target_os = "windows") {
+    "windows"
+} else if cfg!(target_os = "freebsd") {
+    "freebsd"
+} else if cfg!(target_os = "openbsd") {
+    "openbsd"
+} else if cfg!(target_os = "netbsd") {
+    "netbsd"
+} else if cfg!(target_os = "android") {
+    "android"
+} else {
+    "common"
+};
 
 #[derive(Parser)]
 #[command(
