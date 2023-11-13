@@ -436,7 +436,13 @@ impl<'a> Cache<'a> {
         }
 
         let mut stdout = io::stdout().lock();
-        writeln!(stdout, "Installed languages:")?;
+        let age = util::duration_fmt(self.age()?.as_secs());
+        writeln!(
+            stdout,
+            "Cache: {} (last update: {} ago)\nInstalled languages:",
+            Paint::new(self.0.display()).fg(Red),
+            Paint::new(age).fg(Green).bold()
+        )?;
 
         for (lang, n) in n_map {
             writeln!(
@@ -447,13 +453,10 @@ impl<'a> Cache<'a> {
             )?;
         }
 
-        let age = util::duration_fmt(self.age()?.as_secs());
-
         writeln!(
             stdout,
-            "total : {} pages\nLast cache update: {} ago",
+            "total : {} pages",
             Paint::new(n_total).fg(Green).bold(),
-            Paint::new(age).fg(Green).bold()
         )?;
 
         Ok(())

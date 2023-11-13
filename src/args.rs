@@ -67,7 +67,7 @@ pub struct Cli {
     #[arg(short = 'a', long, group = "operations")]
     pub list_all: bool,
 
-    /// Show cache information (installed languages and the number of pages).
+    /// Show cache information (path, age, installed languages and the number of pages).
     #[arg(short, long, group = "operations")]
     pub info: bool,
 
