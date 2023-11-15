@@ -20,6 +20,13 @@ const DEFAULT_PLATFORM: &str = if cfg!(target_os = "linux") {
     "common"
 };
 
+const AFTER_HELP: &str = if cfg!(target_os = "windows") {
+    // Man pages are not available on Windows.
+    "See https://tldr.sh/tlrc for more information."
+} else {
+    "See 'man tldr' or https://tldr.sh/tlrc for more information."
+};
+
 #[derive(Parser)]
 #[command(
     arg_required_else_help = true,
@@ -30,7 +37,7 @@ const DEFAULT_PLATFORM: &str = if cfg!(target_os = "linux") {
     // (the variable is not present yet in the build script).
     version = option_env!("VERSION_STRING").unwrap_or(env!("CARGO_PKG_VERSION")),
     disable_version_flag = true,
-    after_help = "See 'man tldr' or https://tldr.sh/tlrc for more information.",
+    after_help = AFTER_HELP,
     help_template = "{before-help}{name} {version}\n\
     {about-with-newline}\n\
     {usage-heading} {usage}\n\n\
