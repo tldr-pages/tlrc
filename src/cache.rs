@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, HashMap};
 use std::ffi::OsString;
 use std::fs::{self, File};
-use std::io::{self, Cursor, Read, Write};
+use std::io::{self, BufWriter, Cursor, Read, Write};
 use std::path::{Path, PathBuf};
 use std::result::Result as StdResult;
 use std::time::Duration;
@@ -371,7 +371,7 @@ impl<'a> Cache<'a> {
         // Listing these multiple times makes no sense.
         pages.dedup();
 
-        let mut stdout = io::stdout().lock();
+        let mut stdout = BufWriter::new(io::stdout().lock());
         for page in pages {
             let str = page.to_string_lossy();
             let page = str.strip_suffix(".md").ok_or_else(|| {
@@ -382,7 +382,7 @@ impl<'a> Cache<'a> {
             writeln!(stdout, "{page}")?;
         }
 
-        Ok(())
+        Ok(stdout.flush()?)
     }
 
     /// List all pages in English for `platform` and common.
