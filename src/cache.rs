@@ -364,7 +364,7 @@ impl<'a> Cache<'a> {
 
     fn print_basenames(pages: &mut Vec<OsString>) -> Result<()> {
         // Show pages in alphabetical order.
-        pages.sort();
+        pages.sort_unstable();
         // There are pages with the same name across multiple platforms.
         // Listing these multiple times makes no sense.
         pages.dedup();
