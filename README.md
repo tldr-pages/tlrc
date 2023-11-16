@@ -2,7 +2,7 @@
 
 # tlrc
 
-A [tldr](https://tldr.sh) client written in Rust.
+A [tldr](https://github.com/tldr-pages/tldr) client written in Rust.
 
 [![CI](https://img.shields.io/github/actions/workflow/status/tldr-pages/tlrc/ci.yml?label=CI&logo=github&labelColor=363a4f&logoColor=d9e0ee)](https://github.com/tldr-pages/tlrc/actions/workflows/ci.yml)
 [![release](https://img.shields.io/github/v/release/tldr-pages/tlrc?&logo=github&color=cba6f7&logoColor=d9e0ee&labelColor=363a4f)][latest-release]
@@ -19,20 +19,24 @@ A [tldr](https://tldr.sh) client written in Rust.
 ## Installation
 
 <a href="https://repology.org/project/tlrc/versions">
-    <img src="https://repology.org/badge/vertical-allrepos/tlrc.svg" alt="Packaging status" align="right">
+    <img src="https://repology.org/badge/vertical-allrepos/tlrc.svg?exclude_unsupported=1" alt="Packaging status" align="right">
 </a>
 
 ### Arch Linux
 
 Install [tlrc](https://aur.archlinux.org/packages/tlrc) (from source) or [tlrc-bin](https://aur.archlinux.org/packages/tlrc-bin) (prebuilt) from the AUR.
 
-### macOS/Linux using Homebrew
+### Linux/macOS using Homebrew
 
 Install [tlrc](https://formulae.brew.sh/formula/tlrc) with Homebrew:
 
 ```shell
 brew install tlrc
 ```
+
+### Linux/macOS using Nix
+
+Install [tlrc](https://search.nixos.org/packages?channel=unstable&show=tlrc) from nixpkgs.
 
 ### Windows
 
@@ -52,7 +56,7 @@ pkgin install tlrc
 
 ### From crates.io
 
-To build tlrc from a source tarball, run:
+To build [tlrc][crate] from a source tarball, run:
 
 ```shell
 cargo install tlrc
