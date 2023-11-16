@@ -1,4 +1,4 @@
-/// This build script generates completions using clap_complete and a version string.
+/// This build script generates completions using `clap_complete` and a version string.
 #[allow(dead_code)]
 #[path = "src/args.rs"]
 mod args;
@@ -36,7 +36,7 @@ fn commit_hash() -> Option<String> {
     })
 }
 
-/// Get CARGO_PKG_VERSION and the client spec version.
+/// Get `CARGO_PKG_VERSION` and the client spec version.
 fn pkgver_and_spec() -> String {
     format!(
         "v{} (implementing the tldr client specification v{CLIENT_SPEC})",

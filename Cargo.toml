@@ -10,6 +10,10 @@ license = "MIT"
 edition = "2021"
 rust-version = "1.70"
 
+[[bin]]
+name = "tldr"
+path = "src/main.rs"
+
 [dependencies]
 clap = { version = "4.4.7", features = ["derive"] }
 dirs = "5.0.1"
@@ -27,9 +31,12 @@ clap_complete = "4.4.4"
 [dev-dependencies]
 assert_cmd = "2.0.12"
 
-[[bin]]
-name = "tldr"
-path = "src/main.rs"
+[lints.clippy]
+all = "warn"
+pedantic = "warn"
+style = "warn"
+module_name_repetitions = { level = "allow", priority = 1 }
+struct_excessive_bools = { level = "allow", priority = 1 }
 
 [profile.release]
 lto = true
