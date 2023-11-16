@@ -250,7 +250,8 @@ impl<'a> PageRenderer<'a> {
                 self.current_line
                     .strip_prefix(EXAMPLE)
                     .unwrap()
-                    .strip_suffix("`\n")
+                    .trim_end()
+                    .strip_suffix('`')
                     .ok_or_else(|| {
                         Error::parse_page(self.path, self.lnum, &self.current_line)
                             .describe("\nEvery line with an example must end with a backtick '`'.")
@@ -280,7 +281,7 @@ impl<'a> PageRenderer<'a> {
                 self.add_bullet()?;
             } else if self.current_line.starts_with(EXAMPLE) {
                 self.add_example()?;
-            } else if self.current_line == "\n" {
+            } else if self.current_line.chars().all(char::is_whitespace) {
                 self.add_newline()?;
             } else {
                 return Err(
