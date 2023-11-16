@@ -28,10 +28,10 @@ impl Display for Error {
 }
 
 impl Error {
-    pub const DESC_DOWNLOAD_ERR: &str = "\n\nA download error occurred. \
+    pub const DESC_DOWNLOAD_ERR: &'static str = "\n\nA download error occurred. \
         To skip updating the cache, run tldr with --offline.";
 
-    pub const DESC_LANG_NOT_INSTALLED: &str =
+    pub const DESC_LANG_NOT_INSTALLED: &'static str =
         "\n\nThe language you are trying to view the page in \
         may not be installed (it's not defined in the config).\n\
         You can run 'tldr --info' to see currently installed languages.\n\
