@@ -3,7 +3,6 @@ use std::ffi::OsString;
 use std::fs::{self, File};
 use std::io::{self, BufWriter, Cursor, Read, Write};
 use std::path::{Path, PathBuf};
-use std::result::Result as StdResult;
 use std::time::Duration;
 
 use yansi::Color::{Green, Red};
@@ -354,9 +353,8 @@ impl<'a> Cache<'a> {
         Q: AsRef<Path>,
     {
         if let Ok(entries) = fs::read_dir(self.0.join(lang_dir.as_ref()).join(platform)) {
-            Ok(entries
-                .map(|res| res.map(|e| e.file_name()))
-                .collect::<StdResult<Vec<OsString>, io::Error>>()?)
+            let entries = entries.map(|res| res.map(|ent| ent.file_name()));
+            Ok(entries.collect::<io::Result<Vec<OsString>>>()?)
         } else {
             // If the directory does not exist, return an empty Vec instead of an error
             // (some platform directories do not exist in some translations).
