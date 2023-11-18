@@ -34,9 +34,9 @@ impl<'a> Cache<'a> {
         dirs::cache_dir().unwrap().join(env!("CARGO_PKG_NAME"))
     }
 
-    /// Return `true` if the cache directory exists.
-    pub fn exists(&self) -> bool {
-        self.0.is_dir()
+    /// Return `true` if the English pages directory exists.
+    pub fn english_dir_exists(&self) -> bool {
+        self.0.join(ENGLISH_DIR).is_dir()
     }
 
     /// Download the tldr pages archives.
@@ -203,7 +203,7 @@ impl<'a> Cache<'a> {
 
     /// Delete the cache directory.
     pub fn clean(&self) -> Result<()> {
-        if !self.exists() {
+        if !self.0.is_dir() {
             infoln!("cache does not exist, not cleaning.");
             fs::create_dir_all(self.0)?;
             return Ok(());
@@ -222,7 +222,7 @@ impl<'a> Cache<'a> {
         let read_dir = fs::read_dir(self.0.join(ENGLISH_DIR));
 
         match &read_dir {
-            // Return an empty Vec if the cache does not exist
+            // Return an empty Vec if the English dir does not exist
             // in order not to fail.
             Err(e) if e.kind() == io::ErrorKind::NotFound => return Ok(vec![]),
             _ => {}

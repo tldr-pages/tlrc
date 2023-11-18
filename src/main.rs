@@ -77,7 +77,7 @@ fn run() -> Result<()> {
         return PageRenderer::print(&path, &config);
     }
 
-    if !cache.exists() {
+    if !cache.english_dir_exists() {
         infoln!("cache is empty, downloading...");
         cache.update(&languages_to_download)?;
     }
