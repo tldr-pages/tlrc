@@ -175,7 +175,9 @@ impl<'a> Cache<'a> {
         let lang_dirs = util::languages_to_langdirs(&languages);
 
         for lang_dir in &lang_dirs {
-            dirs_npages.insert(lang_dir.to_string(), self.list_all_vec(lang_dir)?.len());
+            // `list_all_vec` can fail when `pages.en` is empty, hence the default of 0.
+            let n = self.list_all_vec(lang_dir).map(|v| v.len()).unwrap_or(0);
+            dirs_npages.insert(lang_dir.to_string(), n);
         }
 
         let archives = Self::download_and_verify(&languages)?;
@@ -219,16 +221,8 @@ impl<'a> Cache<'a> {
     /// Find out what platforms are available.
     fn get_platforms(&self) -> Result<Vec<OsString>> {
         let mut result = vec![];
-        let read_dir = fs::read_dir(self.0.join(ENGLISH_DIR));
 
-        match &read_dir {
-            // Return an empty Vec if the English dir does not exist
-            // in order not to fail.
-            Err(e) if e.kind() == io::ErrorKind::NotFound => return Ok(vec![]),
-            _ => {}
-        }
-
-        for entry in read_dir? {
+        for entry in fs::read_dir(self.0.join(ENGLISH_DIR))? {
             let entry = entry?;
             let path = entry.path();
             let platform = path.file_name().unwrap();
@@ -236,20 +230,23 @@ impl<'a> Cache<'a> {
             result.push(platform.to_os_string());
         }
 
-        // read_dir() order can differ across runs, so it's
-        // better to sort the Vec for consistency.
-        result.sort_unstable();
-
-        Ok(result)
+        if result.is_empty() {
+            Err(Error::new(
+                "'pages.en' contains no platform directories. Please run 'tldr --update'.",
+            ))
+        } else {
+            // read_dir() order can differ across runs, so it's
+            // better to sort the Vec for consistency.
+            result.sort_unstable();
+            Ok(result)
+        }
     }
 
     /// Find out what platforms are available and check if the provided platform exists.
     fn get_platforms_and_check(&self, platform: &str) -> Result<Vec<OsString>> {
         let platforms = self.get_platforms()?;
 
-        // The !platforms.is_empty() check is here to get a "page not found" error instead of "invalid platform"
-        // when `pages.en` does not exist (because the dir was named `pages` in previous versions).
-        if platforms.iter().all(|x| x != platform) && !platforms.is_empty() {
+        if platforms.iter().all(|x| x != platform) {
             Err(Error::new(format!(
                 "platform '{platform}' does not exist.\n{} {}.",
                 Paint::new("Possible values:").bold(),

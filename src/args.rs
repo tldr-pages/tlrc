@@ -80,7 +80,7 @@ pub struct Cli {
     #[arg(long, group = "operations")]
     pub config_path: bool,
 
-    /// Specify the platform to use.
+    /// Specify the platform to use (linux, osx, windows, etc.).
     #[arg(short, long, default_value = DEFAULT_PLATFORM)]
     pub platform: String,
 
