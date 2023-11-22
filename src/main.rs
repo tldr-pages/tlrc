@@ -52,6 +52,13 @@ fn run() -> Result<()> {
     init_color(cli.color);
 
     let mut config = Config::new(cli.config)?;
+    config.output.compact = !cli.no_compact && (cli.compact || config.output.compact);
+    config.output.raw_markdown = !cli.no_raw && (cli.raw || config.output.raw_markdown);
+
+    if let Some(path) = cli.render {
+        return PageRenderer::print(&path, &config);
+    }
+
     let languages_are_from_cli = cli.languages.is_some();
     let mut languages = cli.languages.unwrap_or_else(|| get_languages(&mut config));
     let languages_to_download = if languages_are_from_cli {
@@ -69,12 +76,6 @@ fn run() -> Result<()> {
     }
     if cli.update {
         return cache.update(&languages_to_download);
-    }
-
-    config.output.compact = !cli.no_compact && (cli.compact || config.output.compact);
-    config.output.raw_markdown = !cli.no_raw && (cli.raw || config.output.raw_markdown);
-    if let Some(path) = cli.render {
-        return PageRenderer::print(&path, &config);
     }
 
     if !cache.english_dir_exists() {
