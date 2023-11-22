@@ -359,7 +359,7 @@ impl<'a> Cache<'a> {
         }
     }
 
-    fn print_basenames(pages: &mut Vec<OsString>) -> Result<()> {
+    fn print_basenames(mut pages: Vec<OsString>) -> Result<()> {
         // Show pages in alphabetical order.
         pages.sort_unstable();
         // There are pages with the same name across multiple platforms.
@@ -367,13 +367,11 @@ impl<'a> Cache<'a> {
         pages.dedup();
 
         let mut stdout = BufWriter::new(io::stdout().lock());
+
         for page in pages {
-            let str = page.to_string_lossy();
-            let page = str.strip_suffix(".md").ok_or_else(|| {
-                Error::new(format!(
-                    "'{str}': every page file should have a '.md' extension",
-                ))
-            })?;
+            let page = page.to_string_lossy();
+            let page = page.strip_suffix(".md").unwrap_or(&page);
+
             writeln!(stdout, "{page}")?;
         }
 
@@ -384,7 +382,7 @@ impl<'a> Cache<'a> {
     pub fn list_platform(&self, platform: &str) -> Result<()> {
         self.get_platforms_and_check(platform)?;
 
-        let mut pages = if platform == "common" {
+        let pages = if platform == "common" {
             self.list_dir(platform, ENGLISH_DIR)?
         } else {
             self.list_dir(platform, ENGLISH_DIR)?
@@ -393,7 +391,7 @@ impl<'a> Cache<'a> {
                 .collect()
         };
 
-        Self::print_basenames(&mut pages)
+        Self::print_basenames(pages)
     }
 
     /// List all pages in `lang` and return a `Vec`.
@@ -412,7 +410,7 @@ impl<'a> Cache<'a> {
 
     /// List all pages in English.
     pub fn list_all(&self) -> Result<()> {
-        Self::print_basenames(&mut self.list_all_vec(ENGLISH_DIR)?)
+        Self::print_basenames(self.list_all_vec(ENGLISH_DIR)?)
     }
 
     /// Show cache information.
