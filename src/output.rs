@@ -36,9 +36,9 @@ fn highlight(start: &str, end: &str, s: &str, style_normal: Style, style_hl: Sty
             // 3: "dd"      (highlighted)
             // 4: " ee"
             if i % 2 == 0 {
-                buf.push_str(&style_normal.paint(spl).to_string());
+                buf += &style_normal.paint(spl).to_string();
             } else {
-                buf.push_str(&style_hl.paint(spl).to_string());
+                buf += &style_hl.paint(spl).to_string();
             }
         } else if spl.contains(end) {
             // The first part of the second split contains the part to be highlighted.
@@ -53,14 +53,14 @@ fn highlight(start: &str, end: &str, s: &str, style_normal: Style, style_hl: Sty
             // "<http" is used to detect documentation URLs and it is removed during split(),
             // we have to add it back again.
             if end == ">" {
-                buf.push_str(&style_hl.paint("http").to_string());
+                buf += &style_hl.paint("http").to_string();
             }
 
-            buf.push_str(&style_hl.paint(spl2.next().unwrap()).to_string());
-            buf.push_str(&style_normal.paint(spl2.next().unwrap()).to_string());
+            buf += &style_hl.paint(spl2.next().unwrap()).to_string();
+            buf += &style_normal.paint(spl2.next().unwrap()).to_string();
         } else {
             // Highlight ending not found.
-            buf.push_str(&style_normal.paint(spl).to_string());
+            buf += &style_normal.paint(spl).to_string();
         }
     }
 
@@ -184,17 +184,19 @@ impl<'a> PageRenderer<'a> {
             Cow::Borrowed(line)
         };
 
-        Ok(write!(
+        write!(
             self.stdout,
             "{}{}",
             " ".repeat(self.cfg.indent.title),
             self.style.title.paint(title)
-        )?)
+        )?;
+
+        Ok(())
     }
 
     /// Write the current line to the page buffer as a description.
     fn add_desc(&mut self) -> Result<()> {
-        Ok(write!(
+        write!(
             self.stdout,
             "{}{}",
             " ".repeat(self.cfg.indent.description),
@@ -211,7 +213,9 @@ impl<'a> PageRenderer<'a> {
                 self.style.desc,
                 self.style.inline_code,
             )
-        )?)
+        )?;
+
+        Ok(())
     }
 
     /// Write the current line to the page buffer as a bullet point.
@@ -224,7 +228,7 @@ impl<'a> PageRenderer<'a> {
             self.current_line.strip_prefix(BULLET).unwrap()
         };
 
-        Ok(write!(
+        write!(
             self.stdout,
             "{}{}",
             " ".repeat(self.cfg.indent.bullet),
@@ -235,12 +239,21 @@ impl<'a> PageRenderer<'a> {
                 self.style.bullet,
                 self.style.inline_code,
             )
-        )?)
+        )?;
+
+        Ok(())
     }
 
     /// Write the current line to the page buffer as an example.
     fn add_example(&mut self) -> Result<()> {
-        Ok(writeln!(
+        // Add spaces around escaped curly braces in order not to
+        // interpret them as a placeholder (e.g. in "\{\{{{ }}\}\}").
+        self.current_line = self
+            .current_line
+            .replace("\\{\\{", " \\{\\{ ")
+            .replace("\\}\\}", " \\}\\} ");
+
+        writeln!(
             self.stdout,
             "{}{}",
             " ".repeat(self.cfg.indent.example),
@@ -259,7 +272,12 @@ impl<'a> PageRenderer<'a> {
                 self.style.example,
                 self.style.placeholder,
             )
-        )?)
+            // Remove the extra spaces and backslashes.
+            .replace(" \\{\\{ ", "{{")
+            .replace(" \\}\\} ", "}}")
+        )?;
+
+        Ok(())
     }
 
     /// Write a newline to the page buffer if compact mode is not turned on.
@@ -267,6 +285,7 @@ impl<'a> PageRenderer<'a> {
         if !self.cfg.output.compact {
             writeln!(self.stdout)?;
         }
+
         Ok(())
     }
 
@@ -291,6 +310,7 @@ impl<'a> PageRenderer<'a> {
                 );
             }
         }
+
         self.add_newline()?;
         Ok(self.stdout.flush()?)
     }
