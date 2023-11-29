@@ -1,8 +1,3 @@
-#![warn(unused)]
-#![warn(clippy::all, clippy::pedantic, clippy::style)]
-#![allow(clippy::module_name_repetitions)]
-#![allow(clippy::struct_excessive_bools)]
-
 mod args;
 mod cache;
 mod config;
@@ -25,7 +20,7 @@ use crate::output::PageRenderer;
 use crate::util::{get_languages, infoln, init_color, warnln};
 
 /// If this is set to true, do not print anything except pages and errors.
-pub static QUIET: AtomicBool = AtomicBool::new(false);
+static QUIET: AtomicBool = AtomicBool::new(false);
 
 fn main() -> ExitCode {
     match run() {
