@@ -1,7 +1,7 @@
 [package]
 name = "tlrc"
-version = "1.7.1"
-description = "A tldr client written in Rust"
+version = "1.8.0"
+description = "Official tldr client written in Rust"
 categories = ["command-line-utilities"]
 homepage = "https://github.com/tldr-pages/tlrc"
 repository = "https://github.com/tldr-pages/tlrc"
@@ -15,17 +15,17 @@ name = "tldr"
 path = "src/main.rs"
 
 [dependencies]
-clap = { version = "4.4.7", features = ["derive"] }
+clap = { version = "4.4.10", features = ["derive"] }
 dirs = "5.0.1"
-ring = "0.17.5"
-serde = { version = "1.0.190", features = ["derive"] }
-toml = "0.8.6"
-ureq = { version = "2.8.0", default-features = false, features = ["tls"] }
+ring = "0.17.6"
+serde = { version = "1.0.193", features = ["derive"] }
+toml = "0.8.8"
+ureq = { version = "2.9.1", default-features = false, features = ["tls"] }
 yansi = "0.5.1"
 zip = { version = "0.6.6", default-features = false, features = ["deflate"] }
 
 [build-dependencies]
-clap = { version = "4.4.7", features = ["derive"] }
+clap = { version = "4.4.10", features = ["derive"] }
 clap_complete = "4.4.4"
 
 [dev-dependencies]
