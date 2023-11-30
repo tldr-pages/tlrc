@@ -178,7 +178,7 @@ pub fn sha256_hexdigest(data: &[u8]) -> String {
     let mut hex = String::new();
 
     for part in digest.as_ref() {
-        hex.push_str(&format!("{part:02x}"));
+        hex += &format!("{part:02x}");
     }
 
     hex
