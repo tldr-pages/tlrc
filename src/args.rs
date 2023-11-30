@@ -85,7 +85,7 @@ pub struct Cli {
     pub platform: String,
 
     /// Specify the languages to use.
-    #[arg(short = 'L', long = "language", value_name = "LANGUAGE")]
+    #[arg(short = 'L', long = "language", value_name = "LANGUAGE_CODE")]
     pub languages: Option<Vec<String>>,
 
     /// Do not update the cache, even if it is stale.
@@ -108,7 +108,7 @@ pub struct Cli {
     #[arg(long)]
     pub no_raw: bool,
 
-    /// Suppress status messages.
+    /// Suppress status messages and warnings.
     #[arg(short, long)]
     pub quiet: bool,
 

@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::collections::{BTreeMap, HashMap};
 use std::ffi::OsString;
 use std::fs::{self, File};
@@ -252,8 +253,8 @@ impl<'a> Cache<'a> {
                 Paint::new("Possible values:").bold(),
                 platforms
                     .iter()
-                    .map(|x| format!("'{}'", x.to_string_lossy()))
-                    .collect::<Vec<String>>()
+                    .map(|x| x.to_string_lossy())
+                    .collect::<Vec<Cow<str>>>()
                     .join(", ")
             )))
         } else {
@@ -262,17 +263,12 @@ impl<'a> Cache<'a> {
     }
 
     /// Find a page for the given platform.
-    fn find_page_for<P>(
-        &self,
-        page_file: &str,
-        platform: P,
-        language_dirs: &[String],
-    ) -> Option<PathBuf>
+    fn find_page_for<P>(&self, fname: &str, platform: P, lang_dirs: &[String]) -> Option<PathBuf>
     where
         P: AsRef<Path>,
     {
-        for lang_dir in language_dirs {
-            let path = self.0.join(lang_dir).join(&platform).join(page_file);
+        for lang_dir in lang_dirs {
+            let path = self.0.join(lang_dir).join(&platform).join(fname);
 
             if path.is_file() {
                 return Some(path);
