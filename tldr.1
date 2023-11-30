@@ -1,8 +1,8 @@
-.TH "TLRC" "1" "2023-10-29"  "tlrc 1.7.1" "tlrc manual"
+.TH "TLRC" "1" "2023-11-30"  "tlrc 1.8.0" "tlrc manual"
 .nh
 .ad l
 .SH NAME
-tlrc - a tldr client written in Rust
+tlrc - official tldr client written in Rust
 
 
 .SH SYNOPSIS
@@ -12,7 +12,8 @@ tlrc - a tldr client written in Rust
 .SH OPTIONS
 .TP 4
 .B -u, --update
-Update the cache.
+Update the cache (i.e. delete the current cache, download archives for\&
+the configured languages and extract the new archives).
 
 .TP 4
 .B -l, --list
@@ -24,7 +25,7 @@ List all pages.
 
 .TP 4
 .B -i, --info
-Show cache information (installed languages and the number of pages).
+Show cache information (path, age, installed languages and the number of pages).
 
 .TP 4
 \fB-r, --render\fR <FILE>
@@ -32,7 +33,7 @@ Render the specified markdown file.
 
 .TP 4
 .B --clean-cache
-Clean the cache. You probably never have to run this, use \fB--update\fR instead.
+Clean the cache (i.e. remove all subdirectories). You probably never have to run this, use \fB--update\fR instead.
 
 .TP 4
 .B --gen-config
@@ -44,14 +45,16 @@ Print the default config path and create the config directory if it does not exi
 
 .TP 4
 \fB-p, --platform\fR <PLATFORM>
-Specify the platform to use.
+Specify the platform to use (linux, osx, windows, etc.).
 .sp
-Default: the os you are \fBcurrently running\fR
+Default: the operating system you are \fBcurrently running\fR
 
 .TP 4
-\fB-L, --language\fR <LANGUAGE>
-Specify the language to use.\&
-Can be used multiple times.
+\fB-L, --language\fR <LANGUAGE_CODE>
+Specify the language to show pages in.\&
+Can be used multiple times.\&
+Overrides all other language detection methods.\&
+\fItlrc\fR will not fall back to English when this option is used, and will instead show an error.
 .sp
 Default: taken from the config or the \fBLANG\fR and \fBLANGUAGE\fR environment variables.\&
 See \fBhttps://github.com/tldr-pages/tldr/blob/main/CLIENT-SPECIFICATION.md#language\fR
@@ -60,6 +63,7 @@ for a detailed description of how \fItlrc\fR determines the language.
 .TP 4
 .B -o, --offline
 Do not update the cache, even if it is stale and automatic updates are on.\&
+Does nothing when automatic updates are off.\&
 Equivalent of setting \fIcache.auto_update\fR=\fBfalse\fR in the config.
 
 .TP 4
@@ -93,7 +97,7 @@ Can be one of the following: '\fBalways\fR', '\fBnever\fR', '\fBauto\fR'.
 .br
 \fBalways\fR forces colors on; \fBnever\fR forces colors off; and \fBauto\fR
 only automatically enables colors when outputting onto a tty and\&
-the \fBNO_COLOR\fR environment variable is not set.
+the \fBNO_COLOR\fR environment variable is not set or is an empty string.
 .sp
 Default: \fBauto\fR
 
@@ -101,7 +105,7 @@ Default: \fBauto\fR
 \fB--config\fR <FILE>
 Specify an alternative path to the config file.
 .sp
-Default: \fBplatform dependent\fR (use \fB--config-path\fR to see the default path for your system)
+Default: \fBplatform-dependent\fR (use \fB--config-path\fR to see the default path for your system)
 
 .TP 4
 .B -v, --version
@@ -136,6 +140,32 @@ See the tldr page for \fBdiskpart\fR, from platform \fBwindows\fR:
 \fItldr\fR --platform windows diskpart
 .fi
 .PP
+
+
+.SH EXIT STATUSES
+.TP
+0
+OK
+
+.TP
+1
+I/O and various other errors
+
+.TP
+2
+Invalid command-line arguments
+
+.TP
+3
+TOML (config file) parse error
+
+.TP
+4
+Errors related to cache updates (e.g. a failed HTTP GET request)
+
+.TP
+5
+Tldr syntax error (e.g. a non-empty line that does not start with '# ', '> ', '- ' or '`')
 
 
 .SH SEE ALSO
