@@ -11,7 +11,7 @@ pub enum ErrorKind {
     ParsePage,
     Download,
     Io,
-    Msg,
+    Other,
 }
 
 pub struct Error {
@@ -42,7 +42,7 @@ impl Error {
         T: Display,
     {
         Self {
-            kind: ErrorKind::Msg,
+            kind: ErrorKind::Other,
             message: message.to_string(),
         }
     }
@@ -97,7 +97,7 @@ impl Error {
         );
 
         match self.kind {
-            ErrorKind::Msg | ErrorKind::Io => 1,
+            ErrorKind::Other | ErrorKind::Io => 1,
             ErrorKind::ParseToml => 3,
             ErrorKind::Download => 4,
             ErrorKind::ParsePage => 5,
