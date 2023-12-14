@@ -65,17 +65,17 @@ fn get_languages_from_env() -> Vec<String> {
     // https://github.com/tldr-pages/tldr/blob/main/CLIENT-SPECIFICATION.md#language
 
     let var_lang = env::var("LANG").ok();
-    let var_language = env::var("LANGUAGE").ok();
 
     if var_lang.is_none() {
         return vec!["en".to_string()];
     }
 
     let var_lang = var_lang.unwrap();
-    let var_language = var_language.as_deref();
+    let var_language = env::var("LANGUAGE").ok();
 
     let mut result = vec![];
     let languages = var_language
+        .as_deref()
         .unwrap_or("")
         .split(':')
         .chain(iter::once(&*var_lang));
