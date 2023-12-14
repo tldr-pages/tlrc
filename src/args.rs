@@ -32,10 +32,7 @@ const AFTER_HELP: &str = if cfg!(target_os = "windows") {
     arg_required_else_help = true,
     about,
     // VERSION_STRING is generated and set in the build script.
-    // A fallback must be set here because this file is included as a module
-    // in build.rs to generate completions, and it will refuse to compile
-    // (the variable is not present yet in the build script).
-    version = option_env!("VERSION_STRING").unwrap_or(env!("CARGO_PKG_VERSION")),
+    version = env!("VERSION_STRING"),
     disable_version_flag = true,
     after_help = AFTER_HELP,
     help_template = "{before-help}{name} {version}\n\
