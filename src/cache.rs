@@ -345,13 +345,15 @@ impl<'a> Cache<'a> {
         P: AsRef<Path>,
         Q: AsRef<Path>,
     {
-        if let Ok(entries) = fs::read_dir(self.0.join(lang_dir.as_ref()).join(platform)) {
-            let entries = entries.map(|res| res.map(|ent| ent.file_name()));
-            Ok(entries.collect::<io::Result<Vec<OsString>>>()?)
-        } else {
+        match fs::read_dir(self.0.join(lang_dir.as_ref()).join(platform)) {
+            Ok(entries) => {
+                let entries = entries.map(|res| res.map(|ent| ent.file_name()));
+                Ok(entries.collect::<io::Result<Vec<OsString>>>()?)
+            }
             // If the directory does not exist, return an empty Vec instead of an error
             // (some platform directories do not exist in some translations).
-            Ok(vec![])
+            Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(vec![]),
+            Err(e) => Err(e.into()),
         }
     }
 
