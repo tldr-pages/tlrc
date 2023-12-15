@@ -88,6 +88,11 @@ impl Error {
         )
     }
 
+    pub fn offline_no_cache() -> Self {
+        Error::new("cache does not exist. Run tldr without --offline to download pages.")
+            .kind(ErrorKind::Download)
+    }
+
     /// Print the error message to stderr and return an appropriate `ExitCode`.
     pub fn exit_code(self) -> ExitCode {
         let _ = writeln!(
