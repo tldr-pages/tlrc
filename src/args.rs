@@ -57,6 +57,14 @@ pub struct Cli {
     #[arg(short = 'a', long, group = "operations")]
     pub list_all: bool,
 
+    /// List available platforms.
+    #[arg(long, group = "operations")]
+    pub list_platforms: bool,
+
+    /// List installed languages.
+    #[arg(long, group = "operations")]
+    pub list_languages: bool,
+
     /// Show cache information (path, age, installed languages and the number of pages).
     #[arg(short, long, group = "operations")]
     pub info: bool,

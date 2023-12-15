@@ -375,7 +375,7 @@ impl<'a> Cache<'a> {
     }
 
     /// List all pages in English for `platform` and common.
-    pub fn list_platform(&self, platform: &str) -> Result<()> {
+    pub fn list_for(&self, platform: &str) -> Result<()> {
         self.get_platforms_and_check(platform)?;
 
         let pages = if platform == "common" {
@@ -409,6 +409,30 @@ impl<'a> Cache<'a> {
         Self::print_basenames(self.list_all_vec(ENGLISH_DIR)?)
     }
 
+    /// List platforms (used in shell completions).
+    pub fn list_platforms(&self) -> Result<()> {
+        let platforms = self.get_platforms()?.join("\n".as_ref());
+        writeln!(io::stdout(), "{}", platforms.to_string_lossy())?;
+        Ok(())
+    }
+
+    /// List languages (used in shell completions).
+    pub fn list_languages(&self) -> Result<()> {
+        let languages = fs::read_dir(self.0)?
+            .map(|res| res.map(|ent| ent.file_name()))
+            .collect::<io::Result<Vec<OsString>>>()?;
+        let mut stdout = io::stdout().lock();
+
+        for lang in languages {
+            let lang = lang.to_string_lossy();
+            let lang = lang.strip_prefix("pages.").unwrap_or(&lang);
+
+            writeln!(stdout, "{lang}")?;
+        }
+
+        Ok(())
+    }
+
     /// Show cache information.
     pub fn info(&self, cfg: &Config) -> Result<()> {
         let mut n_map = BTreeMap::new();
@@ -418,10 +442,10 @@ impl<'a> Cache<'a> {
             let lang_dir = lang_dir?.file_name();
             let n = self.list_all_vec(&lang_dir)?.len();
 
-            let str = lang_dir.to_string_lossy();
-            let str = str.split_once('.').unwrap_or(("", &str)).1;
+            let lang = lang_dir.to_string_lossy();
+            let lang = lang.strip_prefix("pages.").unwrap_or(&lang);
 
-            n_map.insert(str.to_string(), n);
+            n_map.insert(lang.to_string(), n);
             n_total += n;
         }
 
