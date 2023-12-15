@@ -5,33 +5,27 @@ _tldr() {
     local prev="${COMP_WORDS[COMP_CWORD-1]}"
 
     local opts="-u -l -a -i -r -p -L -o -c -R -q -v -h \
-    --update --list --list-all --info --render --clean-cache \
-    --gen-config --config-path --platform --language --offline \
-    --compact --no-compact --raw --no-raw --quiet --color --config --version --help"
+    --update --list --list-all --list-platforms --list-languages \
+    --info --render --clean-cache --gen-config --config-path --platform \
+    --language --offline --compact --no-compact --raw --no-raw --quiet \
+    --color --config --version --help"
 
     if [[ $cur == -* ]]; then
-        mapfile -t COMPREPLY < <(compgen -W "$opts" "$cur")
+        mapfile -t COMPREPLY < <(compgen -W "$opts" -- "$cur")
         return 0
     fi
 
     case $prev in
-        -r|--render)
-            mapfile -t COMPREPLY < <(compgen -f "$cur")
-            return 0;;
-        -p|--platform)
-            mapfile -t COMPREPLY < <(compgen -f "$cur")
-            return 0;;
-        -L|--language)
-            mapfile -t COMPREPLY < <(compgen -f "$cur")
-            return 0;;
+        -r|--render|--config)
+            mapfile -t COMPREPLY < <(compgen -f -- "$cur");;
         --color)
-            mapfile -t COMPREPLY < <(compgen -W "auto always never" "$cur")
-            return 0;;
-        --config)
-            mapfile -t COMPREPLY < <(compgen -f "$cur")
-            return 0;;
+            mapfile -t COMPREPLY < <(compgen -W "auto always never" -- "$cur");;
+        -p|--platform)
+            mapfile -t COMPREPLY < <(compgen -W "$(tldr --offline --list-platforms 2> /dev/null)" -- "$cur");;
+        -L|--language)
+            mapfile -t COMPREPLY < <(compgen -W "$(tldr --offline --list-languages 2> /dev/null)" -- "$cur");;
         *)
-            mapfile -t COMPREPLY < <(compgen -W "$(tldr --quiet --offline --list-all)" "$cur");;
+            mapfile -t COMPREPLY < <(compgen -W "$(tldr --offline --list-all 2> /dev/null)" -- "$cur");;
     esac
 }
 
