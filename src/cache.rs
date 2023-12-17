@@ -1,4 +1,3 @@
-use std::borrow::Cow;
 use std::collections::{BTreeMap, HashMap};
 use std::ffi::OsString;
 use std::fs::{self, File};
@@ -251,11 +250,7 @@ impl<'a> Cache<'a> {
             Err(Error::new(format!(
                 "platform '{platform}' does not exist.\n{} {}.",
                 Paint::new("Possible values:").bold(),
-                platforms
-                    .iter()
-                    .map(|x| x.to_string_lossy())
-                    .collect::<Vec<Cow<str>>>()
-                    .join(", ")
+                platforms.join(", ".as_ref()).to_string_lossy()
             )))
         } else {
             Ok(platforms)
