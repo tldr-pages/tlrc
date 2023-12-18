@@ -1,0 +1,45 @@
+#compdef tldr
+
+_pages() {
+    local -a pages=(${(uonzf)"$(tldr --offline --list-all 2> /dev/null)"//:/\\:})
+    _describe "PAGE" pages
+}
+
+_languages() {
+    local -a languages=(${(uonzf)"$(tldr --offline --list-languages 2> /dev/null)"//:/\\:})
+    _describe "LANGUAGE_CODE" languages
+}
+
+_platforms() {
+    local -a platforms=(${(uonzf)"$(tldr --offline --list-platforms 2> /dev/null)"//:/\\:})
+    _describe "PLATFORM" platforms
+}
+
+_tldr() {
+    _arguments -s -S \
+        {-u,--update}"[Update the cache]" \
+        {-l,--list}"[List all pages in the current platform]" \
+        {-a,--list-all}"[List all pages]" \
+        --list-platforms"[List available platforms]" \
+        --list-languages"[List installed languages]" \
+        {-i,--info}"[Show cache information (path, age, installed languages and the number of pages)]" \
+        {-r,--render}"[Render the specified markdown file]:FILE:_files" \
+        --clean-cache"[Clean the cache]" \
+        --gen-config"[Print the default config]" \
+        --config-path"[Print the default config path and create the config directory]" \
+        {-p,--platform}"[Specify the platform to use (linux, osx, windows, etc.)]:PLATFORM:_platforms" \
+        {-L,--language}"[Specify the languages to use]:LANGUAGE_CODE:_languages" \
+        {-o,--offline}"[Do not update the cache, even if it is stale]" \
+        {-c,--compact}"[Strip empty lines from output]" \
+        --no-compact"[Do not strip empty lines from output (overrides --compact)]" \
+        {-R,--raw}"[Print pages in raw markdown instead of rendering them]" \
+        --no-raw"[Render pages instead of printing raw file contents (overrides --raw)]" \
+        {-q,--quiet}"[Suppress status messages and warnings]" \
+        --color"[Specify when to enable color]:WHEN:(auto always never)" \
+        --config"[Specify an alternative path to the config file]:FILE:_files" \
+        {-v,--version}"[Print version]" \
+        {-h,--help}"[Print help]" \
+        '*:PAGE:_pages'
+}
+
+_tldr
