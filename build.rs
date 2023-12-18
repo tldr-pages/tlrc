@@ -1,17 +1,6 @@
-/// This build script generates completions using `clap_complete` and a version string.
-#[allow(dead_code)]
-#[path = "src/args.rs"]
-mod args;
-
+/// This build script generates a version string.
 use std::env;
-use std::fs;
-use std::io;
 use std::process;
-
-use clap::CommandFactory;
-use clap::ValueEnum;
-
-use crate::args::Cli;
 
 /// The version of the tldr client specification being implemented.
 const CLIENT_SPEC: &str = "2.1";
@@ -44,17 +33,7 @@ fn pkgver_and_spec() -> String {
     )
 }
 
-fn main() -> Result<(), io::Error> {
-    let completion_dir = env::var_os("COMPLETION_DIR")
-        .or_else(|| env::var_os("OUT_DIR"))
-        .unwrap();
-
-    fs::create_dir_all(&completion_dir)?;
-
-    for &shell in clap_complete::Shell::value_variants() {
-        clap_complete::generate_to(shell, &mut Cli::command(), "tldr", &completion_dir)?;
-    }
-
+fn main() {
     let ver = if is_debug_build() {
         if let Some(hash) = commit_hash() {
             format!("{} - debug build ({hash})", pkgver_and_spec())
@@ -69,6 +48,4 @@ fn main() -> Result<(), io::Error> {
 
     // Put the version string inside an environment variable during the build.
     println!("cargo:rustc-env=VERSION_STRING={ver}");
-
-    Ok(())
 }

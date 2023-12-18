@@ -32,10 +32,7 @@ const AFTER_HELP: &str = if cfg!(target_os = "windows") {
     arg_required_else_help = true,
     about,
     // VERSION_STRING is generated and set in the build script.
-    // A fallback must be set here because this file is included as a module
-    // in build.rs to generate completions, and it will refuse to compile
-    // (the variable is not present yet in the build script).
-    version = option_env!("VERSION_STRING").unwrap_or(env!("CARGO_PKG_VERSION")),
+    version = env!("VERSION_STRING"),
     disable_version_flag = true,
     after_help = AFTER_HELP,
     help_template = "{before-help}{name} {version}\n\
@@ -59,6 +56,14 @@ pub struct Cli {
     /// List all pages.
     #[arg(short = 'a', long, group = "operations")]
     pub list_all: bool,
+
+    /// List available platforms.
+    #[arg(long, group = "operations")]
+    pub list_platforms: bool,
+
+    /// List installed languages.
+    #[arg(long, group = "operations")]
+    pub list_languages: bool,
 
     /// Show cache information (path, age, installed languages and the number of pages).
     #[arg(short, long, group = "operations")]

@@ -74,6 +74,9 @@ fn run() -> Result<()> {
     }
 
     if !cache.english_dir_exists() {
+        if cli.offline {
+            return Err(Error::offline_no_cache());
+        }
         infoln!("cache is empty, downloading...");
         cache.update(&languages_to_download)?;
     }
@@ -106,13 +109,19 @@ fn run() -> Result<()> {
     }
 
     if cli.list {
-        return cache.list_platform(platform);
+        return cache.list_for(platform);
     }
     if cli.list_all {
         return cache.list_all();
     }
     if cli.info {
         return cache.info(&config);
+    }
+    if cli.list_platforms {
+        return cache.list_platforms();
+    }
+    if cli.list_languages {
+        return cache.list_languages();
     }
 
     let page_name = cli.page.join("-").to_lowercase();
