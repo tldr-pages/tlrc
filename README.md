@@ -22,10 +22,6 @@ A [tldr](https://github.com/tldr-pages/tldr) client written in Rust.
     <img src="https://repology.org/badge/vertical-allrepos/tlrc.svg?exclude_unsupported=1" alt="Packaging status" align="right">
 </a>
 
-### Arch Linux
-
-Install [tlrc](https://aur.archlinux.org/packages/tlrc) (from source) or [tlrc-bin](https://aur.archlinux.org/packages/tlrc-bin) (prebuilt) from the AUR.
-
 ### Linux/macOS using Homebrew
 
 Install [tlrc](https://formulae.brew.sh/formula/tlrc) with Homebrew:
@@ -37,6 +33,18 @@ brew install tlrc
 ### Linux/macOS using Nix
 
 Install [tlrc](https://search.nixos.org/packages?channel=unstable&show=tlrc) from nixpkgs.
+
+### Arch Linux
+
+Install [tlrc](https://aur.archlinux.org/packages/tlrc) (from source) or [tlrc-bin](https://aur.archlinux.org/packages/tlrc-bin) (prebuilt) from the AUR.
+
+### openSUSE
+
+Install [tlrc](https://software.opensuse.org/package/tlrc) with Zypper:
+
+```shell
+zypper install tlrc
+```
 
 ### Windows
 
