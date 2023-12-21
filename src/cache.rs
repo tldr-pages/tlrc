@@ -39,19 +39,27 @@ impl<'a> Cache<'a> {
         self.0.join(ENGLISH_DIR).is_dir()
     }
 
-    /// Download the tldr pages archives.
-    fn download_and_verify(languages: &[String]) -> Result<BTreeMap<String, PagesArchive>> {
+    /// Download tldr pages archives for directories that are out of date and update the checksum file.
+    fn download_and_verify(&self, languages: &[String]) -> Result<BTreeMap<String, PagesArchive>> {
         let agent = ureq::builder().user_agent(USER_AGENT).build();
+        let old_sumfile_path = self.0.join("tldr.sha256sums");
         let mut langdir_archive_map = BTreeMap::new();
 
         infoln!("downloading 'tldr.sha256sums'...");
         let sums = agent.get(CHECKSUMS).call()?.into_string()?;
-        let lang_sum_map = Self::parse_sumfile(&sums)?;
+        let sum_map = Self::parse_sumfile(&sums)?;
+
+        let old_sums = fs::read_to_string(&old_sumfile_path).unwrap_or_default();
+        let old_sum_map = Self::parse_sumfile(&old_sums).unwrap_or_default();
 
         for lang in languages {
-            let sum = lang_sum_map.get(lang);
+            let sum = sum_map.get(lang);
             // Skip nonexistent languages.
             if sum.is_none() {
+                continue;
+            }
+            if sum == old_sum_map.get(lang) {
+                infoln!("'pages.{lang}' is up to date");
                 continue;
             }
             let sum = sum.unwrap();
@@ -84,6 +92,9 @@ impl<'a> Cache<'a> {
                 ZipArchive::new(Cursor::new(archive))?,
             );
         }
+
+        fs::create_dir_all(self.0)?;
+        File::create(&old_sumfile_path)?.write_all(sums.as_bytes())?;
 
         Ok(langdir_archive_map)
     }
@@ -180,10 +191,21 @@ impl<'a> Cache<'a> {
             dirs_npages.insert(lang_dir.to_string(), n);
         }
 
-        let archives = Self::download_and_verify(&languages)?;
-        self.clean()?;
+        let archives = self.download_and_verify(&languages)?;
+
+        if archives.is_empty() {
+            infoln!(
+                "there is nothing to do. Run 'tldr --clean-cache' if you want to force an update."
+            );
+            return Ok(());
+        }
 
         for (lang_dir, mut archive) in archives {
+            let lang_dir_full = self.0.join(&lang_dir);
+            if lang_dir_full.is_dir() {
+                fs::remove_dir_all(self.0.join(&lang_dir))?;
+            }
+
             #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
             self.extract_lang_archive(
                 &lang_dir,
@@ -416,8 +438,9 @@ impl<'a> Cache<'a> {
     /// List languages (used in shell completions).
     pub fn list_languages(&self) -> Result<()> {
         let languages = fs::read_dir(self.0)?
-            .map(|res| res.map(|ent| ent.file_name()))
-            .collect::<io::Result<Vec<OsString>>>()?;
+            .filter(|res| res.is_ok() && res.as_ref().unwrap().path().is_dir())
+            .map(|res| res.unwrap().file_name())
+            .collect::<Vec<OsString>>();
         let mut stdout = io::stdout().lock();
 
         for lang in languages {
@@ -436,7 +459,11 @@ impl<'a> Cache<'a> {
         let mut n_total = 0;
 
         for lang_dir in fs::read_dir(self.0)? {
-            let lang_dir = lang_dir?.file_name();
+            let lang_dir = lang_dir?;
+            if !lang_dir.path().is_dir() {
+                continue;
+            }
+            let lang_dir = lang_dir.file_name();
             let n = self.list_all_vec(&lang_dir)?.len();
 
             let lang = lang_dir.to_string_lossy();
@@ -490,7 +517,15 @@ impl<'a> Cache<'a> {
 
     /// Get the age of the cache.
     pub fn age(&self) -> Result<Duration> {
-        fs::metadata(self.0)?.modified()?.elapsed().map_err(|_| {
+        let sumfile = self.0.join("tldr.sha256sums");
+        let metadata = if sumfile.is_file() {
+            fs::metadata(&sumfile)
+        } else {
+            // The sumfile is not available, fall back to the base directory.
+            fs::metadata(self.0)
+        }?;
+
+        metadata.modified()?.elapsed().map_err(|_| {
             Error::new(
                 "the system clock is not functioning correctly.\n\
                 Modification time of the cache is later than the current system time.\n\

@@ -4,7 +4,8 @@ use std::path::Path;
 use std::process::ExitCode;
 use std::result::Result as StdResult;
 
-use yansi::{Color, Paint};
+use yansi::Color::Red;
+use yansi::Paint;
 
 pub enum ErrorKind {
     ParseToml,
@@ -73,7 +74,7 @@ impl Error {
     }
 
     pub fn parse_sumfile() -> Self {
-        Error::new("failed to parse the checksum file").kind(ErrorKind::Download)
+        Error::new("could not parse the checksum file").kind(ErrorKind::Download)
     }
 
     pub fn desc_page_does_not_exist() -> String {
@@ -98,7 +99,7 @@ impl Error {
         let _ = writeln!(
             io::stderr(),
             "{} {self}",
-            Paint::new("error:").fg(Color::Red).bold()
+            Paint::new("error:").fg(Red).bold()
         );
 
         match self.kind {
