@@ -73,7 +73,7 @@ fn run() -> Result<()> {
         return cache.update(&languages_to_download);
     }
 
-    if !cache.english_dir_exists() {
+    if !cache.subdir_exists(cache::ENGLISH_DIR) {
         if cli.offline {
             return Err(Error::offline_no_cache());
         }

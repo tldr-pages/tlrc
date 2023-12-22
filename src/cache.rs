@@ -18,7 +18,7 @@ const BASE_ARCHIVE_URL: &str =
 const CHECKSUMS: &str =
     "https://raw.githubusercontent.com/tldr-pages/tldr-pages.github.io/main/assets/tldr.sha256sums";
 const USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), '/', env!("CARGO_PKG_VERSION"));
-const ENGLISH_DIR: &str = "pages.en";
+pub const ENGLISH_DIR: &str = "pages.en";
 
 type PagesArchive = ZipArchive<Cursor<Vec<u8>>>;
 
@@ -35,8 +35,8 @@ impl<'a> Cache<'a> {
     }
 
     /// Return `true` if the English pages directory exists.
-    pub fn english_dir_exists(&self) -> bool {
-        self.0.join(ENGLISH_DIR).is_dir()
+    pub fn subdir_exists(&self, sd: &str) -> bool {
+        self.0.join(sd).is_dir()
     }
 
     /// Download tldr pages archives for directories that are out of date and update the checksum file.
@@ -58,7 +58,9 @@ impl<'a> Cache<'a> {
             if sum.is_none() {
                 continue;
             }
-            if sum == old_sum_map.get(lang) {
+
+            let lang_dir = format!("pages.{lang}");
+            if sum == old_sum_map.get(lang) && self.subdir_exists(&lang_dir) {
                 infoln!("'pages.{lang}' is up to date");
                 continue;
             }
@@ -87,10 +89,7 @@ impl<'a> Cache<'a> {
 
             info_end!(" {}", Paint::new("OK").fg(Green).bold());
 
-            langdir_archive_map.insert(
-                format!("pages.{lang}"),
-                ZipArchive::new(Cursor::new(archive))?,
-            );
+            langdir_archive_map.insert(lang_dir, ZipArchive::new(Cursor::new(archive))?);
         }
 
         fs::create_dir_all(self.0)?;
