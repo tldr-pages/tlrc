@@ -132,9 +132,10 @@ fn run() -> Result<()> {
         return if languages_are_from_cli {
             e = e.describe("Try running tldr without --language.");
 
-            // This checks whether any language specified on the cli would not be downloaded
-            // during a cache update.
-            if !languages.iter().all(|x| languages_to_download.contains(x)) {
+            if !languages
+                .iter()
+                .all(|x| cache.subdir_exists(&format!("pages.{x}")))
+            {
                 e = e.describe(Error::DESC_LANG_NOT_INSTALLED);
             }
 
