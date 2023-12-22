@@ -139,21 +139,26 @@ impl<'a> Cache<'a> {
         info_start!("extracting '{lang_dir}'...");
 
         let mut n_downloaded = 0;
-        let files: Vec<String> = archive.file_names().map(String::from).collect();
 
-        for f in &files {
-            // Skip directory entries and files that are not in a directory (we want only pages).
-            if f.ends_with('/') || !f.contains('/') {
+        for i in 0..archive.len() {
+            let mut page = archive.by_index(i).unwrap();
+            let fname = page.name();
+
+            // Skip files that are not in a directory (we want only pages).
+            if !fname.contains('/') {
                 continue;
             }
 
-            let path = self.0.join(lang_dir).join(f);
-            fs::create_dir_all(path.parent().unwrap())?;
+            let path = self.0.join(lang_dir).join(fname);
 
-            let mut page = archive.by_name(f).unwrap();
+            if fname.ends_with('/') {
+                fs::create_dir_all(&path)?;
+                continue;
+            }
+
             let mut file = File::create(&path)?;
-
             io::copy(&mut page, &mut file)?;
+
             n_downloaded += 1;
         }
 
