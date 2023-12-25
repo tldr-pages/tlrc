@@ -59,19 +59,19 @@ macro_rules! info_end {
 pub(crate) use {info_end, info_start, infoln, warnln};
 
 /// Get languages from environment variables according to the tldr client specification.
-pub fn get_languages_from_env() -> Vec<String> {
+pub fn get_languages_from_env(out_vec: &mut Vec<String>) {
     // https://github.com/tldr-pages/tldr/blob/main/CLIENT-SPECIFICATION.md#language
 
     let var_lang = env::var("LANG").ok();
 
     if var_lang.is_none() {
-        return vec!["en".to_string()];
+        out_vec.push("en".to_string());
+        return;
     }
 
     let var_lang = var_lang.unwrap();
     let var_language = env::var("LANGUAGE").ok();
 
-    let mut result = vec![];
     let languages = var_language
         .as_deref()
         .unwrap_or("")
@@ -81,17 +81,15 @@ pub fn get_languages_from_env() -> Vec<String> {
     for lang in languages {
         if lang.len() >= 5 && lang.chars().nth(2) == Some('_') {
             // <language>_<country> (ll_CC - 5 characters)
-            result.push(&lang[..5]);
+            out_vec.push(lang[..5].to_string());
             // <language> (ll - 2 characters)
-            result.push(&lang[..2]);
+            out_vec.push(lang[..2].to_string());
         } else if lang.len() == 2 {
-            result.push(lang);
+            out_vec.push(lang.to_string());
         }
     }
 
-    result.push("en");
-
-    result.into_iter().map(String::from).collect()
+    out_vec.push("en".to_string());
 }
 
 /// Prepend `pages.` to each `String`.
@@ -228,29 +226,39 @@ mod tests {
 
     #[test]
     fn env_languages() {
-        // These vectors contain duplicates - de-dupping is done in cache.update()
+        // This vector contains duplicates - de-dupping is done in cache.update()
         // and cache.find(), because update() requires a sorted vector, whereas
         // find() - an unsorted one.
+        let mut out_vec = vec![];
+
         prepare_env(Some("cz"), Some("it:cz:de"));
-        assert_eq!(get_languages_from_env(), ["it", "cz", "de", "cz", "en"]);
+        get_languages_from_env(&mut out_vec);
+        assert_eq!(out_vec, ["it", "cz", "de", "cz", "en"]);
 
         prepare_env(Some("cz"), Some("it:de:fr"));
-        assert_eq!(get_languages_from_env(), ["it", "de", "fr", "cz", "en"]);
+        out_vec.clear();
+        get_languages_from_env(&mut out_vec);
+        assert_eq!(out_vec, ["it", "de", "fr", "cz", "en"]);
 
         prepare_env(Some("it"), None);
-        assert_eq!(get_languages_from_env(), ["it", "en"]);
+        out_vec.clear();
+        get_languages_from_env(&mut out_vec);
+        assert_eq!(out_vec, ["it", "en"]);
 
         prepare_env(None, Some("it:cz"));
-        assert_eq!(get_languages_from_env(), ["en"]);
+        out_vec.clear();
+        get_languages_from_env(&mut out_vec);
+        assert_eq!(out_vec, ["en"]);
 
         prepare_env(None, None);
-        assert_eq!(get_languages_from_env(), ["en"]);
+        out_vec.clear();
+        get_languages_from_env(&mut out_vec);
+        assert_eq!(out_vec, ["en"]);
 
         prepare_env(Some("en_US.UTF-8"), Some("de_DE.UTF-8:pl:en"));
-        assert_eq!(
-            get_languages_from_env(),
-            ["de_DE", "de", "pl", "en", "en_US", "en", "en"]
-        );
+        out_vec.clear();
+        get_languages_from_env(&mut out_vec);
+        assert_eq!(out_vec, ["de_DE", "de", "pl", "en", "en_US", "en", "en"]);
     }
 
     #[test]

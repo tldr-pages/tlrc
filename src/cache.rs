@@ -209,7 +209,7 @@ impl<'a> Cache<'a> {
         for (lang_dir, mut archive) in archives {
             let lang_dir_full = self.0.join(&lang_dir);
             if lang_dir_full.is_dir() {
-                fs::remove_dir_all(self.0.join(&lang_dir))?;
+                fs::remove_dir_all(&lang_dir_full)?;
             }
 
             #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]

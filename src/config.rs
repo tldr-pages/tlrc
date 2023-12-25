@@ -8,7 +8,7 @@ use yansi::{Color, Style};
 
 use crate::cache::Cache;
 use crate::error::{Error, ErrorKind, Result};
-use crate::util::warnln;
+use crate::util::{get_languages_from_env, warnln};
 
 #[derive(Serialize, Deserialize, Default, Clone, Copy)]
 #[serde(rename_all = "lowercase")]
@@ -274,7 +274,7 @@ impl Config {
 
         cfg_res.map(|mut cfg| {
             if cfg.cache.languages.is_empty() {
-                cfg.cache.languages = crate::util::get_languages_from_env();
+                get_languages_from_env(&mut cfg.cache.languages);
             } else {
                 // English pages should always be downloaded and searched.
                 cfg.cache.languages.push("en".to_string());
