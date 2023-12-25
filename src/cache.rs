@@ -179,32 +179,31 @@ impl<'a> Cache<'a> {
     }
 
     /// Delete the old cache and replace it with a fresh copy.
-    pub fn update(&self, languages: &[String]) -> Result<()> {
-        // (language_dir, pages_number_before_update)
-        let mut dirs_npages = HashMap::with_capacity(languages.len());
-        let mut all_downloaded = 0;
-        let mut all_new = 0;
-
-        let mut languages = languages.to_vec();
+    pub fn update(&self, languages: &mut Vec<String>) -> Result<()> {
         // Sort to always download archives in alphabetical order.
         languages.sort_unstable();
         // The user can put duplicates in the config file.
         languages.dedup();
-        let lang_dirs = util::languages_to_langdirs(&languages);
 
-        for lang_dir in &lang_dirs {
-            // `list_all_vec` can fail when `pages.en` is empty, hence the default of 0.
-            let n = self.list_all_vec(lang_dir).map(|v| v.len()).unwrap_or(0);
-            dirs_npages.insert(lang_dir.to_string(), n);
-        }
-
-        let archives = self.download_and_verify(&languages)?;
+        let archives = self.download_and_verify(languages)?;
 
         if archives.is_empty() {
             infoln!(
                 "there is nothing to do. Run 'tldr --clean-cache' if you want to force an update."
             );
             return Ok(());
+        }
+
+        // (language_dir, pages_number_before_update)
+        let mut dirs_npages = HashMap::with_capacity(languages.len());
+        let mut all_downloaded = 0;
+        let mut all_new = 0;
+        let lang_dirs = util::languages_to_langdirs(languages);
+
+        for lang_dir in &lang_dirs {
+            // `list_all_vec` can fail when `pages.en` is empty, hence the default of 0.
+            let n = self.list_all_vec(lang_dir).map(|v| v.len()).unwrap_or(0);
+            dirs_npages.insert(lang_dir.to_string(), n);
         }
 
         for (lang_dir, mut archive) in archives {

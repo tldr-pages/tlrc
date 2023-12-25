@@ -256,7 +256,7 @@ impl Config {
     }
 
     pub fn new(cli_config_path: Option<PathBuf>) -> Result<Self> {
-        if let Some(path) = cli_config_path {
+        let cfg_res = if let Some(path) = cli_config_path {
             if path.is_file() {
                 return Self::parse(&path);
             }
@@ -270,7 +270,17 @@ impl Config {
             }
 
             Ok(Self::default())
-        }
+        };
+
+        cfg_res.map(|mut cfg| {
+            if cfg.cache.languages.is_empty() {
+                cfg.cache.languages = crate::util::get_languages_from_env();
+            } else {
+                // English pages should always be downloaded and searched.
+                cfg.cache.languages.push("en".to_string());
+            }
+            cfg
+        })
     }
 
     /// Get the default path to the config file.

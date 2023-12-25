@@ -10,8 +10,6 @@ use clap::ColorChoice;
 use ring::digest::{digest, SHA256};
 use yansi::Paint;
 
-use crate::config::Config;
-
 /// Prints a warning.
 macro_rules! warnln {
     ( $( $arg:tt )* ) => {
@@ -61,7 +59,7 @@ macro_rules! info_end {
 pub(crate) use {info_end, info_start, infoln, warnln};
 
 /// Get languages from environment variables according to the tldr client specification.
-fn get_languages_from_env() -> Vec<String> {
+pub fn get_languages_from_env() -> Vec<String> {
     // https://github.com/tldr-pages/tldr/blob/main/CLIENT-SPECIFICATION.md#language
 
     let var_lang = env::var("LANG").ok();
@@ -94,17 +92,6 @@ fn get_languages_from_env() -> Vec<String> {
     result.push("en");
 
     result.into_iter().map(String::from).collect()
-}
-
-/// Return languages from the config + English or run `get_languages_from_env()` if the language config is empty.
-pub fn get_languages(config: &mut Config) -> Vec<String> {
-    if config.cache.languages.is_empty() {
-        get_languages_from_env()
-    } else {
-        // English pages should always be downloaded and searched.
-        config.cache.languages.push("en".to_string());
-        config.cache.languages.clone()
-    }
 }
 
 /// Prepend `pages.` to each `String`.

@@ -9,15 +9,13 @@ use std::process::ExitCode;
 use std::sync::atomic::{AtomicBool, Ordering::Relaxed};
 
 use clap::Parser;
-use yansi::Color::Green;
-use yansi::Paint;
 
 use crate::args::Cli;
 use crate::cache::Cache;
 use crate::config::Config;
 use crate::error::{Error, ErrorKind, Result};
 use crate::output::PageRenderer;
-use crate::util::{get_languages, infoln, init_color, warnln};
+use crate::util::{infoln, init_color, warnln};
 
 /// If this is set to true, do not print anything except pages and errors.
 static QUIET: AtomicBool = AtomicBool::new(false);
@@ -46,31 +44,27 @@ fn run() -> Result<()> {
 
     init_color(cli.color);
 
-    let mut config = Config::new(cli.config)?;
-    config.output.compact = !cli.no_compact && (cli.compact || config.output.compact);
-    config.output.raw_markdown = !cli.no_raw && (cli.raw || config.output.raw_markdown);
+    let mut cfg = Config::new(cli.config)?;
+    cfg.output.compact = !cli.no_compact && (cli.compact || cfg.output.compact);
+    cfg.output.raw_markdown = !cli.no_raw && (cli.raw || cfg.output.raw_markdown);
 
     if let Some(path) = cli.render {
-        return PageRenderer::print(&path, &config);
+        return PageRenderer::print(&path, &cfg);
     }
 
     let languages_are_from_cli = cli.languages.is_some();
-    let mut languages = cli.languages.unwrap_or_else(|| get_languages(&mut config));
-    let languages_to_download = if languages_are_from_cli {
-        // update() should never use languages from `--language`.
-        get_languages(&mut config)
-    } else {
-        // get_languages() has already been called, we need to clone() because this vector will
-        // be sorted alphabetically, unlike the first one.
-        languages.clone()
-    };
-    let cache = Cache::new(&config.cache.dir);
+    // We need to clone() because this vector will not be sorted,
+    // unlike the one in the config.
+    let mut languages = cli.languages.unwrap_or_else(|| cfg.cache.languages.clone());
+    let cache = Cache::new(&cfg.cache.dir);
 
     if cli.clean_cache {
         return cache.clean();
     }
+
     if cli.update {
-        return cache.update(&languages_to_download);
+        // update() should never use languages from --language.
+        return cache.update(&mut cfg.cache.languages);
     }
 
     if !cache.subdir_exists(cache::ENGLISH_DIR) {
@@ -78,7 +72,19 @@ fn run() -> Result<()> {
             return Err(Error::offline_no_cache());
         }
         infoln!("cache is empty, downloading...");
-        cache.update(&languages_to_download)?;
+        cache.update(&mut cfg.cache.languages)?;
+    } else if cfg.cache.auto_update && cache.age()? > cfg.cache_max_age() {
+        if cli.offline {
+            warnln!("cache is stale. Run tldr without --offline to update.");
+        } else {
+            infoln!("cache is stale, updating...");
+            cache
+                .update(&mut cfg.cache.languages)
+                .map_err(|e| match e.kind {
+                    ErrorKind::Download => e.describe(Error::DESC_DOWNLOAD_ERR),
+                    _ => e,
+                })?;
+        }
     }
 
     // "macos" should be an alias of "osx".
@@ -90,24 +96,6 @@ fn run() -> Result<()> {
         &cli.platform
     };
 
-    let cache_age = cache.age()?;
-    if config.cache.auto_update && cache_age > config.cache_max_age() {
-        let cache_age = util::duration_fmt(cache_age.as_secs());
-        let cache_age = Paint::new(cache_age).fg(Green).bold();
-
-        if cli.offline {
-            warnln!("cache is stale (last update: {cache_age} ago). Run tldr without --offline to update.");
-        } else {
-            infoln!("cache is stale (last update: {cache_age} ago), updating...");
-            cache
-                .update(&languages_to_download)
-                .map_err(|e| match e.kind {
-                    ErrorKind::Download => e.describe(Error::DESC_DOWNLOAD_ERR),
-                    _ => e,
-                })?;
-        }
-    }
-
     if cli.list {
         return cache.list_for(platform);
     }
@@ -115,7 +103,7 @@ fn run() -> Result<()> {
         return cache.list_all();
     }
     if cli.info {
-        return cache.info(&config);
+        return cache.info(&cfg);
     }
     if cli.list_platforms {
         return cache.list_platforms();
@@ -145,5 +133,5 @@ fn run() -> Result<()> {
         };
     }
 
-    PageRenderer::print_cache_result(&page_paths, &config)
+    PageRenderer::print_cache_result(&page_paths, &cfg)
 }
