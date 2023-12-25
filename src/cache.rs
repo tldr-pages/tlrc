@@ -34,7 +34,7 @@ impl<'a> Cache<'a> {
         dirs::cache_dir().unwrap().join(env!("CARGO_PKG_NAME"))
     }
 
-    /// Return `true` if the English pages directory exists.
+    /// Return `true` if the specified subdirectory exists in the cache.
     pub fn subdir_exists(&self, sd: &str) -> bool {
         self.0.join(sd).is_dir()
     }
@@ -99,20 +99,23 @@ impl<'a> Cache<'a> {
     }
 
     fn parse_sumfile(s: &str) -> Result<HashMap<String, String>> {
-        let mut map = HashMap::new();
+        // Subtract 3, because 3 lines are skipped in the loop.
+        let mut map = HashMap::with_capacity(s.lines().count().saturating_sub(3));
 
         for l in s.lines() {
             // The file looks like this:
-            // sha256sum     path/to/tldr-pages.lang.zip
-            // sha256sum     path/to/tldr-pages.lang.zip
+            // sha256sum     tldr-pages.lang.zip
+            // sha256sum     tldr-pages.lang.zip
             // ...
 
             let mut spl = l.split_whitespace();
             let sum = spl.next().ok_or_else(Error::parse_sumfile)?;
             let path = spl.next().ok_or_else(Error::parse_sumfile)?;
 
-            // Skip other files, the full archive, and the old English archive
-            // (tldr-pages.en.zip is now available).
+            // Skip other files, the full archive, and the old English archive.
+            // This map is used to detect languages available to download.
+            // Not skipping index.json makes "json" a language.
+            // Not skipping archives without a language in the filename makes "zip" a language.
             if !path.ends_with("zip")
                 || path.ends_with("tldr.zip")
                 || path.ends_with("tldr-pages.zip")
@@ -178,7 +181,7 @@ impl<'a> Cache<'a> {
     /// Delete the old cache and replace it with a fresh copy.
     pub fn update(&self, languages: &[String]) -> Result<()> {
         // (language_dir, pages_number_before_update)
-        let mut dirs_npages = HashMap::new();
+        let mut dirs_npages = HashMap::with_capacity(languages.len());
         let mut all_downloaded = 0;
         let mut all_new = 0;
 
