@@ -275,10 +275,9 @@ impl Config {
         cfg_res.map(|mut cfg| {
             if cfg.cache.languages.is_empty() {
                 get_languages_from_env(&mut cfg.cache.languages);
-            } else {
-                // English pages should always be downloaded and searched.
-                cfg.cache.languages.push("en".to_string());
             }
+            // English pages should always be downloaded and searched.
+            cfg.cache.languages.push("en".to_string());
             cfg
         })
     }

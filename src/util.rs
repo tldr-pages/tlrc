@@ -65,7 +65,6 @@ pub fn get_languages_from_env(out_vec: &mut Vec<String>) {
     let var_lang = env::var("LANG").ok();
 
     if var_lang.is_none() {
-        out_vec.push("en".to_string());
         return;
     }
 
@@ -88,8 +87,6 @@ pub fn get_languages_from_env(out_vec: &mut Vec<String>) {
             out_vec.push(lang.to_string());
         }
     }
-
-    out_vec.push("en".to_string());
 }
 
 /// Prepend `pages.` to each `String`.
@@ -233,32 +230,32 @@ mod tests {
 
         prepare_env(Some("cz"), Some("it:cz:de"));
         get_languages_from_env(&mut out_vec);
-        assert_eq!(out_vec, ["it", "cz", "de", "cz", "en"]);
+        assert_eq!(out_vec, ["it", "cz", "de", "cz"]);
 
         prepare_env(Some("cz"), Some("it:de:fr"));
         out_vec.clear();
         get_languages_from_env(&mut out_vec);
-        assert_eq!(out_vec, ["it", "de", "fr", "cz", "en"]);
+        assert_eq!(out_vec, ["it", "de", "fr", "cz"]);
 
         prepare_env(Some("it"), None);
         out_vec.clear();
         get_languages_from_env(&mut out_vec);
-        assert_eq!(out_vec, ["it", "en"]);
+        assert_eq!(out_vec, ["it"]);
 
         prepare_env(None, Some("it:cz"));
         out_vec.clear();
         get_languages_from_env(&mut out_vec);
-        assert_eq!(out_vec, ["en"]);
+        assert!(out_vec.is_empty());
 
         prepare_env(None, None);
         out_vec.clear();
         get_languages_from_env(&mut out_vec);
-        assert_eq!(out_vec, ["en"]);
+        assert!(out_vec.is_empty());
 
         prepare_env(Some("en_US.UTF-8"), Some("de_DE.UTF-8:pl:en"));
         out_vec.clear();
         get_languages_from_env(&mut out_vec);
-        assert_eq!(out_vec, ["de_DE", "de", "pl", "en", "en_US", "en", "en"]);
+        assert_eq!(out_vec, ["de_DE", "de", "pl", "en", "en_US", "en"]);
     }
 
     #[test]
