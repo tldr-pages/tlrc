@@ -89,14 +89,6 @@ pub fn get_languages_from_env(out_vec: &mut Vec<String>) {
     }
 }
 
-/// Prepend `pages.` to each `String`.
-pub fn languages_to_langdirs(languages: &[String]) -> Vec<String> {
-    languages
-        .iter()
-        .map(|lang| format!("pages.{lang}"))
-        .collect()
-}
-
 /// Initialize color outputting.
 pub fn init_color(color_mode: ColorChoice) {
     #[cfg(target_os = "windows")]

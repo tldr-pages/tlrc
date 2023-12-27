@@ -194,29 +194,23 @@ impl<'a> Cache<'a> {
             return Ok(());
         }
 
-        // (language_dir, pages_number_before_update)
-        let mut dirs_npages = HashMap::with_capacity(languages.len());
         let mut all_downloaded = 0;
         let mut all_new = 0;
-        let lang_dirs = util::languages_to_langdirs(languages);
-
-        for lang_dir in &lang_dirs {
-            // `list_all_vec` can fail when `pages.en` is empty, hence the default of 0.
-            let n = self.list_all_vec(lang_dir).map(|v| v.len()).unwrap_or(0);
-            dirs_npages.insert(lang_dir.to_string(), n);
-        }
 
         for (lang_dir, mut archive) in archives {
+            // `list_all_vec` can fail when `pages.en` is empty, hence the default of 0.
+            #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
+            let n_existing = self.list_all_vec(&lang_dir).map(|v| v.len()).unwrap_or(0) as i32;
+
             let lang_dir_full = self.0.join(&lang_dir);
             if lang_dir_full.is_dir() {
                 fs::remove_dir_all(&lang_dir_full)?;
             }
 
-            #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
             self.extract_lang_archive(
                 &lang_dir,
                 &mut archive,
-                (*dirs_npages.get(&lang_dir).unwrap_or(&0)) as i32,
+                n_existing,
                 &mut all_downloaded,
                 &mut all_new,
             )?;
@@ -302,21 +296,16 @@ impl<'a> Cache<'a> {
     }
 
     /// Find all pages with the given name.
-    pub fn find(
-        &self,
-        name: &str,
-        languages: &mut Vec<String>,
-        platform: &str,
-    ) -> Result<Vec<PathBuf>> {
+    pub fn find(&self, name: &str, languages: &[String], platform: &str) -> Result<Vec<PathBuf>> {
         // https://github.com/tldr-pages/tldr/blob/main/CLIENT-SPECIFICATION.md#page-resolution
 
         let platforms = self.get_platforms_and_check(platform)?;
         let file = format!("{name}.md");
 
-        // We can't sort here - order is defined by the user.
-        languages.dedup_nosort();
-        let lang_dirs = util::languages_to_langdirs(languages);
         let mut result = vec![];
+        let mut lang_dirs: Vec<String> = languages.iter().map(|x| format!("pages.{x}")).collect();
+        // We can't sort here - order is defined by the user.
+        lang_dirs.dedup_nosort();
 
         // `common` is always searched, so we skip the search for the specified platform
         // if the user has requested only `common` (to prevent searching twice)

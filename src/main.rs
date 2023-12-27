@@ -55,7 +55,7 @@ fn run() -> Result<()> {
     let languages_are_from_cli = cli.languages.is_some();
     // We need to clone() because this vector will not be sorted,
     // unlike the one in the config.
-    let mut languages = cli.languages.unwrap_or_else(|| cfg.cache.languages.clone());
+    let languages = cli.languages.unwrap_or_else(|| cfg.cache.languages.clone());
     let cache = Cache::new(&cfg.cache.dir);
 
     if cli.clean_cache {
@@ -113,7 +113,7 @@ fn run() -> Result<()> {
     }
 
     let page_name = cli.page.join("-").to_lowercase();
-    let page_paths = cache.find(&page_name, &mut languages, platform)?;
+    let page_paths = cache.find(&page_name, &languages, platform)?;
 
     if page_paths.is_empty() {
         let mut e = Error::new("page not found.");
