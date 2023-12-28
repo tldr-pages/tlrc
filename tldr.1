@@ -12,8 +12,10 @@ tlrc - official tldr client written in Rust
 .SH OPTIONS
 .TP 4
 .B -u, --update
-Update the cache (i.e. delete the current cache, download archives for\&
-the configured languages and extract the new archives).
+Update the cache of tldr pages.
+This will first download the sha256sums of all archives and compare them\&
+to the old sums to determine which languages need updating.\&
+If you want to force a redownload, run \fItldr\fR \fB--clean-cache\fR beforehand.
 
 .TP 4
 .B -l, --list
@@ -22,6 +24,14 @@ List all pages in the current platform.
 .TP 4
 .B -a, --list-all
 List all pages.
+
+.TP 4
+.B --list-platforms
+List available platforms.
+
+.TP 4
+.B --list-languages
+List available languages. Use \fB--info\fR for a language list with more information.
 
 .TP 4
 .B -i, --info
@@ -33,7 +43,7 @@ Render the specified markdown file.
 
 .TP 4
 .B --clean-cache
-Clean the cache (i.e. remove all subdirectories). You probably never have to run this, use \fB--update\fR instead.
+Clean the cache directory (i.e. remove pages and old sha256sums). Useful to force a redownload when all pages are up to date.
 
 .TP 4
 .B --gen-config
@@ -54,7 +64,9 @@ Default: the operating system you are \fBcurrently running\fR
 Specify the language to show pages in.\&
 Can be used multiple times.\&
 Overrides all other language detection methods.\&
-\fItlrc\fR will not fall back to English when this option is used, and will instead show an error.
+\fItlrc\fR will not fall back to English when this option is used, and will instead show an error.\&
+Note that this option does not affect languages downloaded on \fB--update\fR. If you want to use languages\&
+not defined in environment variables, use the \fIcache.languages\fR option in the config file.
 .sp
 Default: taken from the config or the \fBLANG\fR and \fBLANGUAGE\fR environment variables.\&
 See \fBhttps://github.com/tldr-pages/tldr/blob/main/CLIENT-SPECIFICATION.md#language\fR
@@ -63,8 +75,8 @@ for a detailed description of how \fItlrc\fR determines the language.
 .TP 4
 .B -o, --offline
 Do not update the cache, even if it is stale and automatic updates are on.\&
-Does nothing when automatic updates are off.\&
-Equivalent of setting \fIcache.auto_update\fR=\fBfalse\fR in the config.
+Similar to setting \fIcache.auto_update\fR=\fBfalse\fR in the config, except using this will\&
+show an error if the cache is empty.
 
 .TP 4
 .B -c, --compact
