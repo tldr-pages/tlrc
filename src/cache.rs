@@ -5,6 +5,7 @@ use std::io::{self, BufWriter, Cursor, Read, Write};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
+use once_cell::unsync::OnceCell;
 use yansi::Color::{Green, Red};
 use yansi::Paint;
 use zip::ZipArchive;
@@ -22,11 +23,19 @@ pub const ENGLISH_DIR: &str = "pages.en";
 
 type PagesArchive = ZipArchive<Cursor<Vec<u8>>>;
 
-pub struct Cache<'a>(&'a Path);
+pub struct Cache<'a> {
+    dir: &'a Path,
+    platforms: OnceCell<Vec<OsString>>,
+    age: OnceCell<Duration>,
+}
 
 impl<'a> Cache<'a> {
     pub fn new(dir: &'a Path) -> Self {
-        Self(dir)
+        Self {
+            dir,
+            platforms: OnceCell::new(),
+            age: OnceCell::new(),
+        }
     }
 
     /// Get the default path to the cache.
@@ -36,13 +45,13 @@ impl<'a> Cache<'a> {
 
     /// Return `true` if the specified subdirectory exists in the cache.
     pub fn subdir_exists(&self, sd: &str) -> bool {
-        self.0.join(sd).is_dir()
+        self.dir.join(sd).is_dir()
     }
 
     /// Download tldr pages archives for directories that are out of date and update the checksum file.
     fn download_and_verify(&self, languages: &[String]) -> Result<BTreeMap<String, PagesArchive>> {
         let agent = ureq::builder().user_agent(USER_AGENT).build();
-        let old_sumfile_path = self.0.join("tldr.sha256sums");
+        let old_sumfile_path = self.dir.join("tldr.sha256sums");
         let mut langdir_archive_map = BTreeMap::new();
 
         infoln!("downloading 'tldr.sha256sums'...");
@@ -92,7 +101,7 @@ impl<'a> Cache<'a> {
             langdir_archive_map.insert(lang_dir, ZipArchive::new(Cursor::new(archive))?);
         }
 
-        fs::create_dir_all(self.0)?;
+        fs::create_dir_all(self.dir)?;
         File::create(&old_sumfile_path)?.write_all(sums.as_bytes())?;
 
         Ok(langdir_archive_map)
@@ -152,7 +161,7 @@ impl<'a> Cache<'a> {
                 continue;
             }
 
-            let path = self.0.join(lang_dir).join(fname);
+            let path = self.dir.join(lang_dir).join(fname);
 
             if fname.ends_with('/') {
                 fs::create_dir_all(&path)?;
@@ -202,7 +211,7 @@ impl<'a> Cache<'a> {
             #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
             let n_existing = self.list_all_vec(&lang_dir).map(|v| v.len()).unwrap_or(0) as i32;
 
-            let lang_dir_full = self.0.join(&lang_dir);
+            let lang_dir_full = self.dir.join(&lang_dir);
             if lang_dir_full.is_dir() {
                 fs::remove_dir_all(&lang_dir_full)?;
             }
@@ -227,45 +236,49 @@ impl<'a> Cache<'a> {
 
     /// Delete the cache directory.
     pub fn clean(&self) -> Result<()> {
-        if !self.0.is_dir() {
+        if !self.dir.is_dir() {
             infoln!("cache does not exist, not cleaning.");
-            fs::create_dir_all(self.0)?;
+            fs::create_dir_all(self.dir)?;
             return Ok(());
         }
 
         infoln!("cleaning the cache directory...");
-        fs::remove_dir_all(self.0)?;
-        fs::create_dir_all(self.0)?;
+        fs::remove_dir_all(self.dir)?;
+        fs::create_dir_all(self.dir)?;
 
         Ok(())
     }
 
     /// Find out what platforms are available.
-    fn get_platforms(&self) -> Result<Vec<OsString>> {
-        let mut result = vec![];
+    fn get_platforms(&self) -> Result<&[OsString]> {
+        self.platforms
+            .get_or_try_init(|| {
+                let mut result = vec![];
 
-        for entry in fs::read_dir(self.0.join(ENGLISH_DIR))? {
-            let entry = entry?;
-            let path = entry.path();
-            let platform = path.file_name().unwrap();
+                for entry in fs::read_dir(self.dir.join(ENGLISH_DIR))? {
+                    let entry = entry?;
+                    let path = entry.path();
+                    let platform = path.file_name().unwrap();
 
-            result.push(platform.to_os_string());
-        }
+                    result.push(platform.to_os_string());
+                }
 
-        if result.is_empty() {
-            Err(Error::new(
-                "'pages.en' contains no platform directories. Please run 'tldr --update'.",
-            ))
-        } else {
-            // read_dir() order can differ across runs, so it's
-            // better to sort the Vec for consistency.
-            result.sort_unstable();
-            Ok(result)
-        }
+                if result.is_empty() {
+                    Err(Error::new(
+                        "'pages.en' contains no platform directories. Please run 'tldr --update'.",
+                    ))
+                } else {
+                    // read_dir() order can differ across runs, so it's
+                    // better to sort the Vec for consistency.
+                    result.sort_unstable();
+                    Ok(result)
+                }
+            })
+            .map(Vec::as_slice)
     }
 
     /// Find out what platforms are available and check if the provided platform exists.
-    fn get_platforms_and_check(&self, platform: &str) -> Result<Vec<OsString>> {
+    fn get_platforms_and_check(&self, platform: &str) -> Result<&[OsString]> {
         let platforms = self.get_platforms()?;
 
         if platforms.iter().all(|x| x != platform) {
@@ -285,7 +298,7 @@ impl<'a> Cache<'a> {
         P: AsRef<Path>,
     {
         for lang_dir in lang_dirs {
-            let path = self.0.join(lang_dir).join(&platform).join(fname);
+            let path = self.dir.join(lang_dir).join(&platform).join(fname);
 
             if path.is_file() {
                 return Some(path);
@@ -327,7 +340,7 @@ impl<'a> Cache<'a> {
                 continue;
             }
 
-            if let Some(path) = self.find_page_for(&file, &alt_platform, &lang_dirs) {
+            if let Some(path) = self.find_page_for(&file, alt_platform, &lang_dirs) {
                 if result.is_empty() {
                     let alt_platform = alt_platform.to_string_lossy();
 
@@ -357,7 +370,7 @@ impl<'a> Cache<'a> {
         P: AsRef<Path>,
         Q: AsRef<Path>,
     {
-        match fs::read_dir(self.0.join(lang_dir.as_ref()).join(platform)) {
+        match fs::read_dir(self.dir.join(lang_dir.as_ref()).join(platform)) {
             Ok(entries) => {
                 let entries = entries.map(|res| res.map(|ent| ent.file_name()));
                 Ok(entries.collect::<io::Result<Vec<OsString>>>()?)
@@ -390,6 +403,7 @@ impl<'a> Cache<'a> {
 
     /// List all pages in English for `platform` and common.
     pub fn list_for(&self, platform: &str) -> Result<()> {
+        // This is here just to check if the platform exists.
         self.get_platforms_and_check(platform)?;
 
         let pages = if platform == "common" {
@@ -412,7 +426,7 @@ impl<'a> Cache<'a> {
         let mut result = vec![];
 
         for platform in self.get_platforms()? {
-            result.append(&mut self.list_dir(&platform, &lang_dir)?);
+            result.append(&mut self.list_dir(platform, &lang_dir)?);
         }
 
         Ok(result)
@@ -432,10 +446,9 @@ impl<'a> Cache<'a> {
 
     /// List languages (used in shell completions).
     pub fn list_languages(&self) -> Result<()> {
-        let languages = fs::read_dir(self.0)?
+        let languages = fs::read_dir(self.dir)?
             .filter(|res| res.is_ok() && res.as_ref().unwrap().path().is_dir())
-            .map(|res| res.unwrap().file_name())
-            .collect::<Vec<OsString>>();
+            .map(|res| res.unwrap().file_name());
         let mut stdout = io::stdout().lock();
 
         for lang in languages {
@@ -453,7 +466,7 @@ impl<'a> Cache<'a> {
         let mut n_map = BTreeMap::new();
         let mut n_total = 0;
 
-        for lang_dir in fs::read_dir(self.0)? {
+        for lang_dir in fs::read_dir(self.dir)? {
             let lang_dir = lang_dir?;
             if !lang_dir.path().is_dir() {
                 continue;
@@ -474,7 +487,7 @@ impl<'a> Cache<'a> {
         writeln!(
             stdout,
             "Cache: {} (last update: {} ago)",
-            Paint::new(self.0.display()).fg(Red),
+            Paint::new(self.dir.display()).fg(Red),
             Paint::new(util::duration_fmt(age)).fg(Green).bold()
         )?;
 
@@ -512,20 +525,24 @@ impl<'a> Cache<'a> {
 
     /// Get the age of the cache.
     pub fn age(&self) -> Result<Duration> {
-        let sumfile = self.0.join("tldr.sha256sums");
-        let metadata = if sumfile.is_file() {
-            fs::metadata(&sumfile)
-        } else {
-            // The sumfile is not available, fall back to the base directory.
-            fs::metadata(self.0)
-        }?;
+        self.age
+            .get_or_try_init(|| {
+                let sumfile = self.dir.join("tldr.sha256sums");
+                let metadata = if sumfile.is_file() {
+                    fs::metadata(&sumfile)
+                } else {
+                    // The sumfile is not available, fall back to the base directory.
+                    fs::metadata(self.dir)
+                }?;
 
-        metadata.modified()?.elapsed().map_err(|_| {
-            Error::new(
-                "the system clock is not functioning correctly.\n\
-                Modification time of the cache is later than the current system time.\n\
-                Please fix your system clock.",
-            )
-        })
+                metadata.modified()?.elapsed().map_err(|_| {
+                    Error::new(
+                        "the system clock is not functioning correctly.\n\
+                        Modification time of the cache is later than the current system time.\n\
+                        Please fix your system clock.",
+                    )
+                })
+            })
+            .copied()
     }
 }
