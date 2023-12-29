@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::fs;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
@@ -199,7 +200,7 @@ pub struct OutputConfig {
     /// Show hyphens before example descriptions.
     pub show_hyphens: bool,
     /// Show a custom string instead of a hyphen.
-    pub example_prefix: String,
+    pub example_prefix: Cow<'static, str>,
     /// Strip empty lines from pages.
     pub compact: bool,
     /// Print pages in raw markdown.
@@ -212,7 +213,7 @@ impl Default for OutputConfig {
             show_title: true,
             platform_title: false,
             show_hyphens: false,
-            example_prefix: "- ".to_string(),
+            example_prefix: Cow::Borrowed("- "),
             compact: false,
             raw_markdown: false,
         }
