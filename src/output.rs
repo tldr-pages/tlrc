@@ -26,8 +26,8 @@ fn highlight(start: &str, end: &str, s: &str, style_normal: Style, style_hl: Sty
 
     let mut buf = String::new();
 
-    for (i, spl) in split.iter().enumerate() {
-        if start == end {
+    if start == end {
+        for (i, part) in split.into_iter().enumerate() {
             // Only odd indexes contain the part to be highlighted.
             // "aa `bb` cc `dd` ee"
             // 0: "aa "
@@ -36,31 +36,49 @@ fn highlight(start: &str, end: &str, s: &str, style_normal: Style, style_hl: Sty
             // 3: "dd"      (highlighted)
             // 4: " ee"
             if i % 2 == 0 {
-                buf += &style_normal.paint(spl).to_string();
+                buf += &style_normal.paint(part).to_string();
             } else {
-                buf += &style_hl.paint(spl).to_string();
+                buf += &style_hl.paint(part).to_string();
             }
-        } else if spl.contains(end) {
+        }
+
+        return buf;
+    }
+
+    for part in split {
+        if part.contains(end) {
             // The first part of the second split contains the part to be highlighted.
-            // "aa bb {{cc}} {{dd}} ee"
-            // 0: "aa bb "   => does not match
-            // 1: "cc}} "    => 0: "cc"  (highlighted)
-            //                  1: " "
-            // 2: "dd}} ee"  => 0: "dd"  (highlighted)
-            //                  1: " ee"
-            let mut spl2 = spl.split(end);
 
-            // "<http" is used to detect documentation URLs and it is removed during split(),
-            // we have to add it back again.
             if end == ">" {
-                buf += &style_hl.paint("http").to_string();
-            }
+                // "More information: <https://example.com>."
+                // 0: "More information: " => does not match
+                // 1: "s://example.com>."  => 0: "s://example.com" (highlighted)
+                //                            1: ">."
+                let part_split = part.split_once('>').unwrap();
 
-            buf += &style_hl.paint(spl2.next().unwrap()).to_string();
-            buf += &style_normal.paint(spl2.next().unwrap()).to_string();
+                // "<http" is used to detect URLs. It must be added back.
+                let hl = format!("http{}", part_split.0);
+                buf += &style_hl.paint(hl).to_string();
+                buf += &style_normal.paint(part_split.1).to_string();
+            } else {
+                // "aa bb {{cc}} {{dd}} ee"
+                // 0: "aa bb "   => does not match
+                // 1: "cc}} "    => 0: "cc"    (highlighted)
+                //                  1: "}}"
+                // 2: "dd}} ee"  => 0: "dd"    (highlighted)
+                //                  1: "}} ee"
+
+                // This is required for special cases with three closing curly braces ("}}}").
+                // The first brace is inside the placeholder, and the last two mark the end of it.
+                let idx = part.rmatch_indices(end).last().unwrap().0;
+                let part_spl = part.split_at(idx);
+
+                buf += &style_hl.paint(part_spl.0).to_string();
+                buf += &style_normal.paint(&part_spl.1[2..]).to_string();
+            }
         } else {
             // Highlight ending not found.
-            buf += &style_normal.paint(spl).to_string();
+            buf += &style_normal.paint(part).to_string();
         }
     }
 
