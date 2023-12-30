@@ -16,75 +16,6 @@ const DESC: &str = "> ";
 const BULLET: &str = "- ";
 const EXAMPLE: char = '`';
 
-/// Highlight a substring between `start` and `end` inside `s` and return a new `String`.
-fn highlight(start: &str, end: &str, s: &str, style_normal: Style, style_hl: Style) -> String {
-    let split: Vec<&str> = s.split(start).collect();
-    // Highlight beginning not found.
-    if split.len() == 1 {
-        return style_normal.paint(s).to_string();
-    }
-
-    let mut buf = String::new();
-
-    if start == end {
-        for (i, part) in split.into_iter().enumerate() {
-            // Only odd indexes contain the part to be highlighted.
-            // "aa `bb` cc `dd` ee"
-            // 0: "aa "
-            // 1: "bb"      (highlighted)
-            // 2: " cc "
-            // 3: "dd"      (highlighted)
-            // 4: " ee"
-            if i % 2 == 0 {
-                buf += &style_normal.paint(part).to_string();
-            } else {
-                buf += &style_hl.paint(part).to_string();
-            }
-        }
-
-        return buf;
-    }
-
-    for part in split {
-        if part.contains(end) {
-            // The first part of the second split contains the part to be highlighted.
-
-            if end == ">" {
-                // "More information: <https://example.com>."
-                // 0: "More information: " => does not match
-                // 1: "s://example.com>."  => 0: "s://example.com" (highlighted)
-                //                            1: ">."
-                let part_split = part.split_once('>').unwrap();
-
-                // "<http" is used to detect URLs. It must be added back.
-                let hl = format!("http{}", part_split.0);
-                buf += &style_hl.paint(hl).to_string();
-                buf += &style_normal.paint(part_split.1).to_string();
-            } else {
-                // "aa bb {{cc}} {{dd}} ee"
-                // 0: "aa bb "   => does not match
-                // 1: "cc}} "    => 0: "cc"    (highlighted)
-                //                  1: "}}"
-                // 2: "dd}} ee"  => 0: "dd"    (highlighted)
-                //                  1: "}} ee"
-
-                // This is required for special cases with three closing curly braces ("}}}").
-                // The first brace is inside the placeholder, and the last two mark the end of it.
-                let idx = part.rmatch_indices(end).last().unwrap().0;
-                let part_spl = part.split_at(idx);
-
-                buf += &style_hl.paint(part_spl.0).to_string();
-                buf += &style_normal.paint(&part_spl.1[2..]).to_string();
-            }
-        } else {
-            // Highlight ending not found.
-            buf += &style_normal.paint(part).to_string();
-        }
-    }
-
-    buf
-}
-
 struct RenderStyles {
     title: Style,
     desc: Style,
@@ -113,6 +44,101 @@ pub struct PageRenderer<'a> {
 }
 
 impl<'a> PageRenderer<'a> {
+    fn hl_code(&self, s: &str, style_normal: Style) -> String {
+        let split: Vec<&str> = s.split('`').collect();
+        // Highlight beginning not found.
+        if split.len() == 1 {
+            return style_normal.paint(s).to_string();
+        }
+
+        let mut buf = String::new();
+
+        for (i, part) in split.into_iter().enumerate() {
+            // Only odd indexes contain the part to be highlighted.
+            // "aa `bb` cc `dd` ee"
+            // 0: "aa "
+            // 1: "bb"      (highlighted)
+            // 2: " cc "
+            // 3: "dd"      (highlighted)
+            // 4: " ee"
+            if i % 2 == 0 {
+                buf += &style_normal.paint(part).to_string();
+            } else {
+                buf += &self.style.inline_code.paint(part).to_string();
+            }
+        }
+
+        buf
+    }
+
+    fn hl_url(&self, s: &str, style_normal: Style) -> String {
+        let split: Vec<&str> = s.split("<http").collect();
+        // Highlight beginning not found.
+        if split.len() == 1 {
+            return style_normal.paint(s).to_string();
+        }
+
+        let mut buf = String::new();
+
+        for part in split {
+            if part.contains('>') {
+                // The first part of the second split contains the part to be highlighted.
+                //
+                // "More information: <https://example.com>."
+                // 0: "More information: " => does not match
+                // 1: "s://example.com>."  => 0: "s://example.com" (highlighted)
+                //                            1: ">."
+                let part_split = part.split_once('>').unwrap();
+
+                // "<http" is used to detect URLs. It must be added back.
+                let hl = format!("http{}", part_split.0);
+                buf += &self.style.url.paint(hl).to_string();
+                buf += &style_normal.paint(part_split.1).to_string();
+            } else {
+                // Highlight ending not found.
+                buf += &style_normal.paint(part).to_string();
+            }
+        }
+
+        buf
+    }
+
+    fn hl_placeholder(&self, s: &str, style_normal: Style) -> String {
+        let split: Vec<&str> = s.split("{{").collect();
+        // Highlight beginning not found.
+        if split.len() == 1 {
+            return style_normal.paint(s).to_string();
+        }
+
+        let mut buf = String::new();
+
+        for part in split {
+            if part.contains("}}") {
+                // The first part of the second split contains the part to be highlighted.
+                //
+                // "aa bb {{cc}} {{dd}} ee"
+                // 0: "aa bb "   => does not match
+                // 1: "cc}} "    => 0: "cc"    (highlighted)
+                //                  1: "}}"
+                // 2: "dd}} ee"  => 0: "dd"    (highlighted)
+                //                  1: "}} ee"
+
+                // This is required for special cases with three closing curly braces ("}}}").
+                // The first brace is inside the placeholder, and the last two mark the end of it.
+                let idx = part.rmatch_indices("}}").last().unwrap().0;
+                let part_split = part.split_at(idx);
+
+                buf += &self.style.placeholder.paint(part_split.0).to_string();
+                buf += &style_normal.paint(&part_split.1[2..]).to_string();
+            } else {
+                // Highlight ending not found.
+                buf += &style_normal.paint(part).to_string();
+            }
+        }
+
+        buf
+    }
+
     /// Print or render the page according to the provided config.
     pub fn print(path: &'a Path, cfg: &'a Config) -> Result<()> {
         let mut page = File::open(path)
@@ -218,18 +244,12 @@ impl<'a> PageRenderer<'a> {
             self.stdout,
             "{}{}",
             " ".repeat(self.cfg.indent.description),
-            highlight(
-                "`",
-                "`",
-                &highlight(
-                    "<http",
-                    ">",
+            self.hl_code(
+                &self.hl_url(
                     self.current_line.strip_prefix(DESC).unwrap(),
                     self.style.desc,
-                    self.style.url,
                 ),
                 self.style.desc,
-                self.style.inline_code,
             )
         )?;
 
@@ -250,13 +270,7 @@ impl<'a> PageRenderer<'a> {
             self.stdout,
             "{}{}",
             " ".repeat(self.cfg.indent.bullet),
-            highlight(
-                "`",
-                "`",
-                &highlight("<http", ">", line, self.style.bullet, self.style.url),
-                self.style.bullet,
-                self.style.inline_code,
-            )
+            self.hl_code(&self.hl_url(line, self.style.bullet), self.style.bullet)
         )?;
 
         Ok(())
@@ -275,9 +289,7 @@ impl<'a> PageRenderer<'a> {
             self.stdout,
             "{}{}",
             " ".repeat(self.cfg.indent.example),
-            highlight(
-                "{{",
-                "}}",
+            self.hl_placeholder(
                 self.current_line
                     .strip_prefix(EXAMPLE)
                     .unwrap()
@@ -288,7 +300,6 @@ impl<'a> PageRenderer<'a> {
                             .describe("\nEvery line with an example must end with a backtick '`'.")
                     })?,
                 self.style.example,
-                self.style.placeholder,
             )
             // Remove the extra spaces and backslashes.
             .replace(" \\{\\{ ", "{{")
