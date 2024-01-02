@@ -173,24 +173,22 @@ impl<'a> PageRenderer<'a> {
 
     /// Print the first page that was found and warnings for every other page.
     pub fn print_cache_result(paths: &'a [PathBuf], cfg: &'a Config) -> Result<()> {
-        if !crate::QUIET.load(Relaxed) {
-            if let Some(others) = paths.get(1..) {
-                if !others.is_empty() {
-                    warnln!("{} page(s) found for other platforms:", others.len());
-                }
+        if !crate::QUIET.load(Relaxed) && paths.len() != 1 {
+            let other_pages = &paths[1..];
+            let mut stderr = io::stderr().lock();
 
-                let mut stderr = io::stderr().lock();
-                for (i, path) in others.iter().enumerate() {
-                    // The path always ends with the page file, and its parent is always the
-                    // platform directory. This is safe to unwrap.
-                    let name = path.page_name().unwrap();
-                    let platform = path.page_platform().unwrap();
-                    writeln!(
-                        stderr,
-                        "{} '{platform}' (tldr --platform {platform} {name})",
-                        Paint::new(format!("{}.", i + 1)).fg(Green).bold()
-                    )?;
-                }
+            warnln!("{} page(s) found for other platforms:", other_pages.len());
+
+            for (i, path) in other_pages.iter().enumerate() {
+                // The path always ends with the page file, and its parent is always the
+                // platform directory. This is safe to unwrap.
+                let name = path.page_name().unwrap();
+                let platform = path.page_platform().unwrap();
+                writeln!(
+                    stderr,
+                    "{} {platform} (tldr --platform {platform} {name})",
+                    Paint::new(format!("{}.", i + 1)).fg(Green).bold()
+                )?;
             }
         }
 
@@ -228,29 +226,25 @@ impl<'a> PageRenderer<'a> {
             Cow::Borrowed(line)
         };
 
-        write!(
-            self.stdout,
-            "{}{}",
-            " ".repeat(self.cfg.indent.title),
-            self.style.title.paint(title)
-        )?;
+        let title = self.style.title.paint(title);
+        write!(self.stdout, "{}{title}", " ".repeat(self.cfg.indent.title))?;
 
         Ok(())
     }
 
     /// Write the current line to the page buffer as a description.
     fn add_desc(&mut self) -> Result<()> {
+        let desc = self.hl_code(
+            &self.hl_url(
+                self.current_line.strip_prefix(DESC).unwrap(),
+                self.style.desc,
+            ),
+            self.style.desc,
+        );
         write!(
             self.stdout,
-            "{}{}",
-            " ".repeat(self.cfg.indent.description),
-            self.hl_code(
-                &self.hl_url(
-                    self.current_line.strip_prefix(DESC).unwrap(),
-                    self.style.desc,
-                ),
-                self.style.desc,
-            )
+            "{}{desc}",
+            " ".repeat(self.cfg.indent.description)
         )?;
 
         Ok(())
@@ -266,11 +260,11 @@ impl<'a> PageRenderer<'a> {
             self.current_line.strip_prefix(BULLET).unwrap()
         };
 
+        let bullet = self.hl_code(&self.hl_url(line, self.style.bullet), self.style.bullet);
         write!(
             self.stdout,
-            "{}{}",
-            " ".repeat(self.cfg.indent.bullet),
-            self.hl_code(&self.hl_url(line, self.style.bullet), self.style.bullet)
+            "{}{bullet}",
+            " ".repeat(self.cfg.indent.bullet)
         )?;
 
         Ok(())
@@ -285,25 +279,27 @@ impl<'a> PageRenderer<'a> {
             .replace("\\{\\{", " \\{\\{ ")
             .replace("\\}\\}", " \\}\\} ");
 
-        writeln!(
-            self.stdout,
-            "{}{}",
-            " ".repeat(self.cfg.indent.example),
-            self.hl_placeholder(
-                self.current_line
-                    .strip_prefix(EXAMPLE)
-                    .unwrap()
-                    .trim_end()
-                    .strip_suffix('`')
-                    .ok_or_else(|| {
-                        Error::parse_page(self.path, self.lnum, &self.current_line)
-                            .describe("\nEvery line with an example must end with a backtick '`'.")
-                    })?,
-                self.style.example,
-            )
+        let line = self
+            .current_line
+            .strip_prefix(EXAMPLE)
+            .unwrap()
+            .trim_end()
+            .strip_suffix('`')
+            .ok_or_else(|| {
+                Error::parse_page(self.path, self.lnum, &self.current_line)
+                    .describe("\nEvery line with an example must end with a backtick '`'.")
+            })?;
+
+        let example = self
+            .hl_placeholder(line, self.style.example)
             // Remove the extra spaces and backslashes.
             .replace(" \\{\\{ ", "{{")
-            .replace(" \\}\\} ", "}}")
+            .replace(" \\}\\} ", "}}");
+
+        writeln!(
+            self.stdout,
+            "{}{example}",
+            " ".repeat(self.cfg.indent.example),
         )?;
 
         Ok(())
