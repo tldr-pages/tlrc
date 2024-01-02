@@ -174,8 +174,12 @@ impl<'a> PageRenderer<'a> {
     /// Print the first page that was found and warnings for every other page.
     pub fn print_cache_result(paths: &'a [PathBuf], cfg: &'a Config) -> Result<()> {
         if !crate::QUIET.load(Relaxed) && paths.len() != 1 {
-            let other_pages = &paths[1..];
             let mut stderr = io::stderr().lock();
+            let other_pages = &paths[1..];
+            let width = other_pages
+                .iter()
+                .map(|x| x.page_platform().unwrap().len())
+                .fold(0, |max, cur| if cur > max { cur } else { max });
 
             warnln!("{} page(s) found for other platforms:", other_pages.len());
 
@@ -184,10 +188,11 @@ impl<'a> PageRenderer<'a> {
                 // platform directory. This is safe to unwrap.
                 let name = path.page_name().unwrap();
                 let platform = path.page_platform().unwrap();
+
                 writeln!(
                     stderr,
-                    "{} {platform} (tldr --platform {platform} {name})",
-                    Paint::new(format!("{}.", i + 1)).fg(Green).bold()
+                    "{} {platform:<width$} (tldr --platform {platform} {name})",
+                    Paint::new(format!("{}.", i + 1)).fg(Green).bold(),
                 )?;
             }
         }
