@@ -18,7 +18,7 @@ path = "src/main.rs"
 clap = { version = "4.4.10", features = ["derive"] }
 dirs = "5.0.1"
 once_cell = "1.19.0"
-ring = "0.17.6"
+ring = "0.17.7"
 serde = { version = "1.0.193", features = ["derive"] }
 toml = "0.8.8"
 ureq = { version = "2.9.1", default-features = false, features = ["tls"] }
