@@ -62,14 +62,11 @@ pub(crate) use {info_end, info_start, infoln, warnln};
 pub fn get_languages_from_env(out_vec: &mut Vec<String>) {
     // https://github.com/tldr-pages/tldr/blob/main/CLIENT-SPECIFICATION.md#language
 
-    let var_lang = env::var("LANG").ok();
-
-    if var_lang.is_none() {
+    let Ok(var_lang) = env::var("LANG") else {
         return;
-    }
+    };
 
-    let var_lang = var_lang.unwrap();
-    let var_language = env::var("LANGUAGE").ok();
+    let var_language = env::var("LANGUAGE");
 
     let languages = var_language
         .as_deref()

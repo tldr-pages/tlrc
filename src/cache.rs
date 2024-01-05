@@ -62,18 +62,16 @@ impl<'a> Cache<'a> {
         let old_sum_map = Self::parse_sumfile(&old_sums).unwrap_or_default();
 
         for lang in languages {
-            let sum = sum_map.get(lang);
-            // Skip nonexistent languages.
-            if sum.is_none() {
+            let Some(sum) = sum_map.get(lang) else {
+                // Skip nonexistent languages.
                 continue;
-            }
+            };
 
             let lang_dir = format!("pages.{lang}");
-            if sum == old_sum_map.get(lang) && self.subdir_exists(&lang_dir) {
+            if Some(sum) == old_sum_map.get(lang) && self.subdir_exists(&lang_dir) {
                 infoln!("'pages.{lang}' is up to date");
                 continue;
             }
-            let sum = sum.unwrap();
 
             infoln!("downloading 'tldr-pages.{lang}.zip'...");
 
