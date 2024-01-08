@@ -15,7 +15,7 @@ use yansi::Paint;
 use crate::args::Cli;
 use crate::cache::Cache;
 use crate::config::Config;
-use crate::error::{Error, ErrorKind, Result};
+use crate::error::{Error, Result};
 use crate::output::PageRenderer;
 use crate::util::{infoln, init_color, warnln};
 
@@ -87,10 +87,7 @@ fn run() -> Result<()> {
             infoln!("cache is stale (last update: {age} ago), updating...");
             cache
                 .update(&mut cfg.cache.languages)
-                .map_err(|e| match e.kind {
-                    ErrorKind::Download => e.describe(Error::DESC_DOWNLOAD_ERR),
-                    _ => e,
-                })?;
+                .map_err(|e| e.describe(Error::DESC_AUTO_UPDATE_ERR))?;
         }
     }
 

@@ -29,7 +29,8 @@ impl Display for Error {
 }
 
 impl Error {
-    pub const DESC_DOWNLOAD_ERR: &'static str = "\n\nA download error occurred. \
+    pub const DESC_AUTO_UPDATE_ERR: &'static str =
+        "\n\nAn error occurred during the automatic update. \
         To skip updating the cache, run tldr with --offline.";
 
     pub const DESC_LANG_NOT_INSTALLED: &'static str =
