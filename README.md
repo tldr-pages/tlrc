@@ -54,6 +54,14 @@ Install [tlrc](https://github.com/microsoft/winget-pkgs/tree/master/manifests/t/
 winget install tldr-pages.tlrc
 ```
 
+### macOS using MacPorts
+
+Install [tlrc](https://ports.macports.org/port/tlrc/details) with MacPorts:
+
+```shell
+port install tlrc
+```
+
 ### NetBSD
 
 Install [tlrc](https://ftp.netbsd.org/pub/NetBSD/NetBSD-current/pkgsrc/net/tlrc/index.html) with `pkgin`:
