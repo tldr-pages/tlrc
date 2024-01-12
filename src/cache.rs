@@ -14,12 +14,8 @@ use crate::config::Config;
 use crate::error::{Error, Result};
 use crate::util::{self, info_end, info_start, infoln, warnln, Dedup};
 
-const BASE_ARCHIVE_URL: &str =
-    "https://raw.githubusercontent.com/tldr-pages/tldr-pages.github.io/main/assets";
-const CHECKSUMS: &str =
-    "https://raw.githubusercontent.com/tldr-pages/tldr-pages.github.io/main/assets/tldr.sha256sums";
-const USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), '/', env!("CARGO_PKG_VERSION"));
 pub const ENGLISH_DIR: &str = "pages.en";
+const USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), '/', env!("CARGO_PKG_VERSION"));
 
 type PagesArchive = ZipArchive<Cursor<Vec<u8>>>;
 
@@ -49,13 +45,20 @@ impl<'a> Cache<'a> {
     }
 
     /// Download tldr pages archives for directories that are out of date and update the checksum file.
-    fn download_and_verify(&self, languages: &[String]) -> Result<BTreeMap<String, PagesArchive>> {
+    fn download_and_verify(
+        &self,
+        mirror: &str,
+        languages: &[String],
+    ) -> Result<BTreeMap<String, PagesArchive>> {
         let agent = ureq::builder().user_agent(USER_AGENT).build();
         let old_sumfile_path = self.dir.join("tldr.sha256sums");
         let mut langdir_archive_map = BTreeMap::new();
 
         infoln!("downloading 'tldr.sha256sums'...");
-        let sums = agent.get(CHECKSUMS).call()?.into_string()?;
+        let sums = agent
+            .get(&format!("{mirror}/tldr.sha256sums"))
+            .call()?
+            .into_string()?;
         let sum_map = Self::parse_sumfile(&sums)?;
 
         let old_sums = fs::read_to_string(&old_sumfile_path).unwrap_or_default();
@@ -77,7 +80,7 @@ impl<'a> Cache<'a> {
 
             let mut archive = vec![];
             agent
-                .get(&format!("{BASE_ARCHIVE_URL}/tldr-pages.{lang}.zip"))
+                .get(&format!("{mirror}/tldr-pages.{lang}.zip"))
                 .call()?
                 .into_reader()
                 .read_to_end(&mut archive)?;
@@ -186,13 +189,13 @@ impl<'a> Cache<'a> {
     }
 
     /// Delete the old cache and replace it with a fresh copy.
-    pub fn update(&self, languages: &mut Vec<String>) -> Result<()> {
+    pub fn update(&self, mirror: &str, languages: &mut Vec<String>) -> Result<()> {
         // Sort to always download archives in alphabetical order.
         languages.sort_unstable();
         // The user can put duplicates in the config file.
         languages.dedup();
 
-        let archives = self.download_and_verify(languages)?;
+        let archives = self.download_and_verify(mirror, languages)?;
 
         if archives.is_empty() {
             infoln!(

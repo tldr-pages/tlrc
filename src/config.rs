@@ -9,7 +9,7 @@ use yansi::{Color, Style};
 
 use crate::cache::Cache;
 use crate::error::{Error, ErrorKind, Result};
-use crate::util::{get_languages_from_env, warnln};
+use crate::util::{self, warnln};
 
 #[derive(Serialize, Deserialize, Default, Clone, Copy)]
 #[serde(rename_all = "lowercase")]
@@ -169,6 +169,8 @@ impl Default for StyleConfig {
 pub struct CacheConfig {
     /// Cache directory.
     pub dir: PathBuf,
+    /// The mirror of tldr-pages to use.
+    pub mirror: Cow<'static, str>,
     /// Automatically update the cache
     /// if it is older than `max_age` hours.
     pub auto_update: bool,
@@ -182,6 +184,9 @@ impl Default for CacheConfig {
     fn default() -> Self {
         Self {
             dir: Cache::locate(),
+            mirror: Cow::Borrowed(
+                "https://raw.githubusercontent.com/tldr-pages/tldr-pages.github.io/main/assets",
+            ),
             auto_update: true,
             // 2 weeks
             max_age: 24 * 7 * 2,
@@ -275,7 +280,7 @@ impl Config {
 
         cfg_res.map(|mut cfg| {
             if cfg.cache.languages.is_empty() {
-                get_languages_from_env(&mut cfg.cache.languages);
+                util::get_languages_from_env(&mut cfg.cache.languages);
             }
             // English pages should always be downloaded and searched.
             cfg.cache.languages.push("en".to_string());

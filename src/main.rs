@@ -66,7 +66,7 @@ fn run() -> Result<()> {
 
     if cli.update {
         // update() should never use languages from --language.
-        return cache.update(&mut cfg.cache.languages);
+        return cache.update(&cfg.cache.mirror, &mut cfg.cache.languages);
     }
 
     if !cache.subdir_exists(cache::ENGLISH_DIR) {
@@ -74,7 +74,7 @@ fn run() -> Result<()> {
             return Err(Error::offline_no_cache());
         }
         infoln!("cache is empty, downloading...");
-        cache.update(&mut cfg.cache.languages)?;
+        cache.update(&cfg.cache.mirror, &mut cfg.cache.languages)?;
     } else if cfg.cache.auto_update && cache.age()? > cfg.cache_max_age() {
         let age = util::duration_fmt(cache.age()?.as_secs());
         let age = Paint::new(age).fg(Green).bold();
@@ -86,7 +86,7 @@ fn run() -> Result<()> {
         } else {
             infoln!("cache is stale (last update: {age} ago), updating...");
             cache
-                .update(&mut cfg.cache.languages)
+                .update(&cfg.cache.mirror, &mut cfg.cache.languages)
                 .map_err(|e| e.describe(Error::DESC_AUTO_UPDATE_ERR))?;
         }
     }
