@@ -65,6 +65,7 @@ impl<'a> Cache<'a> {
         let old_sum_map = Self::parse_sumfile(&old_sums).unwrap_or_default();
 
         for lang in languages {
+            let lang = &**lang;
             let Some(sum) = sum_map.get(lang) else {
                 // Skip nonexistent languages.
                 continue;
@@ -108,7 +109,7 @@ impl<'a> Cache<'a> {
         Ok(langdir_archive_map)
     }
 
-    fn parse_sumfile(s: &str) -> Result<HashMap<String, String>> {
+    fn parse_sumfile(s: &str) -> Result<HashMap<&str, &str>> {
         // Subtract 3, because 3 lines are skipped in the loop.
         let mut map = HashMap::with_capacity(s.lines().count().saturating_sub(3));
 
@@ -134,7 +135,7 @@ impl<'a> Cache<'a> {
             }
 
             let lang = path.split('.').nth(1).ok_or_else(Error::parse_sumfile)?;
-            map.insert(lang.to_string(), sum.to_string());
+            map.insert(lang, sum);
         }
 
         Ok(map)
