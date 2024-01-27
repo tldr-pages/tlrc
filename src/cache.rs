@@ -50,7 +50,10 @@ impl<'a> Cache<'a> {
         mirror: &str,
         languages: &[String],
     ) -> Result<BTreeMap<String, PagesArchive>> {
-        let agent = ureq::builder().user_agent(USER_AGENT).build();
+        let agent = ureq::builder()
+            .user_agent(USER_AGENT)
+            .try_proxy_from_env(true)
+            .build();
         let old_sumfile_path = self.dir.join("tldr.sha256sums");
         let mut langdir_archive_map = BTreeMap::new();
 
