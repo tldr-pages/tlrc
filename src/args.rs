@@ -40,6 +40,7 @@ const AFTER_HELP: &str = if cfg!(target_os = "windows") {
     {usage-heading} {usage}\n\n\
     {all-args}{after-help}"
 )]
+#[allow(clippy::manual_non_exhaustive)]
 pub struct Cli {
     /// The tldr page to show.
     #[arg(group = "operations", required = true)]
