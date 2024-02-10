@@ -82,12 +82,16 @@ impl<'a> Cache<'a> {
 
             infoln!("downloading 'tldr-pages.{lang}.zip'...");
 
-            let mut archive = vec![];
-            agent
+            let resp = agent
                 .get(&format!("{mirror}/tldr-pages.{lang}.zip"))
-                .call()?
-                .into_reader()
-                .read_to_end(&mut archive)?;
+                .call()?;
+            let archive_len = resp
+                .header("Content-Length")
+                .unwrap_or_default()
+                .parse()
+                .unwrap_or_default();
+            let mut archive = Vec::with_capacity(archive_len);
+            resp.into_reader().read_to_end(&mut archive)?;
 
             info_start!("validating sha256sums...");
             let actual_sum = util::sha256_hexdigest(&archive);
