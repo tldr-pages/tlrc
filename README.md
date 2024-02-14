@@ -104,7 +104,7 @@ tldr --config-path
 To generate a default config file, run:
 
 ```shell
-tldr --gen-config > $(tldr --config-path)
+tldr --gen-config > "$(tldr --config-path)"
 ```
 
 or copy the below example.
