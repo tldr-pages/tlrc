@@ -21,7 +21,7 @@ use crate::util::{infoln, init_color, warnln};
 /// If this is set to true, do not print anything except pages and errors.
 static QUIET: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::default();
 
-fn main() -> i32 {
+fn main() {
     if let Err(e) = run() {
       e.exit_code()
     } else {
