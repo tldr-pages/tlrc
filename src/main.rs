@@ -23,7 +23,7 @@ static QUIET: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::def
 
 fn main() -> i32 {
     if let Err(e) = run() {
-       e.exit_code()
+      e.exit_code()
     } else {
         0
     }
