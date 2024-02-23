@@ -21,11 +21,17 @@ _tldr() {
         --color)
             mapfile -t COMPREPLY < <(compgen -W "auto always never" -- "$cur");;
         -p|--platform)
-            mapfile -t COMPREPLY < <(compgen -W "$(tldr --offline --list-platforms 2> /dev/null)" -- "$cur");;
+            local platforms
+            platforms=$(tldr --offline --list-platforms 2> /dev/null)
+            mapfile -t COMPREPLY < <(compgen -W "$platforms" -- "$cur");;
         -L|--language)
-            mapfile -t COMPREPLY < <(compgen -W "$(tldr --offline --list-languages 2> /dev/null)" -- "$cur");;
+            local languages
+            languages=$(tldr --offline --list-languages 2> /dev/null)
+            mapfile -t COMPREPLY < <(compgen -W "$languages" -- "$cur");;
         *)
-            mapfile -t COMPREPLY < <(compgen -W "$(tldr --offline --list-all 2> /dev/null)" -- "$cur");;
+            local all
+            all=$(tldr --offline --list-all 2> /dev/null)
+            mapfile -t COMPREPLY < <(compgen -W "$all" -- "$cur");;
     esac
 }
 
