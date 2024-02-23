@@ -9,8 +9,7 @@ use std::process::ExitCode;
 use std::sync::atomic::{AtomicBool, Ordering::Relaxed};
 
 use clap::Parser;
-use yansi::Color::Green;
-use yansi::Paint;
+use yansi::{Color::Green, Paint};
 
 use crate::args::Cli;
 use crate::cache::Cache;
@@ -20,12 +19,13 @@ use crate::output::PageRenderer;
 use crate::util::{infoln, init_color, warnln};
 
 /// If this is set to true, do not print anything except pages and errors.
-static QUIET: AtomicBool = AtomicBool::new(false);
+static QUIET: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::default();
 
-fn main() -> ExitCode {
-    match run() {
-        Ok(()) => ExitCode::SUCCESS,
-        Err(e) => e.exit_code(),
+fn main() -> i32 {
+    if let Err(e) = run() {
+       e.exit_code()
+    } else {
+        0
     }
 }
 
@@ -41,7 +41,7 @@ fn run() -> Result<()> {
     }
 
     if cli.quiet {
-        QUIET.store(true, Relaxed);
+        QUIET.store(true, std::sync::atomic::Ordering::Relaxed);
     }
 
     init_color(cli.color);
@@ -116,25 +116,25 @@ fn run() -> Result<()> {
         return cache.list_languages();
     }
 
-    let page_name = cli.page.join("-").to_lowercase();
+    let page_name = cli.page.join("-").to_ascii_lowercase();
     let page_paths = cache.find(&page_name, &languages, platform)?;
 
     if page_paths.is_empty() {
         let mut e = Error::new("page not found.");
-        return if languages_are_from_cli {
+        if languages_are_from_cli {
             e = e.describe("Try running tldr without --language.");
 
             if !languages
                 .iter()
-                .all(|x| cache.subdir_exists(&format!("pages.{x}")))
+                .all(|x| cache.subdir_exists(&format!("pages.{}", x)))
             {
                 e = e.describe(Error::DESC_LANG_NOT_INSTALLED);
             }
 
-            Err(e)
+            return Err(e);
         } else {
-            Err(e.describe(Error::desc_page_does_not_exist()))
-        };
+            return Err(e.describe(Error::desc_page_does_not_exist()));
+        }
     }
 
     PageRenderer::print_cache_result(&page_paths, &cfg)
