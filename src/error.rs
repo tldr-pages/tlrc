@@ -4,8 +4,7 @@ use std::path::Path;
 use std::process::ExitCode;
 use std::result::Result as StdResult;
 
-use yansi::Color::Red;
-use yansi::Paint;
+use yansi::{Color, Paint};
 
 pub enum ErrorKind {
     ParseToml,
@@ -98,7 +97,7 @@ impl Error {
         let _ = writeln!(
             io::stderr(),
             "{} {self}",
-            Paint::new("error:").fg(Red).bold()
+            Paint::new("error:").fg(Color::Red).bold()
         );
 
         match self.kind {
