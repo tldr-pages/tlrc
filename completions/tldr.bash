@@ -21,6 +21,8 @@ _tldr() {
         --color)
             mapfile -t COMPREPLY < <(compgen -W "auto always never" -- "$cur");;
         -p|--platform)
+        # I would add the missing import statement for the tldr command and 
+        # update the mapfile command to handle the case where the tldr command is not found
             local platforms
             platforms=$(tldr --offline --list-platforms 2> /dev/null)
             mapfile -t COMPREPLY < <(compgen -W "$platforms" -- "$cur");;
