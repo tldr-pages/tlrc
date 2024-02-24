@@ -21,11 +21,10 @@ use crate::util::{infoln, init_color, warnln};
 /// If this is set to true, do not print anything except pages and errors.
 static QUIET: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::default();
 
-fn main() {
-    if let Err(e) = run() {
-      e.exit_code()
-    } else {
-        0
+fn main() -> ExitCode {
+    match run() {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(e) => e.exit_code(),
     }
 }
 
