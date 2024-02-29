@@ -44,6 +44,30 @@ impl<'a> Cache<'a> {
         self.dir.join(sd).is_dir()
     }
 
+    /// Send a GET request with the provided agent and return the response body.
+    fn get_asset(agent: &ureq::Agent, url: &str) -> Result<Vec<u8>> {
+        info_start!("downloading '{}'... ", url.split('/').last().unwrap());
+        let resp = agent.get(url).call()?;
+
+        let content_length = resp
+            .header("Content-Length")
+            .unwrap_or_default()
+            .parse()
+            .unwrap_or_default();
+        let mut buf = Vec::with_capacity(content_length);
+        resp.into_reader().read_to_end(&mut buf)?;
+
+        #[allow(clippy::cast_precision_loss)]
+        let dl_kib = buf.len() as f64 / 1024.0;
+        if dl_kib < 1024.0 {
+            info_end!("{:.02} KiB", Paint::new(dl_kib).fg(Green).bold());
+        } else {
+            info_end!("{:.02} MiB", Paint::new(dl_kib / 1024.0).fg(Green).bold());
+        }
+
+        Ok(buf)
+    }
+
     /// Download tldr pages archives for directories that are out of date and update the checksum file.
     fn download_and_verify(
         &self,
@@ -54,18 +78,16 @@ impl<'a> Cache<'a> {
             .user_agent(USER_AGENT)
             .try_proxy_from_env(true)
             .build();
+
+        let sums = Self::get_asset(&agent, &format!("{mirror}/tldr.sha256sums"))?;
+        let sums_str = String::from_utf8_lossy(&sums);
+        let sum_map = Self::parse_sumfile(&sums_str)?;
+
         let old_sumfile_path = self.dir.join("tldr.sha256sums");
-        let mut langdir_archive_map = BTreeMap::new();
-
-        infoln!("downloading 'tldr.sha256sums'...");
-        let sums = agent
-            .get(&format!("{mirror}/tldr.sha256sums"))
-            .call()?
-            .into_string()?;
-        let sum_map = Self::parse_sumfile(&sums)?;
-
         let old_sums = fs::read_to_string(&old_sumfile_path).unwrap_or_default();
         let old_sum_map = Self::parse_sumfile(&old_sums).unwrap_or_default();
+
+        let mut langdir_archive_map = BTreeMap::new();
 
         for lang in languages {
             let lang = &**lang;
@@ -80,19 +102,7 @@ impl<'a> Cache<'a> {
                 continue;
             }
 
-            infoln!("downloading 'tldr-pages.{lang}.zip'...");
-
-            let resp = agent
-                .get(&format!("{mirror}/tldr-pages.{lang}.zip"))
-                .call()?;
-            let archive_len = resp
-                .header("Content-Length")
-                .unwrap_or_default()
-                .parse()
-                .unwrap_or_default();
-            let mut archive = Vec::with_capacity(archive_len);
-            resp.into_reader().read_to_end(&mut archive)?;
-
+            let archive = Self::get_asset(&agent, &format!("{mirror}/tldr-pages.{lang}.zip"))?;
             info_start!("validating sha256sums...");
             let actual_sum = util::sha256_hexdigest(&archive);
 
@@ -111,7 +121,7 @@ impl<'a> Cache<'a> {
         }
 
         fs::create_dir_all(self.dir)?;
-        File::create(&old_sumfile_path)?.write_all(sums.as_bytes())?;
+        File::create(&old_sumfile_path)?.write_all(&sums)?;
 
         Ok(langdir_archive_map)
     }
