@@ -20,7 +20,7 @@ dirs = "5.0.1"
 once_cell = "1.19.0"
 ring = "0.17.8"
 serde = { version = "1.0.197", features = ["derive"] }
-toml = "0.8.9"
+toml = "0.8.10"
 ureq = { version = "2.9.1", default-features = false, features = ["tls"] }
 yansi = "0.5.1"
 zip = { version = "0.6.6", default-features = false, features = ["deflate"] }
