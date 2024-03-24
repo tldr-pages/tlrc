@@ -12,11 +12,13 @@ defaults:
   run:
     shell: bash
 
+permissions:
+  contents: write
+
 jobs:
   release:
     name: Create the release
     runs-on: ubuntu-latest
-    permissions: write-all
 
     steps:
       - name: Checkout the repository
@@ -25,12 +27,11 @@ jobs:
       - name: Create the release
         env:
             GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release create --title "$GITHUB_REF_NAME" --generate-notes "$GITHUB_REF_NAME"
+        run: gh release create --title "$GITHUB_REF_NAME" "$GITHUB_REF_NAME"
 
   build:
     name: Build ${{ matrix.target }}
     runs-on: ${{ matrix.os }}
-    permissions: write-all
     needs: release
 
     strategy:

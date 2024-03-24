@@ -3,7 +3,7 @@ use std::env;
 use std::process;
 
 /// The version of the tldr client specification being implemented.
-const CLIENT_SPEC: &str = "2.1";
+const CLIENT_SPEC: &str = "2.2";
 
 fn is_debug_build() -> bool {
     env::var("PROFILE").unwrap() == "debug"

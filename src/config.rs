@@ -184,9 +184,7 @@ impl Default for CacheConfig {
     fn default() -> Self {
         Self {
             dir: Cache::locate(),
-            mirror: Cow::Borrowed(
-                "https://raw.githubusercontent.com/tldr-pages/tldr-pages.github.io/main/assets",
-            ),
+            mirror: Cow::Borrowed("https://github.com/tldr-pages/tldr/releases/latest/download"),
             auto_update: true,
             // 2 weeks
             max_age: 24 * 7 * 2,

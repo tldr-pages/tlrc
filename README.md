@@ -12,7 +12,7 @@ A [tldr](https://github.com/tldr-pages/tldr) client written in Rust.
 [![github downloads](https://img.shields.io/github/downloads/tldr-pages/tlrc/total?logo=github&color=94e2d5&logoColor=d9e0ee&labelColor=363a4f)][latest-release]
 [![matrix](https://img.shields.io/matrix/tldr-pages%3Amatrix.org?logo=matrix&color=94e2d5&logoColor=d9e0ee&labelColor=363a4f&label=tldr-pages%20matrix)](https://matrix.to/#/#tldr-pages:matrix.org)
 
-![screenshot](https://user-images.githubusercontent.com/126529524/234939306-d3da4f33-a2b4-472f-abb7-aab7e4ee84be.png)
+![screenshot](https://github.com/tldr-pages/tlrc/assets/126529524/daa76702-f437-4a99-adfb-7830a6f33eb9)
 
 </div>
 
@@ -115,10 +115,15 @@ or copy the below example.
 [cache]
 # Override the cache directory.
 dir = "/path/to/cache"
-# Automatically update the cache when it is if it is older than max_age hours.
+# Override the base URL used for downloading tldr pages.
+# The mirror must provide files with the same names as the official tldr pages repository:
+# mirror/tldr.sha256sums            must point to the SHA256 checksums of all assets
+# mirror/tldr-pages.LANGUAGE.zip    must point to a zip archive that contains platform directories with pages in LANGUAGE
+mirror = "https://github.com/tldr-pages/tldr/releases/latest/download"
+# Automatically update the cache if it's older than max_age hours.
 auto_update = true
-max_age = 336
-# Specify a list of desired page languages. If it is empty, languages specified in
+max_age = 336 # 336 hours = 2 weeks
+# Specify a list of desired page languages. If it's empty, languages specified in
 # the LANG and LANGUAGE environment variables are downloaded.
 # English is implied and will always be downloaded.
 # You can see a list of language codes here: https://github.com/tldr-pages/tldr

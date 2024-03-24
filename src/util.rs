@@ -70,7 +70,7 @@ pub fn get_languages_from_env(out_vec: &mut Vec<String>) {
 
     let languages = var_language
         .as_deref()
-        .unwrap_or("")
+        .unwrap_or_default()
         .split(':')
         .chain(iter::once(&*var_lang));
 

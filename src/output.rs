@@ -179,7 +179,8 @@ impl<'a> PageRenderer<'a> {
             let width = other_pages
                 .iter()
                 .map(|x| x.page_platform().unwrap().len())
-                .fold(0, |max, cur| if cur > max { cur } else { max });
+                .max()
+                .unwrap();
 
             warnln!("{} page(s) found for other platforms:", other_pages.len());
 
@@ -216,9 +217,7 @@ impl<'a> PageRenderer<'a> {
         if !self.cfg.output.show_title {
             return Ok(());
         }
-        if !self.cfg.output.compact {
-            writeln!(self.stdout)?;
-        }
+        self.add_newline()?;
 
         let line = self.current_line.strip_prefix(TITLE).unwrap();
         let title = if self.cfg.output.platform_title {
@@ -232,7 +231,8 @@ impl<'a> PageRenderer<'a> {
         };
 
         let title = self.style.title.paint(title);
-        write!(self.stdout, "{}{title}", " ".repeat(self.cfg.indent.title))?;
+        let indent = " ".repeat(self.cfg.indent.title);
+        write!(self.stdout, "{indent}{title}")?;
 
         Ok(())
     }
@@ -246,11 +246,8 @@ impl<'a> PageRenderer<'a> {
             ),
             self.style.desc,
         );
-        write!(
-            self.stdout,
-            "{}{desc}",
-            " ".repeat(self.cfg.indent.description)
-        )?;
+        let indent = " ".repeat(self.cfg.indent.description);
+        write!(self.stdout, "{indent}{desc}")?;
 
         Ok(())
     }
@@ -266,11 +263,8 @@ impl<'a> PageRenderer<'a> {
         };
 
         let bullet = self.hl_code(&self.hl_url(line, self.style.bullet), self.style.bullet);
-        write!(
-            self.stdout,
-            "{}{bullet}",
-            " ".repeat(self.cfg.indent.bullet)
-        )?;
+        let indent = " ".repeat(self.cfg.indent.bullet);
+        write!(self.stdout, "{indent}{bullet}")?;
 
         Ok(())
     }
@@ -301,11 +295,8 @@ impl<'a> PageRenderer<'a> {
             .replace(" \\{\\{ ", "{{")
             .replace(" \\}\\} ", "}}");
 
-        writeln!(
-            self.stdout,
-            "{}{example}",
-            " ".repeat(self.cfg.indent.example),
-        )?;
+        let indent = " ".repeat(self.cfg.indent.example);
+        writeln!(self.stdout, "{indent}{example}")?;
 
         Ok(())
     }
