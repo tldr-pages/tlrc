@@ -262,18 +262,18 @@ impl Config {
     pub fn new(cli_config_path: Option<PathBuf>) -> Result<Self> {
         let cfg_res = if let Some(path) = cli_config_path {
             if path.is_file() {
-                return Self::parse(&path);
+                Self::parse(&path)
+            } else {
+                warnln!("'{}': not a file, ignoring --config", path.display());
+                Ok(Self::default())
             }
-
-            warnln!("'{}': not a file, ignoring --config", path.display());
-            Ok(Self::default())
         } else {
             let path = Self::locate();
             if path.is_file() {
-                return Self::parse(&path);
+                Self::parse(&path)
+            } else {
+                Ok(Self::default())
             }
-
-            Ok(Self::default())
         };
 
         cfg_res.map(|mut cfg| {
