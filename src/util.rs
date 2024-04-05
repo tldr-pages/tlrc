@@ -8,15 +8,15 @@ use std::path::Path;
 
 use clap::ColorChoice;
 use ring::digest::{digest, SHA256};
-use yansi::Paint;
 
 /// Prints a warning.
 macro_rules! warnln {
     ( $( $arg:tt )* ) => {
         if !$crate::QUIET.load(std::sync::atomic::Ordering::Relaxed) {
             use std::io::Write;
+            use yansi::Paint;
             let mut stderr = std::io::stderr().lock();
-            write!(stderr, "{} ", yansi::Paint::new("warning:").fg(yansi::Color::Yellow).bold())?;
+            write!(stderr, "{} ", "warning:".yellow().bold())?;
             writeln!(stderr, $($arg)*)?;
         }
     };
@@ -27,8 +27,9 @@ macro_rules! infoln {
     ( $( $arg:tt )* ) => {
         if !$crate::QUIET.load(std::sync::atomic::Ordering::Relaxed) {
             use std::io::Write;
+            use yansi::Paint;
             let mut stderr = std::io::stderr().lock();
-            write!(stderr, "{} ", yansi::Paint::new("info:").fg(yansi::Color::Cyan).bold())?;
+            write!(stderr, "{} ", "info:".cyan().bold())?;
             writeln!(stderr, $($arg)*)?;
         }
     };
@@ -39,8 +40,9 @@ macro_rules! info_start {
     ( $( $arg:tt )* ) => {
         if !$crate::QUIET.load(std::sync::atomic::Ordering::Relaxed) {
             use std::io::Write;
+            use yansi::Paint;
             let mut stderr = std::io::stderr().lock();
-            write!(stderr, "{} ", yansi::Paint::new("info:").fg(yansi::Color::Cyan).bold())?;
+            write!(stderr, "{} ", "info:".cyan().bold())?;
             write!(stderr, $($arg)*)?;
         }
     };
@@ -93,14 +95,14 @@ pub fn init_color(color_mode: ColorChoice) {
 
     match color_mode {
         ColorChoice::Always => {}
-        ColorChoice::Never => Paint::disable(),
+        ColorChoice::Never => yansi::disable(),
         ColorChoice::Auto => {
             #[cfg(not(target_os = "windows"))]
             let color_support = true;
             let no_color = env::var_os("NO_COLOR").is_some_and(|x| !x.is_empty());
 
             if !color_support || no_color || !io::stdout().is_terminal() {
-                Paint::disable();
+                yansi::disable();
             }
         }
     }

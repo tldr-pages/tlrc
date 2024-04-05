@@ -6,7 +6,6 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use once_cell::unsync::OnceCell;
-use yansi::Color::{Green, Red};
 use yansi::Paint;
 use zip::ZipArchive;
 
@@ -60,9 +59,9 @@ impl<'a> Cache<'a> {
         #[allow(clippy::cast_precision_loss)]
         let dl_kib = buf.len() as f64 / 1024.0;
         if dl_kib < 1024.0 {
-            info_end!("{:.02} KiB", Paint::new(dl_kib).fg(Green).bold());
+            info_end!("{:.02} KiB", dl_kib.green().bold());
         } else {
-            info_end!("{:.02} MiB", Paint::new(dl_kib / 1024.0).fg(Green).bold());
+            info_end!("{:.02} MiB", (dl_kib / 1024.0).green().bold());
         }
 
         Ok(buf)
@@ -107,7 +106,7 @@ impl<'a> Cache<'a> {
             let actual_sum = util::sha256_hexdigest(&archive);
 
             if sum != &actual_sum {
-                info_end!(" {}", Paint::new("FAILED").fg(Red).bold());
+                info_end!(" {}", "FAILED".red().bold());
                 return Err(Error::new(format!(
                     "SHA256 sum mismatch!\n\
                     expected : {sum}\n\
@@ -115,7 +114,7 @@ impl<'a> Cache<'a> {
                 )));
             }
 
-            info_end!(" {}", Paint::new("OK").fg(Green).bold());
+            info_end!(" {}", "OK".green().bold());
 
             langdir_archive_map.insert(lang_dir, ZipArchive::new(Cursor::new(archive))?);
         }
@@ -199,8 +198,8 @@ impl<'a> Cache<'a> {
 
         info_end!(
             " {} pages, {} new",
-            Paint::new(n_downloaded).fg(Green).bold(),
-            Paint::new(n_new).fg(Green).bold()
+            n_downloaded.green().bold(),
+            n_new.green().bold()
         );
 
         Ok(())
@@ -246,8 +245,8 @@ impl<'a> Cache<'a> {
 
         infoln!(
             "cache update successful (total: {} pages, {} new).",
-            Paint::new(all_downloaded).fg(Green).bold(),
-            Paint::new(all_new).fg(Green).bold(),
+            all_downloaded.green().bold(),
+            all_new.green().bold(),
         );
 
         Ok(())
@@ -303,7 +302,7 @@ impl<'a> Cache<'a> {
         if platforms.iter().all(|x| x != platform) {
             Err(Error::new(format!(
                 "platform '{platform}' does not exist.\n{} {}.",
-                Paint::new("Possible values:").bold(),
+                "Possible values:".bold(),
                 platforms.join(", ".as_ref()).to_string_lossy()
             )))
         } else {
@@ -506,8 +505,8 @@ impl<'a> Cache<'a> {
         writeln!(
             stdout,
             "Cache: {} (last update: {} ago)",
-            Paint::new(self.dir.display()).fg(Red),
-            Paint::new(util::duration_fmt(age)).fg(Green).bold()
+            self.dir.display().red(),
+            util::duration_fmt(age).green().bold()
         )?;
 
         if cfg.cache.auto_update {
@@ -516,7 +515,7 @@ impl<'a> Cache<'a> {
             writeln!(
                 stdout,
                 "Automatic update in {}",
-                Paint::new(util::duration_fmt(age_diff)).fg(Green).bold()
+                util::duration_fmt(age_diff).green().bold()
             )?;
         } else {
             writeln!(stdout, "Automatic updates are disabled")?;
@@ -529,15 +528,11 @@ impl<'a> Cache<'a> {
                 stdout,
                 // Language codes are at most 5 characters (ll_CC).
                 "{lang:5} : {}",
-                Paint::new(n).fg(Green).bold(),
+                n.green().bold(),
             )?;
         }
 
-        writeln!(
-            stdout,
-            "total : {} pages",
-            Paint::new(n_total).fg(Green).bold(),
-        )?;
+        writeln!(stdout, "total : {} pages", n_total.green().bold())?;
 
         Ok(())
     }

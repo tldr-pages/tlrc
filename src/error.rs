@@ -4,7 +4,6 @@ use std::path::Path;
 use std::process::ExitCode;
 use std::result::Result as StdResult;
 
-use yansi::Color::Red;
 use yansi::Paint;
 
 pub enum ErrorKind {
@@ -67,7 +66,7 @@ impl Error {
             "'{}' is not a valid tldr page. (line {}):\n\n    {}",
             page_path.display(),
             i,
-            Paint::new(line).bold(),
+            line.bold(),
         ))
         .kind(ErrorKind::ParsePage)
     }
@@ -83,8 +82,8 @@ impl Error {
             {}\n\
             or document it yourself and create a pull request here:\n\
             {}",
-            Paint::new("https://github.com/tldr-pages/tldr/issues").bold(),
-            Paint::new("https://github.com/tldr-pages/tldr/pulls").bold()
+            "https://github.com/tldr-pages/tldr/issues".bold(),
+            "https://github.com/tldr-pages/tldr/pulls".bold()
         )
     }
 
@@ -95,11 +94,7 @@ impl Error {
 
     /// Print the error message to stderr and return an appropriate `ExitCode`.
     pub fn exit_code(self) -> ExitCode {
-        let _ = writeln!(
-            io::stderr(),
-            "{} {self}",
-            Paint::new("error:").fg(Red).bold()
-        );
+        let _ = writeln!(io::stderr(), "{} {self}", "error:".red().bold());
 
         match self.kind {
             ErrorKind::Other | ErrorKind::Io => 1,

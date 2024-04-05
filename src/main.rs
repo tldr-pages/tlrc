@@ -9,7 +9,6 @@ use std::process::ExitCode;
 use std::sync::atomic::{AtomicBool, Ordering::Relaxed};
 
 use clap::Parser;
-use yansi::Color::Green;
 use yansi::Paint;
 
 use crate::args::Cli;
@@ -77,7 +76,7 @@ fn run() -> Result<()> {
         cache.update(&cfg.cache.mirror, &mut cfg.cache.languages)?;
     } else if cfg.cache.auto_update && cache.age()? > cfg.cache_max_age() {
         let age = util::duration_fmt(cache.age()?.as_secs());
-        let age = Paint::new(age).fg(Green).bold();
+        let age = age.green().bold();
 
         if cli.offline {
             warnln!(

@@ -39,9 +39,9 @@ impl From<OutputColor> for yansi::Color {
             OutputColor::Magenta => Color::Magenta,
             OutputColor::Cyan => Color::Cyan,
             OutputColor::White => Color::White,
-            OutputColor::Default => Color::Default,
+            OutputColor::Default => Color::Primary,
             OutputColor::Color256(c) => Color::Fixed(c),
-            OutputColor::Rgb(rgb) => Color::RGB(rgb[0], rgb[1], rgb[2]),
+            OutputColor::Rgb(rgb) => Color::Rgb(rgb[0], rgb[1], rgb[2]),
         }
     }
 }
@@ -60,7 +60,7 @@ pub struct OutputStyle {
 
 impl From<OutputStyle> for yansi::Style {
     fn from(s: OutputStyle) -> Self {
-        let mut style = Style::new(s.color.into()).bg(s.background.into());
+        let mut style = Style::new().fg(s.color.into()).bg(s.background.into());
 
         if s.bold {
             style = style.bold();
@@ -72,10 +72,10 @@ impl From<OutputStyle> for yansi::Style {
             style = style.underline();
         }
         if s.dim {
-            style = style.dimmed();
+            style = style.dim();
         }
         if s.strikethrough {
-            style = style.strikethrough();
+            style = style.strike();
         }
 
         style

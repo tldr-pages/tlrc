@@ -4,7 +4,6 @@ use std::io::{self, BufRead, BufReader, BufWriter, Write};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::Ordering::Relaxed;
 
-use yansi::Color::Green;
 use yansi::{Paint, Style};
 
 use crate::config::Config;
@@ -48,7 +47,7 @@ impl<'a> PageRenderer<'a> {
         let split: Vec<&str> = s.split('`').collect();
         // Highlight beginning not found.
         if split.len() == 1 {
-            return style_normal.paint(s).to_string();
+            return s.paint(style_normal).to_string();
         }
 
         let mut buf = String::new();
@@ -62,9 +61,9 @@ impl<'a> PageRenderer<'a> {
             // 3: "dd"      (highlighted)
             // 4: " ee"
             if i % 2 == 0 {
-                buf += &style_normal.paint(part).to_string();
+                buf += &part.paint(style_normal).to_string();
             } else {
-                buf += &self.style.inline_code.paint(part).to_string();
+                buf += &part.paint(self.style.inline_code).to_string();
             }
         }
 
@@ -75,7 +74,7 @@ impl<'a> PageRenderer<'a> {
         let split: Vec<&str> = s.split("<http").collect();
         // Highlight beginning not found.
         if split.len() == 1 {
-            return style_normal.paint(s).to_string();
+            return s.paint(style_normal).to_string();
         }
 
         let mut buf = String::new();
@@ -92,11 +91,11 @@ impl<'a> PageRenderer<'a> {
 
                 // "<http" is used to detect URLs. It must be added back.
                 let hl = format!("http{}", part_split.0);
-                buf += &self.style.url.paint(hl).to_string();
-                buf += &style_normal.paint(part_split.1).to_string();
+                buf += &hl.paint(self.style.url).to_string();
+                buf += &part_split.1.paint(style_normal).to_string();
             } else {
                 // Highlight ending not found.
-                buf += &style_normal.paint(part).to_string();
+                buf += &part.paint(style_normal).to_string();
             }
         }
 
@@ -107,7 +106,7 @@ impl<'a> PageRenderer<'a> {
         let split: Vec<&str> = s.split("{{").collect();
         // Highlight beginning not found.
         if split.len() == 1 {
-            return style_normal.paint(s).to_string();
+            return s.paint(style_normal).to_string();
         }
 
         let mut buf = String::new();
@@ -128,11 +127,11 @@ impl<'a> PageRenderer<'a> {
                 let idx = part.rmatch_indices("}}").last().unwrap().0;
                 let part_split = part.split_at(idx);
 
-                buf += &self.style.placeholder.paint(part_split.0).to_string();
-                buf += &style_normal.paint(&part_split.1[2..]).to_string();
+                buf += &part_split.0.paint(self.style.placeholder).to_string();
+                buf += &part_split.1[2..].paint(style_normal).to_string();
             } else {
                 // Highlight ending not found.
-                buf += &style_normal.paint(part).to_string();
+                buf += &part.paint(style_normal).to_string();
             }
         }
 
@@ -193,7 +192,7 @@ impl<'a> PageRenderer<'a> {
                 writeln!(
                     stderr,
                     "{} {platform:<width$} (tldr --platform {platform} {name})",
-                    Paint::new(format!("{}.", i + 1)).fg(Green).bold(),
+                    format!("{}.", i + 1).green().bold(),
                 )?;
             }
         }
@@ -205,7 +204,10 @@ impl<'a> PageRenderer<'a> {
 
     /// Load the next line into the line buffer.
     fn next_line(&mut self) -> Result<usize> {
-        self.current_line.clear();
+        // The `Paint` trait from yansi also has a method named `clear`.
+        // This will be resolved in a future release: https://github.com/SergioBenitez/yansi/issues/42
+        //self.current_line.clear();
+        String::clear(&mut self.current_line);
         self.lnum += 1;
         let n = self
             .reader
@@ -234,7 +236,7 @@ impl<'a> PageRenderer<'a> {
             Cow::Borrowed(line)
         };
 
-        let title = self.style.title.paint(title);
+        let title = title.paint(self.style.title);
         let indent = " ".repeat(self.cfg.indent.title);
         writeln!(self.stdout, "{indent}{title}")?;
 
