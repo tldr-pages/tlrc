@@ -207,9 +207,13 @@ impl<'a> PageRenderer<'a> {
     fn next_line(&mut self) -> Result<usize> {
         self.current_line.clear();
         self.lnum += 1;
-        self.reader
+        let n = self
+            .reader
             .read_line(&mut self.current_line)
-            .map_err(|e| Error::new(format!("'{}': {e}", self.path.display())))
+            .map_err(|e| Error::new(format!("'{}': {e}", self.path.display())))?;
+        self.current_line
+            .truncate(self.current_line.trim_end().len());
+        Ok(n)
     }
 
     /// Write the current line to the page buffer as a title.
@@ -232,7 +236,7 @@ impl<'a> PageRenderer<'a> {
 
         let title = self.style.title.paint(title);
         let indent = " ".repeat(self.cfg.indent.title);
-        write!(self.stdout, "{indent}{title}")?;
+        writeln!(self.stdout, "{indent}{title}")?;
 
         Ok(())
     }
@@ -247,7 +251,7 @@ impl<'a> PageRenderer<'a> {
             self.style.desc,
         );
         let indent = " ".repeat(self.cfg.indent.description);
-        write!(self.stdout, "{indent}{desc}")?;
+        writeln!(self.stdout, "{indent}{desc}")?;
 
         Ok(())
     }
@@ -264,7 +268,7 @@ impl<'a> PageRenderer<'a> {
 
         let bullet = self.hl_code(&self.hl_url(line, self.style.bullet), self.style.bullet);
         let indent = " ".repeat(self.cfg.indent.bullet);
-        write!(self.stdout, "{indent}{bullet}")?;
+        writeln!(self.stdout, "{indent}{bullet}")?;
 
         Ok(())
     }
@@ -282,7 +286,6 @@ impl<'a> PageRenderer<'a> {
             .current_line
             .strip_prefix(EXAMPLE)
             .unwrap()
-            .trim_end()
             .strip_suffix('`')
             .ok_or_else(|| {
                 Error::parse_page(self.path, self.lnum, &self.current_line)
