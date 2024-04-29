@@ -46,7 +46,14 @@ impl<'a> Cache<'a> {
     /// Send a GET request with the provided agent and return the response body.
     fn get_asset(agent: &ureq::Agent, url: &str) -> Result<Vec<u8>> {
         info_start!("downloading '{}'... ", url.split('/').last().unwrap());
-        let resp = agent.get(url).call()?;
+
+        let resp = match agent.get(url).call() {
+            Ok(r) => r,
+            Err(e) => {
+                info_end!("{}", "FAILED".red().bold());
+                return Err(e.into());
+            }
+        };
 
         let content_length = resp
             .header("Content-Length")
@@ -54,7 +61,10 @@ impl<'a> Cache<'a> {
             .parse()
             .unwrap_or_default();
         let mut buf = Vec::with_capacity(content_length);
-        resp.into_reader().read_to_end(&mut buf)?;
+        if let Err(e) = resp.into_reader().read_to_end(&mut buf) {
+            info_end!("{}", "FAILED".red().bold());
+            return Err(e.into());
+        }
 
         #[allow(clippy::cast_precision_loss)]
         let dl_kib = buf.len() as f64 / 1024.0;
@@ -102,11 +112,11 @@ impl<'a> Cache<'a> {
             }
 
             let archive = Self::get_asset(&agent, &format!("{mirror}/tldr-pages.{lang}.zip"))?;
-            info_start!("validating sha256sums...");
+            info_start!("validating sha256sums... ");
             let actual_sum = util::sha256_hexdigest(&archive);
 
             if sum != &actual_sum {
-                info_end!(" {}", "FAILED".red().bold());
+                info_end!("{}", "FAILED".red().bold());
                 return Err(Error::new(format!(
                     "SHA256 sum mismatch!\n\
                     expected : {sum}\n\
@@ -166,7 +176,7 @@ impl<'a> Cache<'a> {
         all_downloaded: &mut i32,
         all_new: &mut i32,
     ) -> Result<()> {
-        info_start!("extracting '{lang_dir}'...");
+        info_start!("extracting '{lang_dir}'... ");
 
         let mut n_downloaded = 0;
 
@@ -197,7 +207,7 @@ impl<'a> Cache<'a> {
         *all_new += n_new;
 
         info_end!(
-            " {} pages, {} new",
+            "{} pages, {} new",
             n_downloaded.green().bold(),
             n_new.green().bold()
         );
@@ -234,13 +244,16 @@ impl<'a> Cache<'a> {
                 fs::remove_dir_all(&lang_dir_full)?;
             }
 
-            self.extract_lang_archive(
+            if let Err(e) = self.extract_lang_archive(
                 &lang_dir,
                 &mut archive,
                 n_existing,
                 &mut all_downloaded,
                 &mut all_new,
-            )?;
+            ) {
+                info_end!("{}", "FAILED".red().bold());
+                return Err(e);
+            }
         }
 
         infoln!(
