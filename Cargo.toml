@@ -1,6 +1,6 @@
 [package]
 name = "tlrc"
-version = "1.9.1"
+version = "1.9.2"
 description = "Official tldr client written in Rust"
 categories = ["command-line-utilities"]
 homepage = "https://github.com/tldr-pages/tlrc"
@@ -23,9 +23,9 @@ clap = { version = "4.5.4", features = ["derive"] }
 dirs = "5.0.1"
 once_cell = "1.19.0"
 ring = "0.17.8"
-serde = { version = "1.0.197", features = ["derive"] }
+serde = { version = "1.0.199", features = ["derive"] }
 toml = "0.8.12"
-ureq = { version = "2.9.6", default-features = false, features = ["tls"] }
+ureq = { version = "2.9.7", default-features = false, features = ["tls"] }
 yansi = "1.0.1"
 zip = { version = "0.6.6", default-features = false, features = ["deflate"] }
 
