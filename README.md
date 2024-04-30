@@ -46,12 +46,20 @@ Install [tlrc](https://software.opensuse.org/package/tlrc) with Zypper:
 zypper install tlrc
 ```
 
-### Windows
+### Windows using Winget
 
 Install [tlrc](https://github.com/microsoft/winget-pkgs/tree/master/manifests/t/tldr-pages/tlrc) with Winget:
 
 ```shell
 winget install tldr-pages.tlrc
+```
+
+### Windows using Scoop
+
+Install [tlrc](https://scoop.sh/#/apps?q=tlrc&id=67f36cdb01b1573ed454af11605b7b8efc732dc7) with Scoop:
+
+```shell
+scoop install tlrc
 ```
 
 ### macOS using MacPorts
