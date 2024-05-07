@@ -181,7 +181,7 @@ impl<'a> Cache<'a> {
         let mut n_downloaded = 0;
 
         for i in 0..archive.len() {
-            let mut page = archive.by_index(i).unwrap();
+            let mut page = archive.by_index(i)?;
             let fname = page.name();
 
             // Skip files that are not in a directory (we want only pages).
