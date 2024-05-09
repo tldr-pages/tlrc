@@ -31,11 +31,11 @@ const AFTER_HELP: &str = if cfg!(target_os = "windows") {
 #[command(
     arg_required_else_help = true,
     about,
-    // VERSION_STRING is generated and set in the build script.
-    version = env!("VERSION_STRING"),
+    // These env vars are generated and set in the build script.
+    version = concat!(env!("VERSION_STRING"), '\n', env!("FEATURES")),
     disable_version_flag = true,
     after_help = AFTER_HELP,
-    help_template = "{before-help}{name} {version}\n\
+    help_template = "{before-help}{name} {version}\n\n\
     {about-with-newline}\n\
     {usage-heading} {usage}\n\n\
     {all-args}{after-help}"

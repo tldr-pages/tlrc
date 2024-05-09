@@ -5,6 +5,18 @@ use std::process;
 /// The version of the tldr client specification being implemented.
 const CLIENT_SPEC: &str = "2.2";
 
+const TLS: &str = if cfg!(feature = "native-certs") {
+    "Rustls + native certs"
+} else {
+    "Rustls + webpki-roots"
+};
+
+const SOCKS: &str = if cfg!(feature = "socks-proxy") {
+    "+SOCKS"
+} else {
+    "-SOCKS"
+};
+
 fn is_debug_build() -> bool {
     env::var("PROFILE").unwrap() == "debug"
 }
@@ -48,4 +60,5 @@ fn main() {
 
     // Put the version string inside an environment variable during the build.
     println!("cargo:rustc-env=VERSION_STRING={ver}");
+    println!("cargo:rustc-env=FEATURES=[{TLS}, {SOCKS}]");
 }

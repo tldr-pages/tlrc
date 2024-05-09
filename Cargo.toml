@@ -15,8 +15,11 @@ name = "tldr"
 path = "src/main.rs"
 
 [features]
-default = ["socks-proxy"]
+# The default TLS implementation is Rustls with native certificates.
+# Disabling the `native-certs` feature switches to Rustls with webpki-roots.
+default = ["socks-proxy", "native-certs"]
 socks-proxy = ["ureq/socks-proxy"]
+native-certs = ["ureq/native-certs"]
 
 [dependencies]
 clap = { version = "4.5.4", features = ["derive"] }
