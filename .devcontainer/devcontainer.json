@@ -1,0 +1,17 @@
+{
+  "name": "tlrc",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+  "features": {
+      "ghcr.io/devcontainers/features/rust:1": {}
+  },
+  "privileged": false,
+  "customizations": {
+      "vscode": {
+        "extensions": [
+          "GitHub.vscode-pull-request-github",
+          "github.vscode-github-actions",
+          "DavidAnson.vscode-markdownlint"
+        ]
+      }
+  }
+}
