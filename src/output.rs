@@ -28,7 +28,7 @@ struct RenderStyles {
 pub struct PageRenderer<'a> {
     /// Path to the page.
     path: &'a Path,
-    /// A BufReader containing the page.
+    /// A buffered reader containing the page.
     reader: BufReader<File>,
     /// A buffered handle to standard output.
     stdout: BufWriter<io::StdoutLock<'static>>,
