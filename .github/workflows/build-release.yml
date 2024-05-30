@@ -33,6 +33,10 @@ jobs:
     name: Build ${{ matrix.target }}
     runs-on: ${{ matrix.os }}
     needs: release
+    permissions:
+      contents: write # to upload assets to releases
+      attestations: write # to upload assets attestation for build provenance
+      id-token: write # grant additional permission to attestation action to mint the OIDC token permission
 
     strategy:
       fail-fast: false
@@ -84,3 +88,9 @@ jobs:
         env:
             GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh release upload "$GITHUB_REF_NAME" "$NAME"-*
+
+      - name: Attest release files
+        id: attest
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-path: '*.zip, *.tar.gz'
