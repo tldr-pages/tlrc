@@ -282,6 +282,12 @@ impl Config {
             }
             // English pages should always be downloaded and searched.
             cfg.cache.languages.push("en".to_string());
+
+            if cfg.cache.dir.starts_with("~") {
+                let mut p = dirs::home_dir().unwrap();
+                p.extend(cfg.cache.dir.components().skip(1));
+                cfg.cache.dir = p;
+            }
             cfg
         })
     }
@@ -304,8 +310,16 @@ impl Config {
 
     /// Print the default config.
     pub fn print_default() -> Result<()> {
-        let default = toml::ser::to_string_pretty(&Config::default()).unwrap();
-        write!(io::stdout(), "{default}")?;
+        let mut cfg = Config::default();
+        let home = dirs::home_dir().unwrap();
+
+        if cfg.cache.dir.starts_with(&home) {
+            let rel_part = cfg.cache.dir.strip_prefix(&home).unwrap();
+            cfg.cache.dir = Path::new("~").join(rel_part);
+        }
+
+        let cfg = toml::ser::to_string_pretty(&cfg).unwrap();
+        write!(io::stdout(), "{cfg}")?;
         Ok(())
     }
 
