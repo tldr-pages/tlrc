@@ -22,7 +22,7 @@ socks-proxy = ["ureq/socks-proxy"]
 native-certs = ["ureq/native-certs"]
 
 [dependencies]
-clap = { version = "4.5.4", features = ["derive"] }
+clap = { version = "4.5.8", features = ["derive"] }
 dirs = "5.0.1"
 once_cell = "1.19.0"
 ring = "0.17.8"
