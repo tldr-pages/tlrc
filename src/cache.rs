@@ -523,13 +523,16 @@ impl<'a> Cache<'a> {
         )?;
 
         if cfg.cache.auto_update {
-            let age_diff = cfg.cache_max_age().as_secs() - age;
+            let max_age = cfg.cache_max_age().as_secs();
+            if max_age > age {
+                let age_diff = max_age - age;
 
-            writeln!(
-                stdout,
-                "Automatic update in {}",
-                util::duration_fmt(age_diff).green().bold()
-            )?;
+                writeln!(
+                    stdout,
+                    "Automatic update in {}",
+                    util::duration_fmt(age_diff).green().bold()
+                )?;
+            }
         } else {
             writeln!(stdout, "Automatic updates are disabled")?;
         }
