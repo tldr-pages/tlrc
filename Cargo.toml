@@ -1,6 +1,6 @@
 [package]
 name = "tlrc"
-version = "1.9.2"
+version = "1.9.3"
 description = "Official tldr client written in Rust"
 categories = ["command-line-utilities"]
 homepage = "https://github.com/tldr-pages/tlrc"
@@ -8,32 +8,29 @@ repository = "https://github.com/tldr-pages/tlrc"
 documentation = "https://tldr.sh/tlrc"
 license = "MIT"
 edition = "2021"
-rust-version = "1.70"
+rust-version = "1.74"
 
 [[bin]]
 name = "tldr"
 path = "src/main.rs"
 
 [features]
-# The default TLS implementation is Rustls with native certificates.
-# Disabling the `native-certs` feature switches to Rustls with webpki-roots.
-default = ["socks-proxy", "native-certs"]
+default = ["socks-proxy"]
 socks-proxy = ["ureq/socks-proxy"]
-native-certs = ["ureq/native-certs"]
 
 [dependencies]
-clap = { version = "4.5.8", features = ["derive"] }
+clap = { version = "4.5.11", features = ["derive"] }
 dirs = "5.0.1"
 once_cell = "1.19.0"
 ring = "0.17.8"
-serde = { version = "1.0.203", features = ["derive"] }
-toml = "0.8.14"
-ureq = { version = "2.9.7", default-features = false, features = ["tls"] }
+serde = { version = "1.0.204", features = ["derive"] }
+toml = "0.8.16"
+ureq = { version = "2.10.0", default-features = false, features = ["tls", "native-certs"] }
 yansi = "1.0.1"
-zip = { version = "2.1.3", default-features = false, features = ["deflate"] }
+zip = { version = "2.1.5", default-features = false, features = ["deflate"] }
 
 [dev-dependencies]
-assert_cmd = "2.0.14"
+assert_cmd = "2.0.15"
 
 [lints.clippy]
 all = "warn"
