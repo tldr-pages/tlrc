@@ -181,23 +181,29 @@ impl<'a> Cache<'a> {
         let mut n_downloaded = 0;
 
         for i in 0..archive.len() {
-            let mut page = archive.by_index(i)?;
-            let fname = page.name();
+            let mut zipfile = archive.by_index(i)?;
+            let Some(fname) = zipfile.enclosed_name() else {
+                warnln!(
+                    "found an unsafe path in the zip archive: '{}', ignoring it",
+                    zipfile.name()
+                );
+                continue;
+            };
 
             // Skip files that are not in a directory (we want only pages).
-            if !fname.contains('/') {
+            if zipfile.is_file() && fname.parent() == Some(Path::new("")) {
                 continue;
             }
 
-            let path = self.dir.join(lang_dir).join(fname);
+            let path = self.dir.join(lang_dir).join(&fname);
 
-            if fname.ends_with('/') {
+            if zipfile.is_dir() {
                 fs::create_dir_all(&path)?;
                 continue;
             }
 
             let mut file = File::create(&path)?;
-            io::copy(&mut page, &mut file)?;
+            io::copy(&mut zipfile, &mut file)?;
 
             n_downloaded += 1;
         }
