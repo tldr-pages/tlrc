@@ -93,6 +93,14 @@ cargo install tlrc
 
 You can find prebuilt binaries [here][latest-release].
 
+### Flox
+
+Install tlrc with Flox:
+
+```shell
+flox install tlrc
+```
+
 ## Usage
 
 See `man tldr` or the [online manpage](https://tldr.sh/tlrc). For a brief description, you can also run:
