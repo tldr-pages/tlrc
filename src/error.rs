@@ -63,7 +63,7 @@ impl Error {
 
     pub fn parse_page(page_path: &Path, i: usize, line: &str) -> Self {
         Error::new(format!(
-            "'{}' is not a valid tldr page. (line {}):\n\n    {}",
+            "'{}' is not a valid tldr page. (line {}):\n\n    {}\n",
             page_path.display(),
             i,
             line.bold(),
