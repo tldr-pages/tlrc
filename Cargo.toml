@@ -30,7 +30,7 @@ yansi = "1.0.1"
 zip = { version = "2.1.6", default-features = false, features = ["deflate"] }
 
 [dev-dependencies]
-assert_cmd = "2.0.15"
+assert_cmd = "2.0.16"
 
 [lints.clippy]
 all = "warn"
