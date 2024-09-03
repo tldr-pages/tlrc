@@ -1,4 +1,5 @@
 use std::borrow::Cow;
+use std::env;
 use std::fs;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
@@ -294,10 +295,15 @@ impl Config {
 
     /// Get the default path to the config file.
     pub fn locate() -> PathBuf {
-        dirs::config_dir()
-            .unwrap()
-            .join(env!("CARGO_PKG_NAME"))
-            .join("config.toml")
+        env::var_os("TLRC_CONFIG").map_or_else(
+            || {
+                dirs::config_dir()
+                    .unwrap()
+                    .join(env!("CARGO_PKG_NAME"))
+                    .join("config.toml")
+            },
+            PathBuf::from,
+        )
     }
 
     /// Print the default path to the config file and create the config directory.
