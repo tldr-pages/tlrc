@@ -66,6 +66,10 @@ pub struct Cli {
     #[arg(long, group = "operations")]
     pub list_languages: bool,
 
+    /// Render a random page
+    #[arg(long, group = "operations")]
+    pub random: bool,
+
     /// Show cache information (path, age, installed languages and the number of pages).
     #[arg(short, long, group = "operations")]
     pub info: bool,

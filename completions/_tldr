@@ -23,6 +23,7 @@ _tldr() {
         --list-platforms"[List available platforms]" \
         --list-languages"[List installed languages]" \
         {-i,--info}"[Show cache information (path, age, installed languages and the number of pages)]" \
+        {--random}"[Render a random page]" \
         {-r,--render}"[Render the specified markdown file]:FILE:_files" \
         --clean-cache"[Clean the cache]" \
         --gen-config"[Print the default config]" \

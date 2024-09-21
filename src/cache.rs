@@ -6,6 +6,7 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use once_cell::unsync::OnceCell;
+use rand::seq::SliceRandom;
 use yansi::Paint;
 use zip::ZipArchive;
 
@@ -472,6 +473,22 @@ impl<'a> Cache<'a> {
     /// List all pages in English.
     pub fn list_all(&self) -> Result<()> {
         Self::print_basenames(self.list_all_vec(ENGLISH_DIR)?)
+    }
+
+    /// Return a random English page
+    pub fn random(&self) -> Result<String> {
+        let s = self.list_all_vec(ENGLISH_DIR)?.choose(&mut rand::thread_rng()).cloned();
+        if s.is_none() {
+            return Err(Error::missing_random());
+        }
+
+        if let Ok(regular_string) = s.unwrap().into_string() {
+            if let Some(parsed_string) = regular_string.strip_suffix(".md") {
+                return Ok(parsed_string.into());
+            }
+        }
+
+        Err(Error::missing_random())
     }
 
     /// List platforms (used in shell completions).

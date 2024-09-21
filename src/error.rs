@@ -92,6 +92,11 @@ impl Error {
             .kind(ErrorKind::Download)
     }
 
+    pub fn missing_random() -> Self {
+        Error::new("could not find any random page to render.")
+            .kind(ErrorKind::Other)
+    }
+
     /// Print the error message to stderr and return an appropriate `ExitCode`.
     pub fn exit_code(self) -> ExitCode {
         let _ = writeln!(io::stderr(), "{} {self}", "error:".red().bold());

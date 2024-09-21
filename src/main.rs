@@ -115,7 +115,12 @@ fn run() -> Result<()> {
         return cache.list_languages();
     }
 
-    let page_name = cli.page.join("-").to_lowercase();
+    let page_name = if !cli.random {
+        cli.page.join("-").to_lowercase()
+    } else {
+        cache.random()?
+    };
+
     let page_paths = cache.find(&page_name, &languages, platform)?;
 
     if page_paths.is_empty() {

@@ -8,7 +8,7 @@ _tldr() {
     --update --list --list-all --list-platforms --list-languages \
     --info --render --clean-cache --gen-config --config-path --platform \
     --language --offline --compact --no-compact --raw --no-raw --quiet \
-    --color --config --version --help"
+    --random --color --config --version --help"
 
     if [[ $cur == -* ]]; then
         mapfile -t COMPREPLY < <(compgen -W "$opts" -- "$cur")
