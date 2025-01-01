@@ -301,8 +301,8 @@ impl<'a> Cache<'a> {
                 }
 
                 if result.is_empty() {
-                    Err(Error::new(
-                        "'pages.en' contains no platform directories. Please run 'tldr --update'.",
+                    Err(Error::messed_up_cache(
+                        "'pages.en' contains no platform directories.",
                     ))
                 } else {
                     // read_dir() order can differ across runs, so it's
@@ -421,7 +421,9 @@ impl<'a> Cache<'a> {
 
     fn print_basenames(mut pages: Vec<OsString>) -> Result<()> {
         if pages.is_empty() {
-            return Err(Error::new("no pages found. Please run 'tldr --update'."));
+            return Err(Error::messed_up_cache(
+                "no pages found, but the 'pages.en' directory exists.",
+            ));
         }
 
         // Show pages in alphabetical order.

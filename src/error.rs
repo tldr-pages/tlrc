@@ -92,6 +92,13 @@ impl Error {
             .kind(ErrorKind::Download)
     }
 
+    pub fn messed_up_cache(e: &str) -> Self {
+        Error::new(format!(
+            "{e}\n\nThis should never happen, did you delete something from the cache?\n\
+            Please run 'tldr --clean-cache' followed by 'tldr --update' to redownload all pages."
+        ))
+    }
+
     /// Print the error message to stderr and return an appropriate `ExitCode`.
     pub fn exit_code(self) -> ExitCode {
         let _ = writeln!(io::stderr(), "{} {self}", "error:".red().bold());
