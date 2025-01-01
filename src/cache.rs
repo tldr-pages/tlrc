@@ -420,6 +420,10 @@ impl<'a> Cache<'a> {
     }
 
     fn print_basenames(mut pages: Vec<OsString>) -> Result<()> {
+        if pages.is_empty() {
+            return Err(Error::new("no pages found. Please run 'tldr --update'."));
+        }
+
         // Show pages in alphabetical order.
         pages.sort_unstable();
         // There are pages with the same name across multiple platforms.
