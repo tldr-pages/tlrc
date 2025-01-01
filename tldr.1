@@ -1,106 +1,110 @@
+.\" vim: colorcolumn=100 textwidth=100
 .TH "TLRC" "1" "2024-07-29"  "tlrc 1.9.3" "tlrc manual"
 .nh
 .ad l
 .SH NAME
 tlrc - official tldr client written in Rust
-
-
+.
+.
 .SH SYNOPSIS
 \fItldr\fR [options] [page]
-
-
+.
+.
 .SH OPTIONS
 .TP 4
 .B -u, --update
-Update the cache of tldr pages.
+Update the cache of tldr pages.\&
 This will first download the sha256sums of all archives and compare them\&
 to the old sums to determine which languages need updating.\&
 If you want to force a redownload, run \fItldr\fR \fB--clean-cache\fR beforehand.
-
+.
 .TP 4
 .B -l, --list
 List all pages in the current platform.
-
+.
 .TP 4
 .B -a, --list-all
 List all pages.
-
+.
 .TP 4
 .B --list-platforms
 List available platforms.
-
+.
 .TP 4
 .B --list-languages
 List available languages. Use \fB--info\fR for a language list with more information.
-
+.
 .TP 4
 .B -i, --info
 Show cache information (path, age, installed languages and the number of pages).
-
+.
 .TP 4
 \fB-r, --render\fR <FILE>
 Render the specified markdown file.
-
+.
 .TP 4
 .B --clean-cache
-Clean the cache directory (i.e. remove pages and old sha256sums). Useful to force a redownload when all pages are up to date.
-
+Clean the cache directory (i.e. remove pages and old sha256sums).\&
+Useful to force a redownload when all pages are up to date.
+.
 .TP 4
 .B --gen-config
 Print the default config to standard output.
-
+.
 .TP 4
 .B --config-path
 Print the default config path and create the config directory if it does not exist.
-
+.
 .TP 4
 \fB-p, --platform\fR <PLATFORM>
 Specify the platform to use (linux, osx, windows, etc.).
 .sp
 Default: the operating system you are \fBcurrently running\fR
-
+.
 .TP 4
 \fB-L, --language\fR <LANGUAGE_CODE>
 Specify the language to show pages in.\&
 Can be used multiple times.\&
 Overrides all other language detection methods.\&
-\fItlrc\fR will not fall back to English when this option is used, and will instead show an error.\&
-Note that this option does not affect languages downloaded on \fB--update\fR. If you want to use languages\&
-not defined in environment variables, use the \fIcache.languages\fR option in the config file.
+\fItlrc\fR will not fall back to English when this option is used, and will instead\&
+show an error. Note that this option does not affect languages downloaded on \fB--update\fR.\&
+If you want to use languages not defined in environment variables, use the\&
+\fIcache.languages\fR option in the config file.
 .sp
 Default: taken from the config or the \fBLANG\fR and \fBLANGUAGE\fR environment variables.\&
 See \fBhttps://github.com/tldr-pages/tldr/blob/main/CLIENT-SPECIFICATION.md#language\fR
 for a detailed description of how \fItlrc\fR determines the language.
-
+.
 .TP 4
 .B -o, --offline
 Do not update the cache, even if it is stale and automatic updates are on.\&
 Similar to setting \fIcache.auto_update\fR=\fBfalse\fR in the config, except using this will\&
 show an error if the cache is empty.
-
+.
 .TP 4
 .B -c, --compact
 Strip empty lines from output. Equivalent of setting \fIoutput.compact\fR=\fBtrue\fR in the config.
-
+.
 .TP 4
 .B --no-compact
-Do not strip empty lines from output. Equivalent of setting \fIoutput.compact\fR=\fBfalse\fR in the config.\&
-This always overrides \fB--compact\fR.
-
+Do not strip empty lines from output. Equivalent of setting\&
+\fIoutput.compact\fR=\fBfalse\fR in the config. This always overrides \fB--compact\fR.
+.
 .TP 4
 .B -R, --raw
-Print pages in raw markdown. Equivalent of setting \fIoutput.raw_markdown\fR=\fBtrue\fR in the config.
-
+Print pages in raw markdown. Equivalent of setting\&
+\fIoutput.raw_markdown\fR=\fBtrue\fR in the config.
+.
 .TP 4
 .B --no-raw
-Render pages instead of printing raw file contents. Equivalent of setting \fIoutput.raw_markdown\fR=\fBfalse\fR\&
-in the config. This always overrides \fB--raw\fR.
-
+Render pages instead of printing raw file contents. Equivalent of setting\&
+\fIoutput.raw_markdown\fR=\fBfalse\fR in the config. This always overrides \fB--raw\fR.
+.
 .TP 4
 .B -q, --quiet
 Suppress status messages and warnings.\&
 In other words, this makes \fItlrc\fR print only pages and errors.
-
+.
 .TP 4
 \fB--color\fR <WHEN>
 Specify when to enable color.
@@ -112,22 +116,22 @@ only automatically enables colors when outputting onto a tty and\&
 the \fBNO_COLOR\fR environment variable is not set or is an empty string.
 .sp
 Default: \fBauto\fR
-
+.
 .TP 4
 \fB--config\fR <FILE>
 Specify an alternative path to the config file.
 .sp
 Default: \fBplatform-dependent\fR (use \fB--config-path\fR to see the default path for your system)
-
+.
 .TP 4
 .B -v, --version
 Print version information.
-
+.
 .TP 4
 .B -h, --help
 Print a help message.
-
-
+.
+.
 .SH CONFIGURATION
 To generate a default config file, run:
 .IP
@@ -135,9 +139,22 @@ To generate a default config file, run:
 \fItldr\fR --gen-config > $(\fItldr\fR --config-path)
 .fi
 .PP
-See \fBhttps://github.com/tldr-pages/tlrc#configuration\fR for an example config file with explanations.
-
-
+See \fBhttps://github.com/tldr-pages/tlrc#configuration\fR for an example config file\&
+with explanations.
+.sp
+The default config path depends on your operating system:
+.br
+Linux and BSD: \fI$XDG_CONFIG_HOME\fB/tlrc/config.toml\fR or \fB~/.config/tlrc/config.toml\fR if\&
+\fI$XDG_CONFIG_HOME\fR is unset
+.br
+macOS: \fB~/Library/Application Support/tlrc/config.toml\fR
+.br
+Windows: \fI%ROAMINGAPPDATA%\fB\\tlrc\\config.toml\fR
+.sp
+No matter the OS, you can set the \fI$TLRC_CONFIG\fR enviroment variable or use\&
+\fB--config\fR to override the default path.
+.
+.
 .SH EXAMPLES
 See the tldr page for \fBtar\fR:
 .IP
@@ -145,47 +162,55 @@ See the tldr page for \fBtar\fR:
 \fItldr\fR tar
 .fi
 .PP
-
+.
 See the tldr page for \fBdiskpart\fR, from platform \fBwindows\fR:
 .IP
 .nf
 \fItldr\fR --platform windows diskpart
 .fi
 .PP
-
-
+.
+.
 .SH EXIT STATUSES
 .TP
 0
 OK
-
+.
 .TP
 1
 I/O and various other errors
-
+.
 .TP
 2
 Invalid command-line arguments
-
+.
 .TP
 3
 TOML (config file) parse error
-
+.
 .TP
 4
 Errors related to cache updates (e.g. a failed HTTP GET request)
-
+.
 .TP
 5
 Tldr syntax error (e.g. a non-empty line that does not start with '# ', '> ', '- ' or '`')
-
-
+.
+.
 .SH SEE ALSO
 tldr client specification
 .br
 .B https://github.com/tldr-pages/tldr/blob/main/CLIENT-SPECIFICATION.md
 .br
 .sp
-Repository
+tlrc repository (report issues with the client here)
 .br
 .B https://github.com/tldr-pages/tlrc
+.sp
+tldr-pages repository (report issues with the pages here)
+.br
+.B https://github.com/tldr-pages/tldr
+.sp
+An online version of this man page is available here:
+.br
+.B https://tldr.sh/tlrc
