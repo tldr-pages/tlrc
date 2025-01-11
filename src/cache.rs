@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, HashMap};
 use std::ffi::OsString;
 use std::fs::{self, File};
-use std::io::{self, BufWriter, Cursor, Read, Write};
+use std::io::{self, BufWriter, Cursor, Write};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
@@ -47,34 +47,31 @@ impl<'a> Cache<'a> {
     fn get_asset(agent: &ureq::Agent, url: &str) -> Result<Vec<u8>> {
         info_start!("downloading '{}'... ", url.split('/').last().unwrap());
 
-        let resp = match agent.get(url).call() {
+        let mut resp = match agent.get(url).call() {
             Ok(r) => r,
             Err(e) => {
                 info_end!("{}", "FAILED".red().bold());
                 return Err(e.into());
             }
         };
-
-        let content_length = resp
-            .header("Content-Length")
-            .unwrap_or_default()
-            .parse()
-            .unwrap_or_default();
-        let mut buf = Vec::with_capacity(content_length);
-        if let Err(e) = resp.into_reader().read_to_end(&mut buf) {
-            info_end!("{}", "FAILED".red().bold());
-            return Err(e.into());
-        }
+        let body = resp.body_mut();
+        let bytes = match body.with_config().limit(1_000_000_000).read_to_vec() {
+            Ok(v) => v,
+            Err(e) => {
+                info_end!("{}", "FAILED".red().bold());
+                return Err(e.into());
+            }
+        };
 
         #[allow(clippy::cast_precision_loss)]
-        let dl_kib = buf.len() as f64 / 1024.0;
+        let dl_kib = bytes.len() as f64 / 1024.0;
         if dl_kib < 1024.0 {
             info_end!("{:.02} KiB", dl_kib.green().bold());
         } else {
             info_end!("{:.02} MiB", (dl_kib / 1024.0).green().bold());
         }
 
-        Ok(buf)
+        Ok(bytes)
     }
 
     /// Download tldr pages archives for directories that are out of date and update the checksum file.
@@ -83,10 +80,11 @@ impl<'a> Cache<'a> {
         mirror: &str,
         languages: &[String],
     ) -> Result<BTreeMap<String, PagesArchive>> {
-        let agent = ureq::builder()
+        let agent = ureq::Agent::config_builder()
             .user_agent(USER_AGENT)
-            .try_proxy_from_env(true)
-            .build();
+            .timeout_global(Some(Duration::from_secs(5)))
+            .build()
+            .into();
 
         let sums = Self::get_asset(&agent, &format!("{mirror}/tldr.sha256sums"))?;
         let sums_str = String::from_utf8_lossy(&sums);
