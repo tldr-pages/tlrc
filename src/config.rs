@@ -5,12 +5,49 @@ use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
-use serde::{Deserialize, Serialize};
+use serde::de::{Unexpected, Visitor};
+use serde::{Deserialize, Deserializer, Serialize};
 use yansi::{Color, Style};
 
 use crate::cache::Cache;
 use crate::error::{Error, ErrorKind, Result};
 use crate::util::{self, warnln};
+
+const HEX_ERR: &str = "6 hexadecimal digits, optionally prefixed with '#'";
+
+struct HexColorVisitor;
+impl Visitor<'_> for HexColorVisitor {
+    type Value = [u8; 3];
+
+    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+        formatter.write_str(HEX_ERR)
+    }
+
+    fn visit_str<E>(self, v: &str) -> std::result::Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        let hex = v.strip_prefix('#').unwrap_or(v);
+
+        if hex.len() != 6 {
+            return Err(serde::de::Error::invalid_length(hex.len(), &HEX_ERR));
+        }
+
+        let invalid_val = |_| serde::de::Error::invalid_value(Unexpected::Str(v), &HEX_ERR);
+        let r = u8::from_str_radix(&hex[0..2], 16).map_err(invalid_val)?;
+        let g = u8::from_str_radix(&hex[2..4], 16).map_err(invalid_val)?;
+        let b = u8::from_str_radix(&hex[4..6], 16).map_err(invalid_val)?;
+
+        Ok([r, g, b])
+    }
+}
+
+fn hex_to_rgb<'de, D>(deserializer: D) -> std::result::Result<[u8; 3], D::Error>
+where
+    D: Deserializer<'de>,
+{
+    deserializer.deserialize_str(HexColorVisitor)
+}
 
 #[derive(Serialize, Deserialize, Default, Clone, Copy)]
 #[serde(rename_all = "lowercase")]
@@ -27,6 +64,8 @@ pub enum OutputColor {
     Default,
     Color256(u8),
     Rgb([u8; 3]),
+    #[serde(deserialize_with = "hex_to_rgb")]
+    Hex([u8; 3]),
 }
 
 impl From<OutputColor> for yansi::Color {
@@ -42,7 +81,7 @@ impl From<OutputColor> for yansi::Color {
             OutputColor::White => Color::White,
             OutputColor::Default => Color::Primary,
             OutputColor::Color256(c) => Color::Fixed(c),
-            OutputColor::Rgb(rgb) => Color::Rgb(rgb[0], rgb[1], rgb[2]),
+            OutputColor::Rgb(rgb) | OutputColor::Hex(rgb) => Color::Rgb(rgb[0], rgb[1], rgb[2]),
         }
     }
 }
