@@ -121,7 +121,7 @@ or copy the below example.
 
 ```toml
 [cache]
-# Override the cache directory.
+# Override the cache directory ('~' will be expanded to your home directory).
 dir = "/path/to/cache"
 # Override the base URL used for downloading tldr pages.
 # The mirror must provide files with the same names as the official tldr pages repository:
@@ -168,6 +168,7 @@ example = 4
 # Fixed colors:       "black", "red", "green", "yellow", "blue", "magenta", "cyan", "white", "default"
 # 256color ANSI code: { color256 = 50 }
 # RGB:                { rgb = [0, 255, 255] }
+# Hex:                { hex = "#ffffff" }
 color = "magenta"
 background = "default"
 bold = true
