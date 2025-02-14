@@ -6,6 +6,7 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use once_cell::unsync::OnceCell;
+use ureq::tls::{RootCerts, TlsConfig};
 use yansi::Paint;
 use zip::ZipArchive;
 
@@ -83,6 +84,11 @@ impl<'a> Cache<'a> {
         let agent = ureq::Agent::config_builder()
             .user_agent(USER_AGENT)
             .timeout_global(Some(Duration::from_secs(5)))
+            .tls_config(
+                TlsConfig::builder()
+                    .root_certs(RootCerts::PlatformVerifier)
+                    .build(),
+            )
             .build()
             .into();
 
