@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use clap::{ArgAction, ColorChoice, Parser};
+use clap::{ArgAction, ArgGroup, ColorChoice, Parser};
 
 const DEFAULT_PLATFORM: &str = if cfg!(target_os = "linux") {
     "linux"
@@ -35,15 +35,16 @@ const AFTER_HELP: &str = if cfg!(target_os = "windows") {
     version = env!("VERSION_STRING"),
     disable_version_flag = true,
     after_help = AFTER_HELP,
+    group = ArgGroup::new("operations").required(true),
+    override_usage = "\x1b[1mtldr\x1b[0m [OPTIONS] [PAGE]...",
     help_template = "{before-help}{name} {version}\n\
     {about-with-newline}\n\
     {usage-heading} {usage}\n\n\
     {all-args}{after-help}"
 )]
-#[allow(clippy::manual_non_exhaustive)]
 pub struct Cli {
     /// The tldr page to show.
-    #[arg(group = "operations", required = true)]
+    #[arg(group = "operations")]
     pub page: Vec<String>,
 
     /// Update the cache.
