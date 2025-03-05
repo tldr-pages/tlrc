@@ -1,4 +1,5 @@
 use std::borrow::Cow;
+use std::fmt::Write as _;
 use std::fs::File;
 use std::io::{self, BufRead, BufReader, BufWriter, Write};
 use std::path::{Path, PathBuf};
@@ -46,15 +47,27 @@ pub struct PageRenderer<'a> {
     cfg: &'a Config,
 }
 
+/// Write a `yansi::Painted` to a `String`.
+///
+/// This is used to append something to a `String` without creating `String`s for every part of a
+/// line that's highlighted using a different style.
+macro_rules! write_paint {
+    ($buf:expr, $what:expr) => {
+        // This will never return an error, we're writing to a `String`.
+        let _ = write!($buf, "{}", $what);
+    };
+}
+
 impl<'a> PageRenderer<'a> {
     fn hl_code(&self, s: &str, style_normal: Style) -> String {
         let split: Vec<&str> = s.split('`').collect();
+        let mut buf = String::with_capacity(s.len());
+
         // Highlight beginning not found.
         if split.len() == 1 {
-            return s.paint(style_normal).to_string();
+            write_paint!(buf, s.paint(style_normal));
+            return buf;
         }
-
-        let mut buf = String::new();
 
         for (i, part) in split.into_iter().enumerate() {
             // Only odd indexes contain the part to be highlighted.
@@ -65,9 +78,9 @@ impl<'a> PageRenderer<'a> {
             // 3: "dd"      (highlighted)
             // 4: " ee"
             if i % 2 == 0 {
-                buf += &part.paint(style_normal).to_string();
+                write_paint!(buf, part.paint(style_normal));
             } else {
-                buf += &part.paint(self.style.inline_code).to_string();
+                write_paint!(buf, part.paint(self.style.inline_code));
             }
         }
 
@@ -76,12 +89,13 @@ impl<'a> PageRenderer<'a> {
 
     fn hl_url(&self, s: &str, style_normal: Style) -> String {
         let split: Vec<&str> = s.split("<http").collect();
+        let mut buf = String::with_capacity(s.len());
+
         // Highlight beginning not found.
         if split.len() == 1 {
-            return s.paint(style_normal).to_string();
+            write_paint!(buf, s.paint(style_normal));
+            return buf;
         }
-
-        let mut buf = String::new();
 
         for part in split {
             if part.contains('>') {
@@ -95,11 +109,11 @@ impl<'a> PageRenderer<'a> {
 
                 // "<http" is used to detect URLs. It must be added back.
                 let hl = format!("http{}", part_split.0);
-                buf += &hl.paint(self.style.url).to_string();
-                buf += &part_split.1.paint(style_normal).to_string();
+                write_paint!(buf, hl.paint(self.style.url));
+                write_paint!(buf, part_split.1.paint(style_normal));
             } else {
                 // Highlight ending not found.
-                buf += &part.paint(style_normal).to_string();
+                write_paint!(buf, part.paint(style_normal));
             }
         }
 
@@ -108,12 +122,13 @@ impl<'a> PageRenderer<'a> {
 
     fn hl_placeholder(&self, s: &str, style_normal: Style) -> String {
         let split: Vec<&str> = s.split("{{").collect();
+        let mut buf = String::with_capacity(s.len());
+
         // Highlight beginning not found.
         if split.len() == 1 {
-            return s.paint(style_normal).to_string();
+            write_paint!(buf, s.paint(style_normal));
+            return buf;
         }
-
-        let mut buf = String::new();
 
         for part in split {
             if part.contains("}}") {
@@ -131,11 +146,11 @@ impl<'a> PageRenderer<'a> {
                 let idx = part.rmatch_indices("}}").last().unwrap().0;
                 let part_split = part.split_at(idx);
 
-                buf += &part_split.0.paint(self.style.placeholder).to_string();
-                buf += &part_split.1[2..].paint(style_normal).to_string();
+                write_paint!(buf, part_split.0.paint(self.style.placeholder));
+                write_paint!(buf, part_split.1[2..].paint(style_normal));
             } else {
                 // Highlight ending not found.
-                buf += &part.paint(style_normal).to_string();
+                write_paint!(buf, part.paint(style_normal));
             }
         }
 
@@ -186,7 +201,7 @@ impl<'a> PageRenderer<'a> {
                 if yansi::is_enabled() {
                     // Style reset. Without this, whitespace will have a background color (if one
                     // is set).
-                    buf += "\x1b[0m";
+                    let _ = style_normal.fmt_suffix(&mut buf);
                 }
                 buf.push('\n');
                 buf += indent;
