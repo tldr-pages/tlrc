@@ -4,6 +4,8 @@ use std::io::{self, BufRead, BufReader, BufWriter, Write};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::Ordering::Relaxed;
 
+use terminal_size::terminal_size;
+use unicode_width::UnicodeWidthStr;
 use yansi::{Paint, Style};
 
 use crate::config::Config;
@@ -36,6 +38,8 @@ pub struct PageRenderer<'a> {
     current_line: String,
     /// The line number of the current line.
     lnum: usize,
+    /// Max line length.
+    max_len: Option<usize>,
     /// Style configuration.
     style: RenderStyles,
     /// Other options.
@@ -138,6 +142,72 @@ impl<'a> PageRenderer<'a> {
         buf
     }
 
+    /// Split the line into multiple lines if it's longer than the configured max length.
+    fn splitln(
+        &self,
+        s: &'a str,
+        indent: &str,
+        prefix_width: usize,
+        style_normal: Style,
+    ) -> Cow<'a, str> {
+        let Some(max_len) = self.max_len else {
+            // We don't have the max length. Just print the entire line then.
+            return Cow::Borrowed(s);
+        };
+        let len_indent = indent.len();
+
+        if len_indent + s.width() <= max_len {
+            // The line is shorter than the max length. There is nothing to do.
+            return Cow::Borrowed(s);
+        }
+
+        let words = s.split(' ');
+        let len_s = s.len();
+        let base_width = len_indent + prefix_width;
+        let mut cur_width = base_width;
+        //                  current_len + base_width * amount of added newlines
+        let mut buf = String::with_capacity(len_s + base_width * (len_s / max_len));
+
+        // If the example prefix is set, we need more whitespace at the beginning of the next line.
+        let indent = if prefix_width == 0 {
+            indent
+        } else {
+            &(" ".repeat(prefix_width) + indent)
+        };
+
+        for w in words {
+            let w_width = w.width();
+
+            if cur_width + w_width > max_len && cur_width != base_width {
+                // If the next word is added, the line will be longer than the configured line
+                // length.
+                //
+                // We need to add a newline + indentation, and reset the current length.
+                if yansi::is_enabled() {
+                    // Style reset. Without this, whitespace will have a background color (if one
+                    // is set).
+                    buf += "\x1b[0m";
+                }
+                buf.push('\n');
+                buf += indent;
+                if yansi::is_enabled() {
+                    // Reenable the style.
+                    let _ = style_normal.fmt_prefix(&mut buf);
+                }
+                cur_width = base_width;
+            } else if cur_width != base_width {
+                // If this isn't the beginning of the line, add a space after the word.
+                buf.push(' ');
+                cur_width += 1;
+            }
+
+            buf += w;
+            cur_width += w_width;
+        }
+
+        Cow::Owned(buf)
+    }
+
     /// Print or render the page according to the provided config.
     pub fn print(path: &'a Path, cfg: &'a Config) -> Result<()> {
         let mut page = File::open(path)
@@ -156,6 +226,11 @@ impl<'a> PageRenderer<'a> {
             stdout: BufWriter::new(io::stdout().lock()),
             current_line: String::new(),
             lnum: 0,
+            max_len: if cfg.output.line_length == 0 {
+                terminal_size().map(|x| x.0 .0 as usize)
+            } else {
+                Some(cfg.output.line_length)
+            },
             style: RenderStyles {
                 title: cfg.style.title.into(),
                 desc: cfg.style.description.into(),
@@ -213,8 +288,9 @@ impl<'a> PageRenderer<'a> {
             .reader
             .read_line(&mut self.current_line)
             .map_err(|e| Error::new(format!("'{}': {e}", self.path.display())))?;
-        self.current_line
-            .truncate(self.current_line.trim_end().len());
+        let len = self.current_line.trim_end().len();
+        self.current_line.truncate(len);
+
         Ok(n)
     }
 
@@ -245,14 +321,11 @@ impl<'a> PageRenderer<'a> {
 
     /// Write the current line to the page buffer as a description.
     fn add_desc(&mut self) -> Result<()> {
-        let desc = self.hl_code(
-            &self.hl_url(
-                self.current_line.strip_prefix(DESC).unwrap(),
-                self.style.desc,
-            ),
-            self.style.desc,
-        );
         let indent = " ".repeat(self.cfg.indent.description);
+        let line = self.current_line.strip_prefix(DESC).unwrap();
+        let line = self.splitln(line, &indent, 0, self.style.desc);
+        let desc = self.hl_code(&self.hl_url(&line, self.style.desc), self.style.desc);
+
         writeln!(self.stdout, "{indent}{desc}")?;
 
         Ok(())
@@ -260,16 +333,22 @@ impl<'a> PageRenderer<'a> {
 
     /// Write the current line to the page buffer as a bullet point.
     fn add_bullet(&mut self) -> Result<()> {
+        let indent = " ".repeat(self.cfg.indent.bullet);
         let line = if self.cfg.output.show_hyphens {
             self.current_line
                 .replace_range(..2, &self.cfg.output.example_prefix);
-            &self.current_line
+            self.splitln(
+                &self.current_line,
+                &indent,
+                self.cfg.output.example_prefix.width(),
+                self.style.bullet,
+            )
         } else {
-            self.current_line.strip_prefix(BULLET).unwrap()
+            let l = self.current_line.strip_prefix(BULLET).unwrap();
+            self.splitln(l, &indent, 0, self.style.bullet)
         };
 
-        let bullet = self.hl_code(&self.hl_url(line, self.style.bullet), self.style.bullet);
-        let indent = " ".repeat(self.cfg.indent.bullet);
+        let bullet = self.hl_code(&self.hl_url(&line, self.style.bullet), self.style.bullet);
         writeln!(self.stdout, "{indent}{bullet}")?;
 
         Ok(())
@@ -284,23 +363,27 @@ impl<'a> PageRenderer<'a> {
             .replace("\\{\\{", " \\{\\{ ")
             .replace("\\}\\}", " \\}\\} ");
 
-        let line = self
-            .current_line
-            .strip_prefix(EXAMPLE)
-            .unwrap()
-            .strip_suffix('`')
-            .ok_or_else(|| {
-                Error::parse_page(self.path, self.lnum, &self.current_line)
-                    .describe("\nEvery line with an example must end with a backtick '`'.")
-            })?;
+        let indent = " ".repeat(self.cfg.indent.example);
+        let line = self.splitln(
+            self.current_line
+                .strip_prefix(EXAMPLE)
+                .unwrap()
+                .strip_suffix('`')
+                .ok_or_else(|| {
+                    Error::parse_page(self.path, self.lnum, &self.current_line)
+                        .describe("\nEvery line with an example must end with a backtick '`'.")
+                })?,
+            &indent,
+            0,
+            self.style.example,
+        );
 
         let example = self
-            .hl_placeholder(line, self.style.example)
+            .hl_placeholder(&line, self.style.example)
             // Remove the extra spaces and backslashes.
             .replace(" \\{\\{ ", "{{")
             .replace(" \\}\\} ", "}}");
 
-        let indent = " ".repeat(self.cfg.indent.example);
         writeln!(self.stdout, "{indent}{example}")?;
 
         Ok(())

@@ -244,6 +244,8 @@ pub struct OutputConfig {
     pub show_hyphens: bool,
     /// Show a custom string instead of a hyphen.
     pub example_prefix: Cow<'static, str>,
+    /// Set the max line length. 0 means to use the terminal width.
+    pub line_length: usize,
     /// Strip empty lines from pages.
     pub compact: bool,
     /// Print pages in raw markdown.
@@ -257,6 +259,7 @@ impl Default for OutputConfig {
             platform_title: false,
             show_hyphens: false,
             example_prefix: Cow::Borrowed("- "),
+            line_length: 0,
             compact: false,
             raw_markdown: false,
         }
