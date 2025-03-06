@@ -46,7 +46,7 @@ impl<'a> Cache<'a> {
 
     /// Send a GET request with the provided agent and return the response body.
     fn get_asset(agent: &ureq::Agent, url: &str) -> Result<Vec<u8>> {
-        info_start!("downloading '{}'... ", url.split('/').last().unwrap());
+        info_start!("downloading '{}'... ", url.split('/').next_back().unwrap());
 
         let mut resp = match agent.get(url).call() {
             Ok(r) => r,
