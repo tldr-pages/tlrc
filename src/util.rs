@@ -157,23 +157,25 @@ const HOUR: u64 = 3600;
 const MINUTE: u64 = 60;
 
 /// Convert time in seconds to a human-readable `String`.
-pub fn duration_fmt(secs: u64) -> String {
+pub fn duration_fmt(mut secs: u64) -> String {
     let days = secs / DAY;
-    let hours = (secs % DAY) / HOUR;
+    secs %= DAY;
+    let hours = secs / HOUR;
 
     if days == 0 {
-        let minutes = ((secs % DAY) % HOUR) / MINUTE;
+        secs %= HOUR;
+        let minutes = secs / MINUTE;
 
         if hours == 0 {
             if minutes == 0 {
                 format!("{secs}s")
             } else {
-                let seconds = secs % MINUTE;
+                secs %= MINUTE;
 
-                if seconds == 0 {
+                if secs == 0 {
                     format!("{minutes}min")
                 } else {
-                    format!("{minutes}min, {seconds}s")
+                    format!("{minutes}min, {secs}s")
                 }
             }
         } else if minutes == 0 {
@@ -270,5 +272,12 @@ mod tests {
         assert_eq!(duration_fmt(DAY + SECOND), "1d");
         assert_eq!(duration_fmt(DAY + HOUR), "1d, 1h");
         assert_eq!(duration_fmt(DAY + HOUR + SECOND), "1d, 1h");
+    }
+
+    #[test]
+    fn page_path_and_platform() {
+        let p = Path::new("/home/user/.cache/tlrc/pages.lang/platform/page.md");
+        assert_eq!(p.page_name(), Some("page".into()));
+        assert_eq!(p.page_platform(), Some("platform".into()));
     }
 }
