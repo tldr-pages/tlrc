@@ -29,6 +29,8 @@ _tldr() {
         --config-path"[Print the default config path and create the config directory]" \
         {-p,--platform}"[Specify the platform to use (linux, osx, windows, etc.)]:PLATFORM:_platforms" \
         {-L,--language}"[Specify the languages to use]:LANGUAGE_CODE:_languages" \
+        --short-options"[Display short options wherever possible (e.g '-s')]" \
+        --long-options"[Display long options wherever possible (e.g '--long')]" \
         {-o,--offline}"[Do not update the cache, even if it is stale]" \
         {-c,--compact}"[Strip empty lines from output]" \
         --no-compact"[Do not strip empty lines from output (overrides --compact)]" \

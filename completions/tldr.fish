@@ -3,6 +3,8 @@ complete -c tldr -s p -l platform -d "Specify the platform to use (linux, osx, w
     "(tldr --offline --list-platforms 2> /dev/null)"
 complete -c tldr -s L -l language -d "Specify the languages to use" -x -a \
     "(tldr --offline --list-languages 2> /dev/null)"
+complete -c tldr -l short-options -d "Display short options wherever possible (e.g '-s')"
+complete -c tldr -l long-options -d "Display long options wherever possible (e.g '--long')"
 complete -c tldr -l color -d "Specify when to enable color" -x -a "
     auto\t'Display color if standard output is a terminal and NO_COLOR is not set'
     always\t'Always display color'

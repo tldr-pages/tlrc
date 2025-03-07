@@ -7,8 +7,8 @@ _tldr() {
     local opts="-u -l -a -i -r -p -L -o -c -R -q -v -h \
     --update --list --list-all --list-platforms --list-languages \
     --info --render --clean-cache --gen-config --config-path --platform \
-    --language --offline --compact --no-compact --raw --no-raw --quiet \
-    --color --config --version --help"
+    --language --short-options --long-options --offline --compact \
+    --no-compact --raw --no-raw --quiet --color --config --version --help"
 
     if [[ $cur == -* ]]; then
         mapfile -t COMPREPLY < <(compgen -W "$opts" -- "$cur")
