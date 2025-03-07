@@ -208,9 +208,9 @@ impl<'a> PageRenderer<'a> {
 
         // If the example prefix is set, we need more whitespace at the beginning of the next line.
         let indent = if prefix_width == 0 {
-            indent
+            Cow::Borrowed(indent)
         } else {
-            &(" ".repeat(prefix_width) + indent)
+            Cow::Owned(" ".repeat(prefix_width) + indent)
         };
 
         for w in words {
@@ -227,7 +227,7 @@ impl<'a> PageRenderer<'a> {
                     let _ = style_normal.fmt_suffix(&mut buf);
                 }
                 buf.push('\n');
-                buf += indent;
+                buf += &indent;
                 if yansi::is_enabled() {
                     // Reenable the style.
                     let _ = style_normal.fmt_prefix(&mut buf);
