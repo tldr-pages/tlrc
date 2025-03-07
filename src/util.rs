@@ -1,6 +1,7 @@
 use std::borrow::Cow;
 use std::env;
 use std::ffi::OsStr;
+use std::fmt::Write;
 use std::io::{self, IsTerminal};
 use std::iter;
 use std::mem;
@@ -143,10 +144,10 @@ impl PagePathExt for Path {
 /// Calculates the SHA256 hash and returns a hexadecimal string.
 pub fn sha256_hexdigest(data: &[u8]) -> String {
     let digest = digest(&SHA256, data);
-    let mut hex = String::new();
+    let mut hex = String::with_capacity(64);
 
     for part in digest.as_ref() {
-        hex += &format!("{part:02x}");
+        let _ = write!(hex, "{part:02x}");
     }
 
     hex
