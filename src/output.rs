@@ -9,7 +9,7 @@ use terminal_size::terminal_size;
 use unicode_width::UnicodeWidthStr;
 use yansi::{Paint, Style};
 
-use crate::config::Config;
+use crate::config::{Config, OptionStyle};
 use crate::error::{Error, ErrorKind, Result};
 use crate::util::{warnln, PagePathExt};
 
@@ -144,10 +144,33 @@ impl<'a> PageRenderer<'a> {
                 // This is required for special cases with three closing curly braces ("}}}").
                 // The first brace is inside the placeholder, and the last two mark the end of it.
                 let idx = part.rmatch_indices("}}").last().unwrap().0;
-                let part_split = part.split_at(idx);
+                let (inside, outside) = part.split_at(idx);
 
-                write_paint!(buf, part_split.0.paint(self.style.placeholder));
-                write_paint!(buf, part_split.1[2..].paint(style_normal));
+                // Select the long or short option.
+                // Skip if the user wants to display both or if the placeholder doesn't contain
+                // option selection (`[-s|--long]`).
+                if self.cfg.output.option_style != OptionStyle::Both
+                    && inside.starts_with('[')
+                    && inside.ends_with(']')
+                    && inside.contains('|')
+                {
+                    let (short, long) = inside.split_once('|').unwrap();
+                    // A single option will be displayed, using the normal style (static part).
+                    if self.cfg.output.option_style == OptionStyle::Short {
+                        // Cut out the leading `[`.
+                        write_paint!(buf, &short[1..].paint(style_normal));
+                    } else {
+                        // Cut out the trailing `]`.
+                        write_paint!(buf, &long[..long.len() - 1].paint(style_normal));
+                    }
+                } else {
+                    // Both options will be displayed, or this isn't an option placeholder.
+                    // The placeholder style is used in both cases.
+                    write_paint!(buf, inside.paint(self.style.placeholder));
+                }
+
+                // `outside` begins with "}}". We need to cut that out.
+                write_paint!(buf, &outside[2..].paint(style_normal));
             } else {
                 // Highlight ending not found.
                 write_paint!(buf, part.paint(style_normal));

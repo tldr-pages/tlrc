@@ -13,7 +13,7 @@ use yansi::Paint;
 
 use crate::args::Cli;
 use crate::cache::Cache;
-use crate::config::Config;
+use crate::config::{Config, OptionStyle};
 use crate::error::{Error, Result};
 use crate::output::PageRenderer;
 use crate::util::{infoln, init_color, warnln};
@@ -48,6 +48,12 @@ fn run() -> Result<()> {
     let mut cfg = Config::new(cli.config)?;
     cfg.output.compact = !cli.no_compact && (cli.compact || cfg.output.compact);
     cfg.output.raw_markdown = !cli.no_raw && (cli.raw || cfg.output.raw_markdown);
+    cfg.output.option_style = match (cli.short_options, cli.long_options) {
+        (false, false) => cfg.output.option_style,
+        (true, true) => OptionStyle::Both,
+        (true, false) => OptionStyle::Short,
+        (false, true) => OptionStyle::Long,
+    };
 
     if let Some(path) = cli.render {
         return PageRenderer::print(&path, &cfg);

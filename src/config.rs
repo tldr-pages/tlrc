@@ -249,6 +249,16 @@ impl Default for CacheConfig {
     }
 }
 
+/// Defines which options should be shown in short|long placeholders (`{{[ ... ]}}`).
+#[derive(Serialize, Deserialize, PartialEq, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum OptionStyle {
+    Short,
+    #[default]
+    Long,
+    Both,
+}
+
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields, default)]
 pub struct OutputConfig {
@@ -264,6 +274,8 @@ pub struct OutputConfig {
     pub line_length: usize,
     /// Strip empty lines from pages.
     pub compact: bool,
+    /// Display the specified options in pages wherever possible.
+    pub option_style: OptionStyle,
     /// Print pages in raw markdown.
     pub raw_markdown: bool,
 }
@@ -277,6 +289,7 @@ impl Default for OutputConfig {
             example_prefix: Cow::Borrowed("- "),
             line_length: 0,
             compact: false,
+            option_style: OptionStyle::default(),
             raw_markdown: false,
         }
     }
