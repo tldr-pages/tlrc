@@ -7,6 +7,8 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: full
+
 jobs:
   rustfmt:
     name: Rustfmt
@@ -33,13 +35,19 @@ jobs:
           run: cargo clippy -- --deny warnings
 
   tests:
-    name: Tests
-    runs-on: ubuntu-latest
+    name: Build and test
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
       - name: Checkout the repository
         uses: actions/checkout@v4
       - name: Update Rust
         run: rustup update stable
+      - name: Build
+        run: cargo build --verbose
       - name: Run tests
-        run: cargo test
+        run: cargo test --verbose
