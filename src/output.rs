@@ -231,9 +231,11 @@ impl<'a> PageRenderer<'a> {
         for w in words {
             let mut w_width = w.width();
             let backtick_count = w.chars().filter(|x| *x == '`').count();
+            // Backticks won't be displayed.
             w_width -= backtick_count;
 
-            if cur_width + w_width > max_len && cur_width != base_width {
+            // current + word + space after the word
+            if cur_width + w_width + 1 > max_len && cur_width != base_width {
                 // If the next word is added, the line will be longer than the configured line
                 // length.
                 //
@@ -263,6 +265,9 @@ impl<'a> PageRenderer<'a> {
             buf += w;
             cur_width += w_width;
 
+            // If there are two backticks in `w`, then `w` contains all the highlighted text.
+            // If there is only one (e.g `ab cd` => split into words ["`ab", "cd`"]), it
+            // starts/ends the highlight.
             if backtick_count == 1 {
                 inside_hl = !inside_hl;
             }
