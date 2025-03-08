@@ -28,15 +28,6 @@ struct RenderStyles {
     placeholder: Style,
 }
 
-/// Type of the line.
-/// Does not include types where there's nothing to highlight (i.e. title and empty lines).
-#[derive(Clone, Copy, PartialEq)]
-enum LineType {
-    Desc,
-    Bullet,
-    Example,
-}
-
 pub struct PageRenderer<'a> {
     /// Path to the page.
     path: &'a Path,
@@ -65,6 +56,14 @@ macro_rules! write_paint {
         // This will never return an error, we're writing to a `String`.
         let _ = write!($buf, "{}", $what);
     };
+}
+
+/// Type of the line.
+/// Does not include types that aren't wrapped (i.e. title, empty lines and examples).
+#[derive(Clone, Copy, PartialEq)]
+enum LineType {
+    Desc,
+    Bullet,
 }
 
 impl<'a> PageRenderer<'a> {
@@ -190,13 +189,7 @@ impl<'a> PageRenderer<'a> {
     }
 
     /// Split the line into multiple lines if it's longer than the configured max length.
-    fn splitln(
-        &self,
-        s: &'a str,
-        indent: &str,
-        prefix_width: usize,
-        ltype: LineType,
-    ) -> Cow<'a, str> {
+    fn splitln(&self, s: &'a str, indent: &str, ltype: LineType) -> Cow<'a, str> {
         let Some(max_len) = self.max_len else {
             // We don't have the max length. Just print the entire line then.
             return Cow::Borrowed(s);
@@ -210,6 +203,11 @@ impl<'a> PageRenderer<'a> {
 
         let words = s.split(' ');
         let len_s = s.len();
+        let prefix_width = if ltype == LineType::Bullet && self.cfg.output.show_hyphens {
+            self.cfg.output.example_prefix.width()
+        } else {
+            0
+        };
         let base_width = len_indent + prefix_width;
         let mut cur_width = base_width;
         //                  current_len + base_width * amount of added newlines
@@ -222,27 +220,18 @@ impl<'a> PageRenderer<'a> {
             Cow::Owned(" ".repeat(prefix_width) + indent)
         };
 
-        #[allow(clippy::items_after_statements)]
-        enum InsideHl {
-            Code,
-            Placeholder,
-            NotInside,
-        }
-
-        // Are we inside something highlighted (i.e. backticks or placeholders)?
-        let mut inside_hl = InsideHl::NotInside;
+        // Is the current word highlighted (inside backticks)?
+        let mut inside_hl = false;
 
         let style_normal = match ltype {
             LineType::Desc => self.style.desc,
             LineType::Bullet => self.style.bullet,
-            LineType::Example => self.style.example,
         };
 
         for w in words {
-            if ltype == LineType::Example && w.contains("{{") {
-                inside_hl = InsideHl::Placeholder;
-            }
-            let w_width = w.width();
+            let mut w_width = w.width();
+            let backtick_count = w.chars().filter(|x| *x == '`').count();
+            w_width -= backtick_count;
 
             if cur_width + w_width > max_len && cur_width != base_width {
                 // If the next word is added, the line will be longer than the configured line
@@ -258,10 +247,10 @@ impl<'a> PageRenderer<'a> {
                 buf += &indent;
                 if yansi::is_enabled() {
                     // Reenable the style.
-                    let _ = match inside_hl {
-                        InsideHl::Code => self.style.inline_code.fmt_prefix(&mut buf),
-                        InsideHl::Placeholder => self.style.placeholder.fmt_prefix(&mut buf),
-                        InsideHl::NotInside => style_normal.fmt_prefix(&mut buf),
+                    let _ = if inside_hl {
+                        self.style.inline_code.fmt_prefix(&mut buf)
+                    } else {
+                        style_normal.fmt_prefix(&mut buf)
                     };
                 }
                 cur_width = base_width;
@@ -274,15 +263,8 @@ impl<'a> PageRenderer<'a> {
             buf += w;
             cur_width += w_width;
 
-            if ltype != LineType::Example && w.chars().filter(|x| *x == '`').count() == 1 {
-                inside_hl = match inside_hl {
-                    InsideHl::NotInside => InsideHl::Code,
-                    InsideHl::Code => InsideHl::NotInside,
-                    // If this line isn't an example, there is no way this happens.
-                    InsideHl::Placeholder => unreachable!(),
-                };
-            } else if ltype == LineType::Example && w.contains("}}") {
-                inside_hl = InsideHl::NotInside;
+            if backtick_count == 1 {
+                inside_hl = !inside_hl;
             }
         }
 
@@ -404,7 +386,7 @@ impl<'a> PageRenderer<'a> {
     fn add_desc(&mut self) -> Result<()> {
         let indent = " ".repeat(self.cfg.indent.description);
         let line = self.current_line.strip_prefix(DESC).unwrap();
-        let line = self.splitln(line, &indent, 0, LineType::Desc);
+        let line = self.splitln(line, &indent, LineType::Desc);
         let desc = self.hl_code(&self.hl_url(&line, self.style.desc), self.style.desc);
 
         writeln!(self.stdout, "{indent}{desc}")?;
@@ -418,15 +400,10 @@ impl<'a> PageRenderer<'a> {
         let line = if self.cfg.output.show_hyphens {
             self.current_line
                 .replace_range(..2, &self.cfg.output.example_prefix);
-            self.splitln(
-                &self.current_line,
-                &indent,
-                self.cfg.output.example_prefix.width(),
-                LineType::Bullet,
-            )
+            self.splitln(&self.current_line, &indent, LineType::Bullet)
         } else {
             let l = self.current_line.strip_prefix(BULLET).unwrap();
-            self.splitln(l, &indent, 0, LineType::Bullet)
+            self.splitln(l, &indent, LineType::Bullet)
         };
 
         let bullet = self.hl_code(&self.hl_url(&line, self.style.bullet), self.style.bullet);
@@ -445,22 +422,18 @@ impl<'a> PageRenderer<'a> {
             .replace("\\}\\}", " \\}\\} ");
 
         let indent = " ".repeat(self.cfg.indent.example);
-        let line = self.splitln(
-            self.current_line
-                .strip_prefix(EXAMPLE)
-                .unwrap()
-                .strip_suffix('`')
-                .ok_or_else(|| {
-                    Error::parse_page(self.path, self.lnum, &self.current_line)
-                        .describe("\nEvery line with an example must end with a backtick '`'.")
-                })?,
-            &indent,
-            0,
-            LineType::Example,
-        );
+        let line = self
+            .current_line
+            .strip_prefix(EXAMPLE)
+            .unwrap()
+            .strip_suffix('`')
+            .ok_or_else(|| {
+                Error::parse_page(self.path, self.lnum, &self.current_line)
+                    .describe("\nEvery line with an example must end with a backtick '`'.")
+            })?;
 
         let example = self
-            .hl_placeholder(&line, self.style.example)
+            .hl_placeholder(line, self.style.example)
             // Remove the extra spaces and backslashes.
             .replace(" \\{\\{ ", "{{")
             .replace(" \\}\\} ", "}}");
