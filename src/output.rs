@@ -28,6 +28,15 @@ struct RenderStyles {
     placeholder: Style,
 }
 
+/// Type of the line.
+/// Does not include types where there's nothing to highlight (i.e. title and empty lines).
+#[derive(Clone, Copy, PartialEq)]
+enum LineType {
+    Desc,
+    Bullet,
+    Example,
+}
+
 pub struct PageRenderer<'a> {
     /// Path to the page.
     path: &'a Path,
@@ -186,7 +195,7 @@ impl<'a> PageRenderer<'a> {
         s: &'a str,
         indent: &str,
         prefix_width: usize,
-        style_normal: Style,
+        ltype: LineType,
     ) -> Cow<'a, str> {
         let Some(max_len) = self.max_len else {
             // We don't have the max length. Just print the entire line then.
@@ -213,7 +222,26 @@ impl<'a> PageRenderer<'a> {
             Cow::Owned(" ".repeat(prefix_width) + indent)
         };
 
+        #[allow(clippy::items_after_statements)]
+        enum InsideHl {
+            Code,
+            Placeholder,
+            NotInside,
+        }
+
+        // Are we inside something highlighted (i.e. backticks or placeholders)?
+        let mut inside_hl = InsideHl::NotInside;
+
+        let style_normal = match ltype {
+            LineType::Desc => self.style.desc,
+            LineType::Bullet => self.style.bullet,
+            LineType::Example => self.style.example,
+        };
+
         for w in words {
+            if ltype == LineType::Example && w.contains("{{") {
+                inside_hl = InsideHl::Placeholder;
+            }
             let w_width = w.width();
 
             if cur_width + w_width > max_len && cur_width != base_width {
@@ -230,7 +258,11 @@ impl<'a> PageRenderer<'a> {
                 buf += &indent;
                 if yansi::is_enabled() {
                     // Reenable the style.
-                    let _ = style_normal.fmt_prefix(&mut buf);
+                    let _ = match inside_hl {
+                        InsideHl::Code => self.style.inline_code.fmt_prefix(&mut buf),
+                        InsideHl::Placeholder => self.style.placeholder.fmt_prefix(&mut buf),
+                        InsideHl::NotInside => style_normal.fmt_prefix(&mut buf),
+                    };
                 }
                 cur_width = base_width;
             } else if cur_width != base_width {
@@ -241,6 +273,17 @@ impl<'a> PageRenderer<'a> {
 
             buf += w;
             cur_width += w_width;
+
+            if ltype != LineType::Example && w.chars().filter(|x| *x == '`').count() == 1 {
+                inside_hl = match inside_hl {
+                    InsideHl::NotInside => InsideHl::Code,
+                    InsideHl::Code => InsideHl::NotInside,
+                    // If this line isn't an example, there is no way this happens.
+                    InsideHl::Placeholder => unreachable!(),
+                };
+            } else if ltype == LineType::Example && w.contains("}}") {
+                inside_hl = InsideHl::NotInside;
+            }
         }
 
         Cow::Owned(buf)
@@ -361,7 +404,7 @@ impl<'a> PageRenderer<'a> {
     fn add_desc(&mut self) -> Result<()> {
         let indent = " ".repeat(self.cfg.indent.description);
         let line = self.current_line.strip_prefix(DESC).unwrap();
-        let line = self.splitln(line, &indent, 0, self.style.desc);
+        let line = self.splitln(line, &indent, 0, LineType::Desc);
         let desc = self.hl_code(&self.hl_url(&line, self.style.desc), self.style.desc);
 
         writeln!(self.stdout, "{indent}{desc}")?;
@@ -379,11 +422,11 @@ impl<'a> PageRenderer<'a> {
                 &self.current_line,
                 &indent,
                 self.cfg.output.example_prefix.width(),
-                self.style.bullet,
+                LineType::Bullet,
             )
         } else {
             let l = self.current_line.strip_prefix(BULLET).unwrap();
-            self.splitln(l, &indent, 0, self.style.bullet)
+            self.splitln(l, &indent, 0, LineType::Bullet)
         };
 
         let bullet = self.hl_code(&self.hl_url(&line, self.style.bullet), self.style.bullet);
@@ -413,7 +456,7 @@ impl<'a> PageRenderer<'a> {
                 })?,
             &indent,
             0,
-            self.style.example,
+            LineType::Example,
         );
 
         let example = self
