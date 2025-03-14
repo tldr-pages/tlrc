@@ -194,21 +194,22 @@ impl<'a> PageRenderer<'a> {
             // We don't have the max length. Just print the entire line then.
             return Cow::Borrowed(s);
         };
+
         let len_indent = indent.len();
-
-        if len_indent + s.width() <= max_len {
-            // The line is shorter than the max length. There is nothing to do.
-            return Cow::Borrowed(s);
-        }
-
-        let words = s.split(' ');
-        let len_s = s.len();
         let prefix_width = if ltype == LineType::Bullet && self.cfg.output.show_hyphens {
             self.cfg.output.example_prefix.width()
         } else {
             0
         };
         let base_width = len_indent + prefix_width;
+
+        if base_width + s.width() <= max_len {
+            // The line is shorter than the max length. There is nothing to do.
+            return Cow::Borrowed(s);
+        }
+
+        let words = s.split(' ');
+        let len_s = s.len();
         let mut cur_width = base_width;
         //                  current_len + base_width * amount of added newlines
         let mut buf = String::with_capacity(len_s + base_width * (len_s / max_len));
@@ -402,17 +403,16 @@ impl<'a> PageRenderer<'a> {
     /// Write the current line to the page buffer as a bullet point.
     fn add_bullet(&mut self) -> Result<()> {
         let indent = " ".repeat(self.cfg.indent.bullet);
-        let line = if self.cfg.output.show_hyphens {
-            self.current_line
-                .replace_range(..2, &self.cfg.output.example_prefix);
-            self.splitln(&self.current_line, &indent, LineType::Bullet)
-        } else {
-            let l = self.current_line.strip_prefix(BULLET).unwrap();
-            self.splitln(l, &indent, LineType::Bullet)
-        };
+        let line = self.current_line.strip_prefix(BULLET).unwrap();
+        let line = self.splitln(line, &indent, LineType::Bullet);
 
         let bullet = self.hl_code(&self.hl_url(&line, self.style.bullet), self.style.bullet);
-        writeln!(self.stdout, "{indent}{bullet}")?;
+        write!(self.stdout, "{indent}")?;
+        if self.cfg.output.show_hyphens {
+            let prefix = self.cfg.output.example_prefix.paint(self.style.bullet);
+            write!(self.stdout, "{prefix}")?;
+        }
+        writeln!(self.stdout, "{bullet}")?;
 
         Ok(())
     }
