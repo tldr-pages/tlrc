@@ -1,5 +1,5 @@
 .\" vim: colorcolumn=100 textwidth=100
-.TH "TLRC" "1" "2025-02-08"  "tlrc 1.10.0" "tlrc manual"
+.TH "TLRC" "1" "2025-03-16"  "tlrc 1.11.0" "tlrc manual"
 .nh
 .ad l
 .SH NAME
@@ -76,6 +76,26 @@ See \fBhttps://github.com/tldr-pages/tldr/blob/main/CLIENT-SPECIFICATION.md#lang
 for a detailed description of how \fItlrc\fR determines the language.
 .
 .TP 4
+.B --short-options
+In option placeholders, display short options wherever possible.
+.br
+Example: "\fI{{[-s|--long]}}\fR" will be displayed as "\fB-s\fR" when using this option.\&
+Equivalent of setting \fIoutput.option_style\fR="\fBshort\fR" in the config.
+.sp
+When used with \fB--long-options\fR, the above placeholder will be displayed\&
+as "\fB[-s|--long]\fR". Using both options is equivalent to\&
+setting \fIoutput.option_style\fR="\fBboth\fR" in the config.
+.
+.TP 4
+.B --long-options
+In option placeholders, display long options wherever possible.
+.br
+Example: "\fI{{[-s|--long]}}\fR" will be displayed as "\fB--long\fR" when using this option.\&
+Equivalent of setting \fIoutput.option_style\fR="\fBlong\fR" in the config.
+.sp
+This is the default.
+.
+.TP 4
 .B -o, --offline
 Do not update the cache, even if it is stale and automatic updates are on.\&
 Similar to setting \fIcache.auto_update\fR=\fBfalse\fR in the config, except using this will\&
@@ -136,7 +156,7 @@ Print a help message.
 To generate a default config file, run:
 .IP
 .nf
-\fItldr\fR --gen-config > $(\fItldr\fR --config-path)
+\fItldr\fR --gen-config > "$(\fItldr\fR --config-path)"
 .fi
 .PP
 See \fBhttps://github.com/tldr-pages/tlrc#configuration\fR for an example config file\&

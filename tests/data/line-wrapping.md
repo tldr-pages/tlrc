@@ -4,4 +4,4 @@
 
 - This line should get split, because it's too long:
 
-`long examples should {{get}} split too`
+`long examples should not {{get}} split`

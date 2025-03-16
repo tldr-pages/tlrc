@@ -147,8 +147,18 @@ platform_title = false
 show_hyphens = false
 # Use a custom string instead of a hyphen.
 example_prefix = "- "
+# Set the max line length. 0 means to use the terminal width.
+# If a description is longer than this value, it will be split
+# into multiple lines.
+line_length = 0
 # Strip empty lines from output.
 compact = false
+# In option placeholders, show the specified option style.
+# Example: {{[-s|--long]}}
+# short  : -s
+# long   : --long
+# both   : [-s|--long]
+option_style = "long"
 # Print pages in raw markdown.
 raw_markdown = false
 
@@ -165,7 +175,9 @@ example = 4
 
 # Style for the title of the page (command name).
 [style.title]
-# Fixed colors:       "black", "red", "green", "yellow", "blue", "magenta", "cyan", "white", "default"
+# Fixed colors:       "black", "red", "green", "yellow", "blue", "magenta", "cyan", "white", "default",
+#                     "bright_black", "bright_red", "bright_green", "bright_yellow", "bright_blue",
+#                     "bright_magenta", "bright_cyan", "bright_white"
 # 256color ANSI code: { color256 = 50 }
 # RGB:                { rgb = [0, 255, 255] }
 # Hex:                { hex = "#ffffff" }
