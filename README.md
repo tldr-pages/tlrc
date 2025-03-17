@@ -83,7 +83,7 @@ pkgin install tlrc
 To build [tlrc][crate] from a source tarball, run:
 
 ```shell
-cargo install tlrc
+cargo install tlrc --locked
 ```
 
 > [!NOTE]
