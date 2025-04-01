@@ -139,7 +139,10 @@ impl<'a> PageRenderer<'a> {
         }
 
         for part in split {
-            if part.contains("}}") {
+            // Finding the last double ending brace is required for special cases with three
+            // closing curly braces ("}}}").
+            // The first brace is inside the placeholder, and the last two mark the end of it.
+            if let Some(idx) = part.rfind("}}") {
                 // The first part of the second split contains the part to be highlighted.
                 //
                 // "aa bb {{cc}} {{dd}} ee"
@@ -148,10 +151,6 @@ impl<'a> PageRenderer<'a> {
                 //                  1: "}}"
                 // 2: "dd}} ee"  => 0: "dd"    (highlighted)
                 //                  1: "}} ee"
-
-                // This is required for special cases with three closing curly braces ("}}}").
-                // The first brace is inside the placeholder, and the last two mark the end of it.
-                let idx = part.rmatch_indices("}}").last().unwrap().0;
                 let (inside, outside) = part.split_at(idx);
 
                 // Select the long or short option.
