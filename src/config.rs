@@ -234,6 +234,9 @@ pub struct CacheConfig {
     max_age: u64,
     /// Languages to download.
     pub languages: Vec<String>,
+    /// Enable optimistic cache - show stale content immediately
+    /// and defer cache update until after displaying the page.
+    pub optimistic_cache: bool,
 }
 
 impl Default for CacheConfig {
@@ -245,6 +248,7 @@ impl Default for CacheConfig {
             // 2 weeks
             max_age: 24 * 7 * 2,
             languages: vec![],
+            optimistic_cache: false,
         }
     }
 }
@@ -331,7 +335,7 @@ impl Config {
         })?)?)
     }
 
-    pub fn new(cli_config_path: Option<PathBuf>) -> Result<Self> {
+    pub fn new(cli_config_path: &Option<PathBuf>) -> Result<Self> {
         let cfg_res = if let Some(path) = cli_config_path {
             if path.is_file() {
                 Self::parse(&path)

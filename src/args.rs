@@ -107,6 +107,10 @@ pub struct Cli {
     #[arg(short, long)]
     pub offline: bool,
 
+    /// Enable optimistic cache for faster display (show stale cache first, then defer update).
+    #[arg(long)]
+    pub optimistic_cache: bool,
+
     /// Strip empty lines from output.
     #[arg(short, long)]
     pub compact: bool,
