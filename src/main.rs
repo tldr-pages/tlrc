@@ -22,15 +22,33 @@ use crate::util::{infoln, init_color, warnln};
 static QUIET: AtomicBool = AtomicBool::new(false);
 
 fn main() -> ExitCode {
-    match run() {
+    let (cli, cfg) = match parse_cli_and_cfg() {
+        Ok(stuff) => stuff,
+        Err(e) => return e.exit_code(),
+    };
+    match run(cli, cfg) {
         Ok(()) => ExitCode::SUCCESS,
         Err(e) => e.exit_code(),
     }
 }
 
-fn run() -> Result<()> {
+fn parse_cli_and_cfg() -> Result<(Cli, Config)> {
     let cli = Cli::parse();
 
+    let mut cfg = Config::new(&cli.config)?;
+    cfg.output.compact = !cli.no_compact && (cli.compact || cfg.output.compact);
+    cfg.output.raw_markdown = !cli.no_raw && (cli.raw || cfg.output.raw_markdown);
+    cfg.cache.optimistic_cache = cli.optimistic_cache || cfg.cache.optimistic_cache;
+    cfg.output.option_style = match (cli.short_options, cli.long_options) {
+        (false, false) => cfg.output.option_style,
+        (true, true) => OptionStyle::Both,
+        (true, false) => OptionStyle::Short,
+        (false, true) => OptionStyle::Long,
+    };
+    Ok((cli, cfg))
+}
+
+fn run(mut cli: Cli, mut cfg: Config) -> Result<()> {
     if cli.config_path {
         return Config::print_path();
     }
@@ -45,16 +63,6 @@ fn run() -> Result<()> {
 
     init_color(cli.color);
 
-    let mut cfg = Config::new(cli.config)?;
-    cfg.output.compact = !cli.no_compact && (cli.compact || cfg.output.compact);
-    cfg.output.raw_markdown = !cli.no_raw && (cli.raw || cfg.output.raw_markdown);
-    cfg.output.option_style = match (cli.short_options, cli.long_options) {
-        (false, false) => cfg.output.option_style,
-        (true, true) => OptionStyle::Both,
-        (true, false) => OptionStyle::Short,
-        (false, true) => OptionStyle::Long,
-    };
-
     if let Some(path) = cli.render {
         return PageRenderer::print(&path, &cfg);
     }
@@ -62,7 +70,10 @@ fn run() -> Result<()> {
     let languages_are_from_cli = cli.languages.is_some();
     // We need to clone() because this vector will not be sorted,
     // unlike the one in the config.
-    let languages = cli.languages.unwrap_or_else(|| cfg.cache.languages.clone());
+    let languages = cli
+        .languages
+        .clone()
+        .unwrap_or_else(|| cfg.cache.languages.clone());
     let cache = Cache::new(&cfg.cache.dir);
 
     if cli.clean_cache {
@@ -73,6 +84,7 @@ fn run() -> Result<()> {
         // update() should never use languages from --language.
         return cache.update(&cfg.cache.mirror, &mut cfg.cache.languages);
     }
+    let mut should_defer_cache_update = false;
 
     if !cache.subdir_exists(cache::ENGLISH_DIR) {
         if cli.offline {
@@ -87,6 +99,12 @@ fn run() -> Result<()> {
         if cli.offline {
             warnln!(
                 "cache is stale (last update: {age} ago). Run tldr without --offline to update."
+            );
+        } else if cfg.cache.optimistic_cache {
+            should_defer_cache_update = true;
+            // For optimistic cache, we'll notify the user but defer the update until after displaying the page
+            warnln!(
+                "cache is stale (last update: {age} ago), will defer update after cache lookup. Run without --optimistic-cache to update before lookup"
             );
         } else {
             infoln!("cache is stale (last update: {age} ago), updating...");
@@ -125,6 +143,12 @@ fn run() -> Result<()> {
     let page_paths = cache.find(&page_name, &languages, platform)?;
 
     if page_paths.is_empty() {
+        if cfg.cache.optimistic_cache && should_defer_cache_update {
+            warnln!("Page not found, updating cache");
+            cfg.cache.optimistic_cache = false;
+            cli.optimistic_cache = false;
+            return run(cli, cfg);
+        }
         let mut e = Error::new("page not found.");
         return if languages_are_from_cli {
             e = e.describe("Try running tldr without --language.");
@@ -142,5 +166,12 @@ fn run() -> Result<()> {
         };
     }
 
-    PageRenderer::print_cache_result(&page_paths, &cfg)
+    PageRenderer::print_cache_result(&page_paths, &cfg)?;
+    if should_defer_cache_update {
+        infoln!("cache is stale, updating...");
+        cache
+            .update(&cfg.cache.mirror, &mut cfg.cache.languages)
+            .map_err(|e| e.describe(Error::DESC_AUTO_UPDATE_ERR))?;
+    };
+    Ok(())
 }
