@@ -83,7 +83,7 @@ impl<'a> Cache<'a> {
     ) -> Result<BTreeMap<String, PagesArchive>> {
         let agent = ureq::Agent::config_builder()
             .user_agent(USER_AGENT)
-            .timeout_global(Some(Duration::from_secs(10)))
+            .timeout_global(Some(Duration::from_secs(30)))
             .tls_config(
                 TlsConfig::builder()
                     .root_certs(RootCerts::PlatformVerifier)
