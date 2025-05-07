@@ -131,9 +131,8 @@ mirror = "https://github.com/tldr-pages/tldr/releases/latest/download"
 # Automatically update the cache if it's older than max_age hours.
 auto_update = true
 max_age = 336 # 336 hours = 2 weeks
-# Enable optimistic cache for faster display - shows stale content first, 
-# then defers cache update until after displaying the page.
-optimistic_cache = false
+# Defers cache automatic update until after displaying the page.
+defer_auto_update = false
 # Specify a list of desired page languages. If it's empty, languages specified in
 # the LANG and LANGUAGE environment variables are downloaded.
 # English is implied and will always be downloaded.

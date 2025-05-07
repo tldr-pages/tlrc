@@ -8,7 +8,7 @@ repository = "https://github.com/tldr-pages/tlrc"
 documentation = "https://tldr.sh/tlrc"
 license = "MIT"
 edition = "2021"
-rust-version = "1.74"
+rust-version = "1.75"
 
 [[bin]]
 name = "tldr"

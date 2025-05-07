@@ -9,7 +9,7 @@ use terminal_size::terminal_size;
 use unicode_width::UnicodeWidthStr;
 use yansi::{Paint, Style};
 
-use crate::config::{Config, OptionStyle};
+use crate::config::{OptionStyle, RenderConfig};
 use crate::error::{Error, ErrorKind, Result};
 use crate::util::{warnln, PagePathExt};
 
@@ -43,8 +43,7 @@ pub struct PageRenderer<'a> {
     max_len: Option<usize>,
     /// Style configuration.
     style: RenderStyles,
-    /// Other options.
-    cfg: &'a Config,
+    cfg: &'a RenderConfig,
 }
 
 /// Write a `yansi::Painted` to a `String`.
@@ -277,7 +276,7 @@ impl<'a> PageRenderer<'a> {
     }
 
     /// Print or render the page according to the provided config.
-    pub fn print(path: &'a Path, cfg: &'a Config) -> Result<()> {
+    pub fn print(path: &'a Path, cfg: &'a RenderConfig) -> Result<()> {
         let mut page = File::open(path)
             .map_err(|e| Error::new(format!("'{}': {e}", path.display())).kind(ErrorKind::Io))?;
 
@@ -314,7 +313,7 @@ impl<'a> PageRenderer<'a> {
     }
 
     /// Print the first page that was found and warnings for every other page.
-    pub fn print_cache_result(paths: &'a [PathBuf], cfg: &'a Config) -> Result<()> {
+    pub fn print_cache_result(paths: &'a [PathBuf], cfg: &'a RenderConfig) -> Result<()> {
         if !crate::QUIET.load(Relaxed) && paths.len() != 1 {
             let mut stderr = io::stderr().lock();
             let other_pages = &paths[1..];
