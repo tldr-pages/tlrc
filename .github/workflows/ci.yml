@@ -41,12 +41,14 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
+        # Stable and MSRV
+        rust_version: [stable, 1.74]
 
     steps:
       - name: Checkout the repository
         uses: actions/checkout@v4
       - name: Update Rust
-        run: rustup update stable
+        run: rustup update "${{ matrix.rust_version }}" && rustup default "${{ matrix.rust_version }}"
       - name: Build
         run: cargo build --verbose
       - name: Run tests
