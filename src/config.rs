@@ -230,6 +230,8 @@ pub struct CacheConfig {
     /// Automatically update the cache
     /// if it is older than `max_age` hours.
     pub auto_update: bool,
+    /// Perform the automatic update after the page is shown.
+    pub defer_auto_update: bool,
     /// Max cache age in hours.
     max_age: u64,
     /// Languages to download.
@@ -242,6 +244,7 @@ impl Default for CacheConfig {
             dir: Cache::locate(),
             mirror: Cow::Borrowed("https://github.com/tldr-pages/tldr/releases/latest/download"),
             auto_update: true,
+            defer_auto_update: false,
             // 2 weeks
             max_age: 24 * 7 * 2,
             languages: vec![],
@@ -331,10 +334,10 @@ impl Config {
         })?)?)
     }
 
-    pub fn new(cli_config_path: Option<PathBuf>) -> Result<Self> {
+    pub fn new(cli_config_path: Option<&Path>) -> Result<Self> {
         let cfg_res = if let Some(path) = cli_config_path {
             if path.is_file() {
-                Self::parse(&path)
+                Self::parse(path)
             } else {
                 warnln!("'{}': not a file, ignoring --config", path.display());
                 Ok(Self::default())

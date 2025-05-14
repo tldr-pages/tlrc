@@ -28,6 +28,17 @@ fn main() -> ExitCode {
     }
 }
 
+fn include_cli_in_config(cfg: &mut Config, cli: &Cli) {
+    cfg.output.compact = !cli.no_compact && (cli.compact || cfg.output.compact);
+    cfg.output.raw_markdown = !cli.no_raw && (cli.raw || cfg.output.raw_markdown);
+    match (cli.short_options, cli.long_options) {
+        (false, false) => {}
+        (true, true) => cfg.output.option_style = OptionStyle::Both,
+        (true, false) => cfg.output.option_style = OptionStyle::Short,
+        (false, true) => cfg.output.option_style = OptionStyle::Long,
+    }
+}
+
 fn run() -> Result<()> {
     let cli = Cli::parse();
 
@@ -45,15 +56,8 @@ fn run() -> Result<()> {
 
     init_color(cli.color);
 
-    let mut cfg = Config::new(cli.config)?;
-    cfg.output.compact = !cli.no_compact && (cli.compact || cfg.output.compact);
-    cfg.output.raw_markdown = !cli.no_raw && (cli.raw || cfg.output.raw_markdown);
-    cfg.output.option_style = match (cli.short_options, cli.long_options) {
-        (false, false) => cfg.output.option_style,
-        (true, true) => OptionStyle::Both,
-        (true, false) => OptionStyle::Short,
-        (false, true) => OptionStyle::Long,
-    };
+    let mut cfg = Config::new(cli.config.as_deref())?;
+    include_cli_in_config(&mut cfg, &cli);
 
     if let Some(path) = cli.render {
         return PageRenderer::print(&path, &cfg);
@@ -74,6 +78,9 @@ fn run() -> Result<()> {
         return cache.update(&cfg.cache.mirror, &mut cfg.cache.languages);
     }
 
+    // Update after displaying the page?
+    let mut update_later = false;
+
     if !cache.subdir_exists(cache::ENGLISH_DIR) {
         if cli.offline {
             return Err(Error::offline_no_cache());
@@ -88,6 +95,9 @@ fn run() -> Result<()> {
             warnln!(
                 "cache is stale (last update: {age} ago). Run tldr without --offline to update."
             );
+        } else if cfg.cache.defer_auto_update {
+            infoln!("cache is stale (last update: {age} ago), update has been deferred");
+            update_later = true;
         } else {
             infoln!("cache is stale (last update: {age} ago), updating...");
             cache
@@ -106,41 +116,57 @@ fn run() -> Result<()> {
     };
 
     if cli.list {
-        return cache.list_for(platform);
-    }
-    if cli.list_all {
-        return cache.list_all();
-    }
-    if cli.info {
-        return cache.info(&cfg);
-    }
-    if cli.list_platforms {
-        return cache.list_platforms();
-    }
-    if cli.list_languages {
-        return cache.list_languages();
+        cache.list_for(platform)?;
+    } else if cli.list_all {
+        cache.list_all()?;
+    } else if cli.info {
+        cache.info(&cfg)?;
+    } else if cli.list_platforms {
+        cache.list_platforms()?;
+    } else if cli.list_languages {
+        cache.list_languages()?;
+    } else {
+        let page_name = cli.page.join("-").to_lowercase();
+        let mut page_paths = cache.find(&page_name, &languages, platform)?;
+        let forced_update_no_page = update_later && page_paths.is_empty();
+        if forced_update_no_page {
+            // Since the page hasn't been found and the cache is stale, disregard the defer option.
+            warnln!("page not found, updating now...");
+            cache
+                .update(&cfg.cache.mirror, &mut cfg.cache.languages)
+                .map_err(|e| e.describe(Error::DESC_AUTO_UPDATE_ERR))?;
+            page_paths = cache.find(&page_name, &languages, platform)?;
+            // Reset the defer flag in order not to update twice.
+            update_later = false;
+        }
+
+        if page_paths.is_empty() {
+            let mut e = Error::new("page not found.");
+            return if languages_are_from_cli {
+                e = e.describe("Try running tldr without --language.");
+
+                if !languages
+                    .iter()
+                    .all(|x| cache.subdir_exists(&format!("pages.{x}")))
+                {
+                    e = e.describe(Error::DESC_LANG_NOT_INSTALLED);
+                }
+
+                Err(e)
+            } else {
+                // If the cache has been updated, don't suggest running 'tldr --update'.
+                Err(e.describe(Error::desc_page_does_not_exist(!forced_update_no_page)))
+            };
+        }
+
+        PageRenderer::print_cache_result(&page_paths, &cfg)?;
     }
 
-    let page_name = cli.page.join("-").to_lowercase();
-    let page_paths = cache.find(&page_name, &languages, platform)?;
-
-    if page_paths.is_empty() {
-        let mut e = Error::new("page not found.");
-        return if languages_are_from_cli {
-            e = e.describe("Try running tldr without --language.");
-
-            if !languages
-                .iter()
-                .all(|x| cache.subdir_exists(&format!("pages.{x}")))
-            {
-                e = e.describe(Error::DESC_LANG_NOT_INSTALLED);
-            }
-
-            Err(e)
-        } else {
-            Err(e.describe(Error::desc_page_does_not_exist()))
-        };
+    if update_later {
+        cache
+            .update(&cfg.cache.mirror, &mut cfg.cache.languages)
+            .map_err(|e| e.describe(Error::DESC_AUTO_UPDATE_ERR))?;
     }
 
-    PageRenderer::print_cache_result(&page_paths, &cfg)
+    Ok(())
 }

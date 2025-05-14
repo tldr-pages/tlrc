@@ -77,9 +77,14 @@ impl Error {
         Error::new("could not parse the checksum file").kind(ErrorKind::Download)
     }
 
-    pub fn desc_page_does_not_exist() -> String {
+    pub fn desc_page_does_not_exist(try_update: bool) -> String {
+        let e = if try_update {
+            "Try running 'tldr --update'.\n\n"
+        } else {
+            "\n\n"
+        };
         format!(
-            "Try running 'tldr --update'.\n\n\
+            "{e}\
             If the page does not exist, you can create an issue here:\n\
             {}\n\
             or document it yourself and create a pull request here:\n\
