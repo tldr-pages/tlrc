@@ -3,6 +3,7 @@ use std::env;
 use std::fs;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
+use std::time::Duration;
 
 use serde::de::{Unexpected, Visitor};
 use serde::{Deserialize, Deserializer, Serialize};
@@ -229,12 +230,12 @@ pub struct CacheConfig {
     /// Automatically update the cache
     /// if it is older than `max_age` hours.
     pub auto_update: bool,
+    /// Perform the automatic update after the page is shown.
+    pub defer_auto_update: bool,
     /// Max cache age in hours.
-    pub max_age: u64,
+    max_age: u64,
     /// Languages to download.
     pub languages: Vec<String>,
-    /// Defers cache automatic update until after displaying the page.
-    pub defer_auto_update: bool,
 }
 
 impl Default for CacheConfig {
@@ -243,10 +244,10 @@ impl Default for CacheConfig {
             dir: Cache::locate(),
             mirror: Cow::Borrowed("https://github.com/tldr-pages/tldr/releases/latest/download"),
             auto_update: true,
+            defer_auto_update: false,
             // 2 weeks
             max_age: 24 * 7 * 2,
             languages: vec![],
-            defer_auto_update: false,
         }
     }
 }
@@ -306,13 +307,6 @@ pub struct IndentConfig {
     pub example: usize,
 }
 
-#[derive(Serialize, Deserialize, Default)]
-pub struct RenderConfig {
-    pub output: OutputConfig,
-    pub indent: IndentConfig,
-    pub style: StyleConfig,
-}
-
 impl Default for IndentConfig {
     fn default() -> Self {
         Self {
@@ -340,15 +334,19 @@ impl Config {
         })?)?)
     }
 
-    pub fn new(cli_config_path: Option<&PathBuf>) -> Result<Self> {
-        let cfg_res = {
-            let path = cli_config_path.cloned().unwrap_or_else(Self::locate);
+    pub fn new(cli_config_path: Option<&Path>) -> Result<Self> {
+        let cfg_res = if let Some(path) = cli_config_path {
+            if path.is_file() {
+                Self::parse(path)
+            } else {
+                warnln!("'{}': not a file, ignoring --config", path.display());
+                Ok(Self::default())
+            }
+        } else {
+            let path = Self::locate();
             if path.is_file() {
                 Self::parse(&path)
             } else {
-                if cli_config_path.is_some() {
-                    warnln!("'{}': not a file, ignoring --config", path.display());
-                }
                 Ok(Self::default())
             }
         };
@@ -403,5 +401,10 @@ impl Config {
         let cfg = toml::ser::to_string_pretty(&cfg).unwrap();
         write!(io::stdout(), "{cfg}")?;
         Ok(())
+    }
+
+    /// Convert the number of hours from config to a `Duration`.
+    pub const fn cache_max_age(&self) -> Duration {
+        Duration::from_secs(self.cache.max_age * 60 * 60)
     }
 }

@@ -9,50 +9,39 @@ use std::process::ExitCode;
 use std::sync::atomic::{AtomicBool, Ordering::Relaxed};
 
 use clap::Parser;
-use config::{CacheConfig, RenderConfig};
+use yansi::Paint;
 
 use crate::args::Cli;
 use crate::cache::Cache;
 use crate::config::{Config, OptionStyle};
 use crate::error::{Error, Result};
 use crate::output::PageRenderer;
-use crate::util::init_color;
+use crate::util::{infoln, init_color, warnln};
 
 /// If this is set to true, do not print anything except pages and errors.
 static QUIET: AtomicBool = AtomicBool::new(false);
 
 fn main() -> ExitCode {
-    let (cli, cfg, render) = match parse_cli_and_cfg() {
-        Ok(stuff) => stuff,
-        Err(e) => return e.exit_code(),
-    };
-    match run(cli, cfg, &render) {
+    match run() {
         Ok(()) => ExitCode::SUCCESS,
         Err(e) => e.exit_code(),
     }
 }
 
-fn parse_cli_and_cfg() -> Result<(Cli, CacheConfig, RenderConfig)> {
-    let cli = Cli::parse();
-
-    let mut cfg = Config::new(cli.config.as_ref())?;
+fn include_cli_in_config(cfg: &mut Config, cli: &Cli) {
     cfg.output.compact = !cli.no_compact && (cli.compact || cfg.output.compact);
     cfg.output.raw_markdown = !cli.no_raw && (cli.raw || cfg.output.raw_markdown);
-    cfg.output.option_style = match (cli.short_options, cli.long_options) {
-        (false, false) => cfg.output.option_style,
-        (true, true) => OptionStyle::Both,
-        (true, false) => OptionStyle::Short,
-        (false, true) => OptionStyle::Long,
-    };
-    let render = RenderConfig {
-        output: cfg.output,
-        style: cfg.style,
-        indent: cfg.indent,
-    };
-    Ok((cli, cfg.cache, render))
+    match (cli.short_options, cli.long_options) {
+        (false, false) => {}
+        (true, true) => cfg.output.option_style = OptionStyle::Both,
+        (true, false) => cfg.output.option_style = OptionStyle::Short,
+        (false, true) => cfg.output.option_style = OptionStyle::Long,
+    }
 }
 
-fn run(cli: Cli, cache: CacheConfig, render: &RenderConfig) -> Result<()> {
+fn run() -> Result<()> {
+    let cli = Cli::parse();
+
     if cli.config_path {
         return Config::print_path();
     }
@@ -67,14 +56,18 @@ fn run(cli: Cli, cache: CacheConfig, render: &RenderConfig) -> Result<()> {
 
     init_color(cli.color);
 
+    let mut cfg = Config::new(cli.config.as_deref())?;
+    include_cli_in_config(&mut cfg, &cli);
+
     if let Some(path) = cli.render {
-        return PageRenderer::print(&path, render);
+        return PageRenderer::print(&path, &cfg);
     }
 
     let languages_are_from_cli = cli.languages.is_some();
     // We need to clone() because this vector will not be sorted,
     // unlike the one in the config.
-    let cache = Cache::new(cache);
+    let languages = cli.languages.unwrap_or_else(|| cfg.cache.languages.clone());
+    let cache = Cache::new(&cfg.cache.dir);
 
     if cli.clean_cache {
         return cache.clean();
@@ -82,13 +75,36 @@ fn run(cli: Cli, cache: CacheConfig, render: &RenderConfig) -> Result<()> {
 
     if cli.update {
         // update() should never use languages from --language.
-        return cache.update();
+        return cache.update(&cfg.cache.mirror, &mut cfg.cache.languages);
     }
 
-    // only load requires mutability
-    let mut cache = cache;
-    cache.load(cli.offline)?;
-    let cache = cache;
+    // Update after displaying the page?
+    let mut update_later = false;
+
+    if !cache.subdir_exists(cache::ENGLISH_DIR) {
+        if cli.offline {
+            return Err(Error::offline_no_cache());
+        }
+        infoln!("cache is empty, downloading...");
+        cache.update(&cfg.cache.mirror, &mut cfg.cache.languages)?;
+    } else if cfg.cache.auto_update && cache.age()? > cfg.cache_max_age() {
+        let age = util::duration_fmt(cache.age()?.as_secs());
+        let age = age.green().bold();
+
+        if cli.offline {
+            warnln!(
+                "cache is stale (last update: {age} ago). Run tldr without --offline to update."
+            );
+        } else if cfg.cache.defer_auto_update {
+            infoln!("cache is stale (last update: {age} ago), update has been deferred");
+            update_later = true;
+        } else {
+            infoln!("cache is stale (last update: {age} ago), updating...");
+            cache
+                .update(&cfg.cache.mirror, &mut cfg.cache.languages)
+                .map_err(|e| e.describe(Error::DESC_AUTO_UPDATE_ERR))?;
+        }
+    }
 
     // "macos" should be an alias of "osx".
     // Since the `macos` directory doesn't exist, this has to be changed before it
@@ -100,44 +116,57 @@ fn run(cli: Cli, cache: CacheConfig, render: &RenderConfig) -> Result<()> {
     };
 
     if cli.list {
-        return cache.list_for(platform);
-    }
-    if cli.list_all {
-        return cache.list_all();
-    }
-    if cli.info {
-        return cache.info();
-    }
-    if cli.list_platforms {
-        return cache.list_platforms();
-    }
-    if cli.list_languages {
-        return cache.list_languages();
-    }
+        cache.list_for(platform)?;
+    } else if cli.list_all {
+        cache.list_all()?;
+    } else if cli.info {
+        cache.info(&cfg)?;
+    } else if cli.list_platforms {
+        cache.list_platforms()?;
+    } else if cli.list_languages {
+        cache.list_languages()?;
+    } else {
+        let page_name = cli.page.join("-").to_lowercase();
+        let mut page_paths = cache.find(&page_name, &languages, platform)?;
+        let forced_update_no_page = update_later && page_paths.is_empty();
+        if forced_update_no_page {
+            // Since the page hasn't been found and the cache is stale, disregard the defer option.
+            warnln!("page not found, updating now...");
+            cache
+                .update(&cfg.cache.mirror, &mut cfg.cache.languages)
+                .map_err(|e| e.describe(Error::DESC_AUTO_UPDATE_ERR))?;
+            page_paths = cache.find(&page_name, &languages, platform)?;
+            // Reset the defer flag in order not to update twice.
+            update_later = false;
+        }
 
-    let page_name = cli.page.join("-").to_lowercase();
-    let page_paths = cache.find(&page_name, cli.languages.as_deref(), platform)?;
+        if page_paths.is_empty() {
+            let mut e = Error::new("page not found.");
+            return if languages_are_from_cli {
+                e = e.describe("Try running tldr without --language.");
 
-    if page_paths.is_empty() {
-        let mut e = Error::new("page not found.");
-        return if languages_are_from_cli {
-            e = e.describe("Try running tldr without --language.");
-
-            if !cli.languages.is_some_and(|languages| {
-                languages
+                if !languages
                     .iter()
                     .all(|x| cache.subdir_exists(&format!("pages.{x}")))
-            }) {
-                e = e.describe(Error::DESC_LANG_NOT_INSTALLED);
-            }
+                {
+                    e = e.describe(Error::DESC_LANG_NOT_INSTALLED);
+                }
 
-            Err(e)
-        } else {
-            Err(e.describe(Error::desc_page_does_not_exist()))
-        };
+                Err(e)
+            } else {
+                // If the cache has been updated, don't suggest running 'tldr --update'.
+                Err(e.describe(Error::desc_page_does_not_exist(!forced_update_no_page)))
+            };
+        }
+
+        PageRenderer::print_cache_result(&page_paths, &cfg)?;
     }
 
-    PageRenderer::print_cache_result(&page_paths, render)?;
-    cache.check_deferred_auto_update()?;
+    if update_later {
+        cache
+            .update(&cfg.cache.mirror, &mut cfg.cache.languages)
+            .map_err(|e| e.describe(Error::DESC_AUTO_UPDATE_ERR))?;
+    }
+
     Ok(())
 }

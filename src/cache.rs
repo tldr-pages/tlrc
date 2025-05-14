@@ -1,16 +1,16 @@
 use std::collections::{BTreeMap, HashMap};
 use std::ffi::OsString;
 use std::fs::{self, File};
-use std::io::{self, BufWriter, Cursor, Read, Write};
+use std::io::{self, BufWriter, Cursor, Write};
 use std::path::{Path, PathBuf};
-use std::time::{Duration, SystemTime};
+use std::time::Duration;
 
 use once_cell::unsync::OnceCell;
 use ureq::tls::{RootCerts, TlsConfig};
 use yansi::Paint;
 use zip::ZipArchive;
 
-use crate::config::CacheConfig;
+use crate::config::Config;
 use crate::error::{Error, Result};
 use crate::util::{self, info_end, info_start, infoln, warnln, Dedup};
 
@@ -19,22 +19,18 @@ const USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), '/', env!("CARGO_PKG_VE
 
 type PagesArchive = ZipArchive<Cursor<Vec<u8>>>;
 
-pub struct Cache {
+pub struct Cache<'a> {
+    dir: &'a Path,
     platforms: OnceCell<Vec<OsString>>,
-    cfg: CacheConfig,
-    run_deferred_auto_update: bool,
+    age: OnceCell<Duration>,
 }
 
-impl Cache {
-    pub fn new(mut cfg: CacheConfig) -> Self {
-        // Sort to always download archives in alphabetical order.
-        cfg.languages.sort_unstable();
-        // The user can put duplicates in the config file.
-        cfg.languages.dedup();
+impl<'a> Cache<'a> {
+    pub fn new(dir: &'a Path) -> Self {
         Self {
+            dir,
             platforms: OnceCell::new(),
-            cfg,
-            run_deferred_auto_update: false,
+            age: OnceCell::new(),
         }
     }
 
@@ -45,7 +41,7 @@ impl Cache {
 
     /// Return `true` if the specified subdirectory exists in the cache.
     pub fn subdir_exists(&self, sd: &str) -> bool {
-        self.cfg.dir.join(sd).is_dir()
+        self.dir.join(sd).is_dir()
     }
 
     /// Send a GET request with the provided agent and return the response body.
@@ -80,7 +76,11 @@ impl Cache {
     }
 
     /// Download tldr pages archives for directories that are out of date and update the checksum file.
-    fn download_and_verify(&self) -> Result<BTreeMap<String, PagesArchive>> {
+    fn download_and_verify(
+        &self,
+        mirror: &str,
+        languages: &[String],
+    ) -> Result<BTreeMap<String, PagesArchive>> {
         let agent = ureq::Agent::config_builder()
             .user_agent(USER_AGENT)
             .timeout_global(Some(Duration::from_secs(30)))
@@ -92,25 +92,17 @@ impl Cache {
             .build()
             .into();
 
-        let sums = Self::get_asset(&agent, &format!("{}/tldr.sha256sums", self.cfg.mirror))?;
+        let sums = Self::get_asset(&agent, &format!("{mirror}/tldr.sha256sums"))?;
         let sums_str = String::from_utf8_lossy(&sums);
         let sum_map = Self::parse_sumfile(&sums_str)?;
 
-        let old_sumfile_path = self.cfg.dir.join("tldr.sha256sums");
-        let mut old_sumfile = fs::File::open(&old_sumfile_path);
-        let old_sums = old_sumfile
-            .as_mut()
-            .map(|f| {
-                let mut s = String::new();
-                let _ = f.read_to_string(&mut s);
-                s
-            })
-            .unwrap_or_default();
+        let old_sumfile_path = self.dir.join("tldr.sha256sums");
+        let old_sums = fs::read_to_string(&old_sumfile_path).unwrap_or_default();
         let old_sum_map = Self::parse_sumfile(&old_sums).unwrap_or_default();
 
         let mut langdir_archive_map = BTreeMap::new();
 
-        for lang in &self.cfg.languages {
+        for lang in languages {
             let lang = &**lang;
             let Some(sum) = sum_map.get(lang) else {
                 // Skip nonexistent languages.
@@ -120,17 +112,10 @@ impl Cache {
             let lang_dir = format!("pages.{lang}");
             if Some(sum) == old_sum_map.get(lang) && self.subdir_exists(&lang_dir) {
                 infoln!("'pages.{lang}' is up to date");
-                // update modified to current timestamp to refresh cache age
-                if let Ok(ref mut file) = old_sumfile {
-                    file.set_modified(SystemTime::now())?;
-                }
                 continue;
             }
 
-            let archive = Self::get_asset(
-                &agent,
-                &format!("{}/tldr-pages.{}.zip", self.cfg.mirror, lang),
-            )?;
+            let archive = Self::get_asset(&agent, &format!("{mirror}/tldr-pages.{lang}.zip"))?;
             info_start!("validating sha256sums... ");
             let actual_sum = util::sha256_hexdigest(&archive);
 
@@ -148,7 +133,7 @@ impl Cache {
             langdir_archive_map.insert(lang_dir, ZipArchive::new(Cursor::new(archive))?);
         }
 
-        fs::create_dir_all(&self.cfg.dir)?;
+        fs::create_dir_all(self.dir)?;
         File::create(&old_sumfile_path)?.write_all(&sums)?;
 
         Ok(langdir_archive_map)
@@ -214,7 +199,7 @@ impl Cache {
                 continue;
             }
 
-            let path = self.cfg.dir.join(lang_dir).join(&fname);
+            let path = self.dir.join(lang_dir).join(&fname);
 
             if zipfile.is_dir() {
                 fs::create_dir_all(&path)?;
@@ -241,8 +226,13 @@ impl Cache {
     }
 
     /// Delete the old cache and replace it with a fresh copy.
-    pub fn update(&self) -> Result<()> {
-        let archives = self.download_and_verify()?;
+    pub fn update(&self, mirror: &str, languages: &mut Vec<String>) -> Result<()> {
+        // Sort to always download archives in alphabetical order.
+        languages.sort_unstable();
+        // The user can put duplicates in the config file.
+        languages.dedup();
+
+        let archives = self.download_and_verify(mirror, languages)?;
 
         if archives.is_empty() {
             infoln!(
@@ -259,7 +249,7 @@ impl Cache {
             #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
             let n_existing = self.list_all_vec(&lang_dir).map(|v| v.len()).unwrap_or(0) as i32;
 
-            let lang_dir_full = self.cfg.dir.join(&lang_dir);
+            let lang_dir_full = self.dir.join(&lang_dir);
             if lang_dir_full.is_dir() {
                 fs::remove_dir_all(&lang_dir_full)?;
             }
@@ -287,15 +277,15 @@ impl Cache {
 
     /// Delete the cache directory.
     pub fn clean(&self) -> Result<()> {
-        if !self.cfg.dir.is_dir() {
+        if !self.dir.is_dir() {
             infoln!("cache does not exist, not cleaning.");
-            fs::create_dir_all(&self.cfg.dir)?;
+            fs::create_dir_all(self.dir)?;
             return Ok(());
         }
 
         infoln!("cleaning the cache directory...");
-        fs::remove_dir_all(&self.cfg.dir)?;
-        fs::create_dir_all(&self.cfg.dir)?;
+        fs::remove_dir_all(self.dir)?;
+        fs::create_dir_all(self.dir)?;
 
         Ok(())
     }
@@ -306,7 +296,7 @@ impl Cache {
             .get_or_try_init(|| {
                 let mut result = vec![];
 
-                for entry in fs::read_dir(self.cfg.dir.join(ENGLISH_DIR))? {
+                for entry in fs::read_dir(self.dir.join(ENGLISH_DIR))? {
                     let entry = entry?;
                     let path = entry.path();
                     let platform = path.file_name().unwrap();
@@ -349,7 +339,7 @@ impl Cache {
         P: AsRef<Path>,
     {
         for lang_dir in lang_dirs {
-            let path = self.cfg.dir.join(lang_dir).join(&platform).join(fname);
+            let path = self.dir.join(lang_dir).join(&platform).join(fname);
 
             if path.is_file() {
                 return Some(path);
@@ -360,38 +350,11 @@ impl Cache {
     }
 
     /// Find all pages with the given name.
-    pub fn find(
-        &self,
-        name: &str,
-        languages_override: Option<&[String]>,
-        platform: &str,
-    ) -> Result<Vec<PathBuf>> {
-        let res = self.find_paths(name, languages_override, platform);
-        // if no paths were found and we are using optimistic cache, let's run update and search
-        // again
-        if res.as_ref().is_ok_and(Vec::is_empty)
-            && self.is_stale().unwrap_or_default()
-            && self.cfg.defer_auto_update
-        {
-            warnln!("Page not found, updating cache");
-            self.update()?;
-            self.find_paths(name, languages_override, platform)
-        } else {
-            res
-        }
-    }
-
-    fn find_paths(
-        &self,
-        name: &str,
-        languages_override: Option<&[String]>,
-        platform: &str,
-    ) -> Result<Vec<PathBuf>> {
+    pub fn find(&self, name: &str, languages: &[String], platform: &str) -> Result<Vec<PathBuf>> {
         // https://github.com/tldr-pages/tldr/blob/main/CLIENT-SPECIFICATION.md#page-resolution
 
         let platforms = self.get_platforms_and_check(platform)?;
         let file = format!("{name}.md");
-        let languages = languages_override.unwrap_or(&self.cfg.languages);
 
         let mut result = vec![];
         let mut lang_dirs: Vec<String> = languages.iter().map(|x| format!("pages.{x}")).collect();
@@ -448,7 +411,7 @@ impl Cache {
         P: AsRef<Path>,
         Q: AsRef<Path>,
     {
-        match fs::read_dir(self.cfg.dir.join(lang_dir.as_ref()).join(platform)) {
+        match fs::read_dir(self.dir.join(lang_dir.as_ref()).join(platform)) {
             Ok(entries) => {
                 let entries = entries.map(|res| res.map(|ent| ent.file_name()));
                 Ok(entries.collect::<io::Result<Vec<OsString>>>()?)
@@ -530,7 +493,7 @@ impl Cache {
 
     /// List languages (used in shell completions).
     pub fn list_languages(&self) -> Result<()> {
-        let languages = fs::read_dir(&self.cfg.dir)?
+        let languages = fs::read_dir(self.dir)?
             .filter(|res| res.is_ok() && res.as_ref().unwrap().path().is_dir())
             .map(|res| res.unwrap().file_name());
         let mut stdout = io::stdout().lock();
@@ -546,11 +509,11 @@ impl Cache {
     }
 
     /// Show cache information.
-    pub fn info(&self) -> Result<()> {
+    pub fn info(&self, cfg: &Config) -> Result<()> {
         let mut n_map = BTreeMap::new();
         let mut n_total = 0;
 
-        for lang_dir in fs::read_dir(&self.cfg.dir)? {
+        for lang_dir in fs::read_dir(self.dir)? {
             let lang_dir = lang_dir?;
             if !lang_dir.path().is_dir() {
                 continue;
@@ -571,12 +534,12 @@ impl Cache {
         writeln!(
             stdout,
             "Cache: {} (last update: {} ago)",
-            self.cfg.dir.display().red(),
+            self.dir.display().red(),
             util::duration_fmt(age).green().bold()
         )?;
 
-        if self.cfg.auto_update {
-            let max_age = self.max_age().as_secs();
+        if cfg.cache.auto_update {
+            let max_age = cfg.cache_max_age().as_secs();
             if max_age > age {
                 let age_diff = max_age - age;
 
@@ -605,75 +568,27 @@ impl Cache {
 
         Ok(())
     }
-    /// Checks cache status and downloads it if stale or empty.
-    pub fn load(&mut self, is_offline: bool) -> Result<()> {
-        if !self.subdir_exists(ENGLISH_DIR) {
-            if is_offline {
-                return Err(Error::offline_no_cache());
-            }
-            infoln!("cache is empty, downloading...");
-            self.update()?;
-        } else if self.cfg.auto_update && self.age()? > self.max_age() {
-            let age = util::duration_fmt(self.age()?.as_secs());
-            let age = age.green().bold();
-
-            if is_offline {
-                warnln!(
-                "cache is stale (last update: {age} ago). Run tldr without --offline to update."
-            );
-            } else if self.cfg.defer_auto_update {
-                self.run_deferred_auto_update = true;
-                // For deferred autoupdate, we'll notify the user but defer the update until after displaying the page
-                warnln!(
-                "cache is stale (last update: {age} ago), will defer update after cache lookup. disable `defer_auto_update` in config to update before lookup"
-            );
-            } else {
-                infoln!("cache is stale (last update: {age} ago), updating...");
-                self.update()
-                    .map_err(|e| e.describe(Error::DESC_AUTO_UPDATE_ERR))?;
-            }
-        }
-        Ok(())
-    }
-
-    pub fn is_stale(&self) -> Result<bool> {
-        self.age().map(|age| age > self.max_age())
-    }
-
-    /// Checks deferred auto update and runs it if is required
-    pub fn check_deferred_auto_update(&self) -> Result<()> {
-        if self.run_deferred_auto_update {
-            // if cache is no longer stale, no need to update
-            if !self.is_stale()? {
-                return Ok(());
-            }
-            infoln!("cache is stale, updating...");
-            self.update()
-                .map_err(|e| e.describe(Error::DESC_AUTO_UPDATE_ERR))?;
-        }
-        Ok(())
-    }
 
     /// Get the age of the cache.
-    fn age(&self) -> Result<Duration> {
-        let sumfile = self.cfg.dir.join("tldr.sha256sums");
-        let metadata = if sumfile.is_file() {
-            fs::metadata(&sumfile)
-        } else {
-            // The sumfile is not available, fall back to the base directory.
-            fs::metadata(&self.cfg.dir)
-        }?;
+    pub fn age(&self) -> Result<Duration> {
+        self.age
+            .get_or_try_init(|| {
+                let sumfile = self.dir.join("tldr.sha256sums");
+                let metadata = if sumfile.is_file() {
+                    fs::metadata(&sumfile)
+                } else {
+                    // The sumfile is not available, fall back to the base directory.
+                    fs::metadata(self.dir)
+                }?;
 
-        metadata.modified()?.elapsed().map_err(|_| {
-            Error::new(
-                "the system clock is not functioning correctly.\n\
+                metadata.modified()?.elapsed().map_err(|_| {
+                    Error::new(
+                        "the system clock is not functioning correctly.\n\
                         Modification time of the cache is later than the current system time.\n\
                         Please fix your system clock.",
-            )
-        })
-    }
-    /// Convert the number of hours from config to a `Duration`.
-    pub const fn max_age(&self) -> Duration {
-        Duration::from_secs(self.cfg.max_age * 60 * 60)
+                    )
+                })
+            })
+            .copied()
     }
 }
