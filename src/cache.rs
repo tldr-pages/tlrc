@@ -592,3 +592,137 @@ impl<'a> Cache<'a> {
             .copied()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::{tempdir, TempDir};
+
+    /// Create a temporary cache dir for tests with the specified pages.
+    fn prepare(pages: &[&str]) -> TempDir {
+        let cachedir = tempdir().unwrap();
+        let d = cachedir.path();
+
+        for p in pages {
+            let mut page_dir = Path::new(p).components();
+            page_dir.next_back();
+            fs::create_dir_all(d.join(page_dir)).unwrap();
+            File::create(d.join(p)).unwrap();
+        }
+
+        cachedir
+    }
+
+    #[test]
+    fn not_found() {
+        let tmpdir = prepare(&["pages.en/common/b.md", "pages.en/linux/b.md"]);
+        let c = Cache::new(tmpdir.path());
+        let pages = c.find("a", &["en".to_string()], "common").unwrap();
+        assert!(pages.is_empty());
+    }
+
+    #[test]
+    #[should_panic = "platform 'some_platform' does not exist"]
+    fn platform_does_not_exist() {
+        let tmpdir = prepare(&["pages.en/common/b.md", "pages.en/linux/b.md"]);
+        let c = Cache::new(tmpdir.path());
+        c.find("a", &["en".to_string()], "some_platform").unwrap();
+    }
+
+    #[test]
+    fn platform_priority() {
+        let tmpdir = prepare(&[
+            "pages.en/common/a.md",
+            "pages.en/linux/a.md",
+            "pages.en/osx/b.md",
+        ]);
+        let c = Cache::new(tmpdir.path());
+
+        let pages_common = c.find("a", &["en".to_string()], "common").unwrap();
+        let pages_linux = c.find("a", &["en".to_string()], "linux").unwrap();
+        let pages_osx = c.find("a", &["en".to_string()], "osx").unwrap();
+
+        assert_eq!(pages_common, pages_osx);
+        assert_eq!(pages_common.len(), 2);
+        assert!(pages_common[0].ends_with("pages.en/common/a.md"));
+        assert!(pages_common[1].ends_with("pages.en/linux/a.md"));
+
+        assert_eq!(pages_linux.len(), 2);
+        assert!(pages_linux[0].ends_with("pages.en/linux/a.md"));
+        assert!(pages_linux[1].ends_with("pages.en/common/a.md"));
+    }
+
+    #[test]
+    #[allow(clippy::similar_names)]
+    fn lang_priority() {
+        let tmpdir = prepare(&[
+            "pages.en/common/a.md",
+            "pages.xy/common/a.md",
+            "pages.en/common/b.md",
+            "pages.en/linux/c.md",
+        ]);
+        let c = Cache::new(tmpdir.path());
+
+        let pages_a_en = c
+            .find("a", &["en".to_string(), "xy".to_string()], "linux")
+            .unwrap();
+        let pages_a_xy = c
+            .find("a", &["xy".to_string(), "en".to_string()], "common")
+            .unwrap();
+
+        assert_eq!(pages_a_en.len(), 1);
+        assert_eq!(pages_a_xy.len(), 1);
+
+        assert!(pages_a_en[0].ends_with("pages.en/common/a.md"));
+        assert!(pages_a_xy[0].ends_with("pages.xy/common/a.md"));
+
+        let pages_b_xy = c
+            .find("b", &["xy".to_string(), "en".to_string()], "common")
+            .unwrap();
+
+        assert_eq!(pages_b_xy.len(), 1);
+        assert!(pages_b_xy[0].ends_with("pages.en/common/b.md"));
+    }
+
+    #[test]
+    fn list_pages() {
+        let tmpdir = prepare(&[
+            "pages.en/common/a.md",
+            "pages.en/common/b.md",
+            "pages.en/linux/c.md",
+            "pages.en/osx/d.md",
+            "pages.xy/linux/e.md",
+        ]);
+        let c = Cache::new(tmpdir.path());
+
+        let mut list = c.list_dir("common", "pages.en").unwrap();
+        list.sort_unstable();
+        assert_eq!(list, vec!["a.md", "b.md"]);
+
+        let mut list = c.list_dir("linux", "pages.en").unwrap();
+        list.sort_unstable();
+        assert_eq!(list, vec!["c.md"]);
+
+        let mut list = c.list_all_vec("pages.en").unwrap();
+        list.sort_unstable();
+        assert_eq!(list, vec!["a.md", "b.md", "c.md", "d.md"]);
+    }
+
+    #[test]
+    fn list_platforms() {
+        let tmpdir = prepare(&[
+            "pages.en/common/a.md",
+            "pages.en/linux/a.md",
+            "pages.en/osx/a.md",
+        ]);
+        let c = Cache::new(tmpdir.path());
+        assert_eq!(c.get_platforms().unwrap(), &["common", "linux", "osx"]);
+    }
+
+    #[test]
+    fn parse_sumfile() {
+        let s = "xyz    pages.en.zip\nzyx   pages.xy.zip\nabc   someotherfile\ncba  index.json";
+        let map = HashMap::from([("en", "xyz"), ("xy", "zyx")]);
+        assert_eq!(Cache::parse_sumfile(s).unwrap(), map);
+    }
+}
