@@ -6,6 +6,7 @@ use std::result::Result as StdResult;
 
 use yansi::Paint;
 
+#[derive(Debug)]
 pub enum ErrorKind {
     ParseToml,
     ParsePage,
@@ -14,6 +15,7 @@ pub enum ErrorKind {
     Other,
 }
 
+#[derive(Debug)]
 pub struct Error {
     pub kind: ErrorKind,
     message: String,
