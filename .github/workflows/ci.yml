@@ -42,7 +42,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
         # Stable and MSRV
-        rust_version: [stable, 1.74]
+        rust_version: [stable, 1.75]
 
     steps:
       - name: Checkout the repository
