@@ -16,6 +16,7 @@ use crate::util::{self, info_end, info_start, infoln, warnln, Dedup};
 
 pub const ENGLISH_DIR: &str = "pages.en";
 const USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), '/', env!("CARGO_PKG_VERSION"));
+const HTTP_TIMEOUT: Option<Duration> = Some(Duration::from_secs(10));
 
 type PagesArchive = ZipArchive<Cursor<Vec<u8>>>;
 
@@ -83,7 +84,11 @@ impl<'a> Cache<'a> {
     ) -> Result<BTreeMap<String, PagesArchive>> {
         let agent = ureq::Agent::config_builder()
             .user_agent(USER_AGENT)
-            .timeout_global(Some(Duration::from_secs(30)))
+            // The global timeout isn't set, because it prevents some people from downloading
+            // page archives. See https://github.com/tldr-pages/tlrc/issues/131.
+            .timeout_resolve(HTTP_TIMEOUT)
+            .timeout_connect(HTTP_TIMEOUT)
+            .timeout_recv_response(HTTP_TIMEOUT)
             .tls_config(
                 TlsConfig::builder()
                     .root_certs(RootCerts::PlatformVerifier)
