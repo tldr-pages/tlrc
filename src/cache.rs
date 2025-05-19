@@ -88,7 +88,6 @@ impl<'a> Cache<'a> {
             // page archives. See https://github.com/tldr-pages/tlrc/issues/131.
             .timeout_resolve(HTTP_TIMEOUT)
             .timeout_connect(HTTP_TIMEOUT)
-            .timeout_recv_response(HTTP_TIMEOUT)
             .tls_config(
                 TlsConfig::builder()
                     .root_certs(RootCerts::PlatformVerifier)
