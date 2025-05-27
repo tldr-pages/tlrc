@@ -124,6 +124,16 @@ Render pages instead of printing raw file contents. Equivalent of setting\&
 .B -q, --quiet
 Suppress status messages and warnings.\&
 In other words, this makes \fItlrc\fR print only pages and errors.
+.sp
+This always overrides \fB--verbose\fR.
+.
+.TP 4
+.B --verbose
+Be more verbose, print debug information. Useful to see what exactly is being done if you're\&
+having issues.
+.sp
+Can be specified twice for even more messages. Using \fB--verbose\fR more than twice has no other\&
+effect.
 .
 .TP 4
 \fB--color\fR <WHEN>
@@ -139,7 +149,8 @@ Default: \fBauto\fR
 .
 .TP 4
 \fB--config\fR <FILE>
-Specify an alternative path to the config file.
+Specify an alternative path to the config file. This option overrides all config detection\&
+methods (i.e. OS-specific directories and the \fI$TLRC_CONFIG\fR environment variable).
 .sp
 Default: \fBplatform-dependent\fR (use \fB--config-path\fR to see the default path for your system)
 .
@@ -172,7 +183,8 @@ macOS: \fB~/Library/Application Support/tlrc/config.toml\fR
 Windows: \fI%ROAMINGAPPDATA%\fB\\tlrc\\config.toml\fR
 .sp
 No matter the OS, you can set the \fI$TLRC_CONFIG\fR environment variable or use\&
-\fB--config\fR to override the default path.
+\fB--config\fR to override the default path. The command-line option takes precedence over all\&
+other detection methods.
 .
 .
 .SH EXAMPLES
