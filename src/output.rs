@@ -3,15 +3,15 @@ use std::fmt::Write as _;
 use std::fs::File;
 use std::io::{self, BufRead, BufReader, BufWriter, Write};
 use std::path::{Path, PathBuf};
-use std::sync::atomic::Ordering::Relaxed;
 
+use log::{log_enabled, warn};
 use terminal_size::terminal_size;
 use unicode_width::UnicodeWidthStr;
 use yansi::{Paint, Style};
 
 use crate::config::{Config, OptionStyle};
 use crate::error::{Error, ErrorKind, Result};
-use crate::util::{warnln, PagePathExt};
+use crate::util::PagePathExt;
 
 const TITLE: &str = "# ";
 const DESC: &str = "> ";
@@ -315,7 +315,7 @@ impl<'a> PageRenderer<'a> {
 
     /// Print the first page that was found and warnings for every other page.
     pub fn print_cache_result(paths: &'a [PathBuf], cfg: &'a Config) -> Result<()> {
-        if !crate::QUIET.load(Relaxed) && paths.len() != 1 {
+        if log_enabled!(log::Level::Warn) && paths.len() != 1 {
             let mut stderr = io::stderr().lock();
             let other_pages = &paths[1..];
             let width = other_pages
@@ -324,7 +324,7 @@ impl<'a> PageRenderer<'a> {
                 .max()
                 .unwrap();
 
-            warnln!("{} page(s) found for other platforms:", other_pages.len());
+            warn!("{} page(s) found for other platforms:", other_pages.len());
 
             for (i, path) in other_pages.iter().enumerate() {
                 // The path always ends with the page file, and its parent is always the

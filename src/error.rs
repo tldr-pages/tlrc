@@ -1,9 +1,10 @@
-use std::fmt::{self, Display};
-use std::io::{self, Write};
+use std::fmt::Display;
+use std::io;
 use std::path::Path;
 use std::process::ExitCode;
 use std::result::Result as StdResult;
 
+use log::error;
 use yansi::Paint;
 
 #[derive(Debug)]
@@ -22,12 +23,6 @@ pub struct Error {
 }
 
 pub type Result<T> = StdResult<T, Error>;
-
-impl Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.message.fmt(f)
-    }
-}
 
 impl Error {
     pub const DESC_AUTO_UPDATE_ERR: &'static str =
@@ -59,7 +54,7 @@ impl Error {
     where
         T: Display,
     {
-        self.message = format!("{self} {description}");
+        self.message = format!("{} {description}", self.message);
         self
     }
 
@@ -108,7 +103,7 @@ impl Error {
 
     /// Print the error message to stderr and return an appropriate `ExitCode`.
     pub fn exit_code(self) -> ExitCode {
-        let _ = writeln!(io::stderr(), "{} {self}", "error:".red().bold());
+        error!("{}", self.message);
 
         match self.kind {
             ErrorKind::Other | ErrorKind::Io => 1,

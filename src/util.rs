@@ -1,8 +1,8 @@
 use std::borrow::Cow;
 use std::env;
 use std::ffi::OsStr;
-use std::fmt::Write;
-use std::io::{self, IsTerminal};
+use std::fmt::Write as _;
+use std::io::{self, IsTerminal, Write};
 use std::iter;
 use std::mem;
 use std::path::Path;
@@ -10,56 +10,79 @@ use std::path::Path;
 use clap::ColorChoice;
 use ring::digest::{digest, SHA256};
 
-/// Prints a warning.
-macro_rules! warnln {
-    ( $( $arg:tt )* ) => {
-        if !$crate::QUIET.load(std::sync::atomic::Ordering::Relaxed) {
-            use std::io::Write;
-            use yansi::Paint;
-            let mut stderr = std::io::stderr().lock();
-            write!(stderr, "{} ", "warning:".yellow().bold())?;
-            writeln!(stderr, $($arg)*)?;
-        }
-    };
+/// A simple logger for the `log` crate that logs to stderr.
+pub struct Logger;
+
+impl Logger {
+    pub fn init(quiet: bool, verbose: u8) {
+        let lvl = match (quiet, verbose) {
+            (true, _) => log::LevelFilter::Error,  // --quiet
+            (false, 0) => log::LevelFilter::Info,  // default log level
+            (false, 1) => log::LevelFilter::Debug, // --verbose
+            (false, _) => log::LevelFilter::Trace, // --verbose --verbose
+        };
+
+        // The logger isn't set anywhere else, this is safe to unwrap.
+        log::set_logger(&Self).unwrap();
+        log::set_max_level(lvl);
+    }
 }
 
-/// Prints a status message with a trailing newline.
-macro_rules! infoln {
-    ( $( $arg:tt )* ) => {
-        if !$crate::QUIET.load(std::sync::atomic::Ordering::Relaxed) {
-            use std::io::Write;
-            use yansi::Paint;
-            let mut stderr = std::io::stderr().lock();
-            write!(stderr, "{} ", "info:".cyan().bold())?;
-            writeln!(stderr, $($arg)*)?;
-        }
-    };
+impl log::Log for Logger {
+    fn enabled(&self, _metadata: &log::Metadata) -> bool {
+        // This isn't needed, log::set_max_level is enough for such a simple use case.
+        true
+    }
+
+    // stderr is flushed on every writeln! call.
+    fn flush(&self) {}
+
+    fn log(&self, record: &log::Record) {
+        use yansi::Paint;
+
+        let level = match record.level() {
+            log::Level::Trace => "trace:".blue().bold(),
+            log::Level::Debug => "debug:".magenta().bold(),
+            log::Level::Info => "info:".cyan().bold(),
+            log::Level::Warn => "warning:".yellow().bold(),
+            log::Level::Error => "error:".red().bold(),
+        };
+
+        let _ = match record.target() {
+            t if t.starts_with("tldr") => writeln!(io::stderr(), "{level} {}", record.args()),
+            t => writeln!(io::stderr(), "{level} [{}] {}", t.bold(), record.args()),
+        };
+    }
 }
 
-/// Prints a status message without a trailing newline.
+/// Print a status message without a trailing newline.
+/// If verbose logging is enabled, use `log::info!` normally.
 macro_rules! info_start {
     ( $( $arg:tt )* ) => {
-        if !$crate::QUIET.load(std::sync::atomic::Ordering::Relaxed) {
+        if log::log_enabled!(log::Level::Debug) {
+            log::info!($($arg)*);
+        } else if log::log_enabled!(log::Level::Info) {
             use std::io::Write;
             use yansi::Paint;
             let mut stderr = std::io::stderr().lock();
-            write!(stderr, "{} ", "info:".cyan().bold())?;
-            write!(stderr, $($arg)*)?;
+            let _ = write!(stderr, "{} ", "info:".cyan().bold());
+            let _ = write!(stderr, $($arg)*);
         }
     };
 }
 
 /// End the status message started using `info_start`.
+/// If verbose logging is enabled, do nothing.
 macro_rules! info_end {
     ( $( $arg:tt )* ) => {
-        if !$crate::QUIET.load(std::sync::atomic::Ordering::Relaxed) {
+        if !log::log_enabled!(log::Level::Debug) && log::log_enabled!(log::Level::Info) {
             use std::io::Write;
-            writeln!(std::io::stderr(), $($arg)*)?;
+            let _ = writeln!(std::io::stderr(), $($arg)*);
         }
     };
 }
 
-pub(crate) use {info_end, info_start, infoln, warnln};
+pub(crate) use {info_end, info_start};
 
 /// Get languages from environment variables according to the tldr client specification.
 pub fn get_languages_from_env(out_vec: &mut Vec<String>) {

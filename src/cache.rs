@@ -5,6 +5,7 @@ use std::io::{self, BufWriter, Cursor, Write};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
+use log::{info, warn};
 use once_cell::unsync::OnceCell;
 use ureq::tls::{RootCerts, TlsConfig};
 use yansi::Paint;
@@ -12,7 +13,7 @@ use zip::ZipArchive;
 
 use crate::config::Config;
 use crate::error::{Error, Result};
-use crate::util::{self, info_end, info_start, infoln, warnln, Dedup};
+use crate::util::{self, info_end, info_start, Dedup};
 
 pub const ENGLISH_DIR: &str = "pages.en";
 const USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), '/', env!("CARGO_PKG_VERSION"));
@@ -115,7 +116,7 @@ impl<'a> Cache<'a> {
 
             let lang_dir = format!("pages.{lang}");
             if Some(sum) == old_sum_map.get(lang) && self.subdir_exists(&lang_dir) {
-                infoln!("'pages.{lang}' is up to date");
+                info!("'{lang_dir}' is up to date");
                 continue;
             }
 
@@ -132,7 +133,7 @@ impl<'a> Cache<'a> {
                 )));
             }
 
-            info_end!(" {}", "OK".green().bold());
+            info_end!("{}", "OK".green().bold());
 
             langdir_archive_map.insert(lang_dir, ZipArchive::new(Cursor::new(archive))?);
         }
@@ -191,7 +192,7 @@ impl<'a> Cache<'a> {
         for i in 0..archive.len() {
             let mut zipfile = archive.by_index(i)?;
             let Some(fname) = zipfile.enclosed_name() else {
-                warnln!(
+                warn!(
                     "found an unsafe path in the zip archive: '{}', ignoring it",
                     zipfile.name()
                 );
@@ -239,7 +240,7 @@ impl<'a> Cache<'a> {
         let archives = self.download_and_verify(mirror, languages)?;
 
         if archives.is_empty() {
-            infoln!(
+            info!(
                 "there is nothing to do. Run 'tldr --clean-cache' if you want to force an update."
             );
             return Ok(());
@@ -270,7 +271,7 @@ impl<'a> Cache<'a> {
             }
         }
 
-        infoln!(
+        info!(
             "cache update successful (total: {} pages, {} new).",
             all_downloaded.green().bold(),
             all_new.green().bold(),
@@ -282,12 +283,12 @@ impl<'a> Cache<'a> {
     /// Delete the cache directory.
     pub fn clean(&self) -> Result<()> {
         if !self.dir.is_dir() {
-            infoln!("cache does not exist, not cleaning.");
+            info!("cache does not exist, not cleaning.");
             fs::create_dir_all(self.dir)?;
             return Ok(());
         }
 
-        infoln!("cleaning the cache directory...");
+        info!("cleaning the cache directory...");
         fs::remove_dir_all(self.dir)?;
         fs::create_dir_all(self.dir)?;
 
@@ -390,12 +391,12 @@ impl<'a> Cache<'a> {
                     let alt_platform = alt_platform.to_string_lossy();
 
                     if platform == "common" {
-                        warnln!(
+                        warn!(
                             "showing page from platform '{alt_platform}', \
                             because '{name}' does not exist in 'common'"
                         );
                     } else {
-                        warnln!(
+                        warn!(
                             "showing page from platform '{alt_platform}', \
                             because '{name}' does not exist in '{platform}' and 'common'"
                         );

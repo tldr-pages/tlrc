@@ -5,13 +5,14 @@ use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
+use log::warn;
 use serde::de::{Unexpected, Visitor};
 use serde::{Deserialize, Deserializer, Serialize};
 use yansi::{Color, Style};
 
 use crate::cache::Cache;
 use crate::error::{Error, ErrorKind, Result};
-use crate::util::{self, warnln};
+use crate::util;
 
 fn hex_to_rgb<'de, D>(deserializer: D) -> std::result::Result<[u8; 3], D::Error>
 where
@@ -339,7 +340,7 @@ impl Config {
             if path.is_file() {
                 Self::parse(path)
             } else {
-                warnln!("'{}': not a file, ignoring --config", path.display());
+                warn!("'{}': not a file, ignoring --config", path.display());
                 Ok(Self::default())
             }
         } else {

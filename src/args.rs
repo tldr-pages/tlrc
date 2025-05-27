@@ -127,6 +127,10 @@ pub struct Cli {
     #[arg(short, long)]
     pub quiet: bool,
 
+    /// Be more verbose (can be specified twice).
+    #[arg(long, action = ArgAction::Count)]
+    pub verbose: u8,
+
     /// Specify when to enable color.
     #[arg(long, value_name = "WHEN", default_value_t = ColorChoice::default())]
     pub color: ColorChoice,

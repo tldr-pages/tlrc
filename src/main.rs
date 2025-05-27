@@ -6,9 +6,9 @@ mod output;
 mod util;
 
 use std::process::ExitCode;
-use std::sync::atomic::{AtomicBool, Ordering::Relaxed};
 
 use clap::Parser;
+use log::{info, warn};
 use yansi::Paint;
 
 use crate::args::Cli;
@@ -16,13 +16,14 @@ use crate::cache::Cache;
 use crate::config::{Config, OptionStyle};
 use crate::error::{Error, Result};
 use crate::output::PageRenderer;
-use crate::util::{infoln, init_color, warnln};
-
-/// If this is set to true, do not print anything except pages and errors.
-static QUIET: AtomicBool = AtomicBool::new(false);
+use crate::util::{init_color, Logger};
 
 fn main() -> ExitCode {
-    match run() {
+    let cli = Cli::parse();
+    init_color(cli.color);
+    Logger::init(cli.quiet, cli.verbose);
+
+    match run(cli) {
         Ok(()) => ExitCode::SUCCESS,
         Err(e) => e.exit_code(),
     }
@@ -39,9 +40,7 @@ fn include_cli_in_config(cfg: &mut Config, cli: &Cli) {
     }
 }
 
-fn run() -> Result<()> {
-    let cli = Cli::parse();
-
+fn run(cli: Cli) -> Result<()> {
     if cli.config_path {
         return Config::print_path();
     }
@@ -50,12 +49,6 @@ fn run() -> Result<()> {
         return Config::print_default();
     }
 
-    if cli.quiet {
-        QUIET.store(true, Relaxed);
-    }
-
-    init_color(cli.color);
-
     let mut cfg = Config::new(cli.config.as_deref())?;
     include_cli_in_config(&mut cfg, &cli);
 
@@ -63,6 +56,7 @@ fn run() -> Result<()> {
         return PageRenderer::print(&path, &cfg);
     }
 
+    // This is needed later to print a different error message if --language was used.
     let languages_are_from_cli = cli.languages.is_some();
     // We need to clone() because this vector will not be sorted,
     // unlike the one in the config.
@@ -85,21 +79,19 @@ fn run() -> Result<()> {
         if cli.offline {
             return Err(Error::offline_no_cache());
         }
-        infoln!("cache is empty, downloading...");
+        info!("cache is empty, downloading...");
         cache.update(&cfg.cache.mirror, &mut cfg.cache.languages)?;
     } else if cfg.cache.auto_update && cache.age()? > cfg.cache_max_age() {
         let age = util::duration_fmt(cache.age()?.as_secs());
         let age = age.green().bold();
 
         if cli.offline {
-            warnln!(
-                "cache is stale (last update: {age} ago). Run tldr without --offline to update."
-            );
+            warn!("cache is stale (last update: {age} ago). Run tldr without --offline to update.");
         } else if cfg.cache.defer_auto_update {
-            infoln!("cache is stale (last update: {age} ago), update has been deferred");
+            info!("cache is stale (last update: {age} ago), update has been deferred");
             update_later = true;
         } else {
-            infoln!("cache is stale (last update: {age} ago), updating...");
+            info!("cache is stale (last update: {age} ago), updating...");
             cache
                 .update(&cfg.cache.mirror, &mut cfg.cache.languages)
                 .map_err(|e| e.describe(Error::DESC_AUTO_UPDATE_ERR))?;
@@ -131,7 +123,7 @@ fn run() -> Result<()> {
         let forced_update_no_page = update_later && page_paths.is_empty();
         if forced_update_no_page {
             // Since the page hasn't been found and the cache is stale, disregard the defer option.
-            warnln!("page not found, updating now...");
+            warn!("page not found, updating now...");
             cache
                 .update(&cfg.cache.mirror, &mut cfg.cache.languages)
                 .map_err(|e| e.describe(Error::DESC_AUTO_UPDATE_ERR))?;
