@@ -8,6 +8,7 @@ use std::mem;
 use std::path::Path;
 
 use clap::ColorChoice;
+use log::debug;
 use ring::digest::{digest, SHA256};
 
 /// A simple logger for the `log` crate that logs to stderr.
@@ -89,6 +90,7 @@ pub fn get_languages_from_env(out_vec: &mut Vec<String>) {
     // https://github.com/tldr-pages/tldr/blob/main/CLIENT-SPECIFICATION.md#language
 
     let Ok(var_lang) = env::var("LANG") else {
+        debug!("LANG is not set, cannot get languages from env vars");
         return;
     };
 
@@ -97,7 +99,7 @@ pub fn get_languages_from_env(out_vec: &mut Vec<String>) {
     let languages = var_language
         .as_deref()
         .unwrap_or_default()
-        .split(':')
+        .split_terminator(':')
         .chain(iter::once(&*var_lang));
 
     for lang in languages {
@@ -108,6 +110,8 @@ pub fn get_languages_from_env(out_vec: &mut Vec<String>) {
             out_vec.push(lang[..2].to_string());
         } else if lang.len() == 2 {
             out_vec.push(lang.to_string());
+        } else {
+            debug!("invalid language found in LANG or LANGUAGE: '{lang}'");
         }
     }
 }

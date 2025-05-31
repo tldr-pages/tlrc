@@ -5,7 +5,7 @@ use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
-use log::warn;
+use log::{debug, warn};
 use serde::de::{Unexpected, Visitor};
 use serde::{Deserialize, Deserializer, Serialize};
 use yansi::{Color, Style};
@@ -338,6 +338,7 @@ impl Config {
     pub fn new(cli_config_path: Option<&Path>) -> Result<Self> {
         let cfg_res = if let Some(path) = cli_config_path {
             if path.is_file() {
+                debug!("config file (from --config): {path:?}");
                 Self::parse(path)
             } else {
                 warn!("'{}': not a file, ignoring --config", path.display());
@@ -346,14 +347,17 @@ impl Config {
         } else {
             let path = Self::locate();
             if path.is_file() {
+                debug!("config file found: {path:?}");
                 Self::parse(&path)
             } else {
+                debug!("{path:?}: not a file, using the default config");
                 Ok(Self::default())
             }
         };
 
         cfg_res.map(|mut cfg| {
             if cfg.cache.languages.is_empty() {
+                debug!("languages not found in config, trying from env vars");
                 util::get_languages_from_env(&mut cfg.cache.languages);
             }
             // English pages should always be downloaded and searched.

@@ -5,7 +5,7 @@ use std::io::{self, BufWriter, Cursor, Write};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
-use log::{info, warn};
+use log::{debug, info, warn};
 use once_cell::unsync::OnceCell;
 use ureq::tls::{RootCerts, TlsConfig};
 use yansi::Paint;
@@ -100,6 +100,7 @@ impl<'a> Cache<'a> {
         let sums = Self::get_asset(&agent, &format!("{mirror}/tldr.sha256sums"))?;
         let sums_str = String::from_utf8_lossy(&sums);
         let sum_map = Self::parse_sumfile(&sums_str)?;
+        debug!("sum file parsed, available languages: {:?}", sum_map.keys());
 
         let old_sumfile_path = self.dir.join("tldr.sha256sums");
         let old_sums = fs::read_to_string(&old_sumfile_path).unwrap_or_default();
@@ -110,7 +111,7 @@ impl<'a> Cache<'a> {
         for lang in languages {
             let lang = &**lang;
             let Some(sum) = sum_map.get(lang) else {
-                // Skip nonexistent languages.
+                debug!("'{lang}': language not available, skipping it");
                 continue;
             };
 
@@ -192,7 +193,7 @@ impl<'a> Cache<'a> {
         for i in 0..archive.len() {
             let mut zipfile = archive.by_index(i)?;
             let Some(fname) = zipfile.enclosed_name() else {
-                warn!(
+                debug!(
                     "found an unsafe path in the zip archive: '{}', ignoring it",
                     zipfile.name()
                 );
@@ -317,6 +318,7 @@ impl<'a> Cache<'a> {
                     // read_dir() order can differ across runs, so it's
                     // better to sort the Vec for consistency.
                     result.sort_unstable();
+                    debug!("found platforms: {result:?}");
                     Ok(result)
                 }
             })
@@ -346,7 +348,9 @@ impl<'a> Cache<'a> {
         for lang_dir in lang_dirs {
             let path = self.dir.join(lang_dir).join(&platform).join(fname);
 
+            debug!("trying path: {path:?}");
             if path.is_file() {
+                debug!("page found");
                 return Some(path);
             }
         }
@@ -360,6 +364,7 @@ impl<'a> Cache<'a> {
 
         let platforms = self.get_platforms_and_check(platform)?;
         let file = format!("{name}.md");
+        debug!("searching for page: '{file}'");
 
         let mut result = vec![];
         let mut lang_dirs: Vec<String> = languages.iter().map(|x| format!("pages.{x}")).collect();
@@ -407,6 +412,7 @@ impl<'a> Cache<'a> {
             }
         }
 
+        debug!("found {} page(s)", result.len());
         Ok(result)
     }
 
