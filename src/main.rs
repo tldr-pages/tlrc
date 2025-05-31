@@ -80,7 +80,9 @@ fn run(cli: Cli) -> Result<()> {
             return Err(Error::offline_no_cache());
         }
         info!("cache is empty, downloading...");
-        cache.update(&cfg.cache.mirror, &mut cfg.cache.languages)?;
+        cache
+            .update(&cfg.cache.mirror, &mut cfg.cache.languages)
+            .map_err(|e| e.describe(Error::DESC_NO_INTERNET))?;
     } else if cfg.cache.auto_update && cache.age()? > cfg.cache_max_age() {
         let age = util::duration_fmt(cache.age()?.as_secs());
         let age = age.green().bold();

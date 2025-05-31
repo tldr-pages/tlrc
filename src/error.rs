@@ -25,6 +25,9 @@ pub struct Error {
 pub type Result<T> = StdResult<T, Error>;
 
 impl Error {
+    pub const DESC_NO_INTERNET: &'static str =
+        "\n\nAn internet connection is required to download pages for the first time.";
+
     pub const DESC_AUTO_UPDATE_ERR: &'static str =
         "\n\nAn error occurred during the automatic update. \
         To skip updating the cache, run tldr with --offline.";
