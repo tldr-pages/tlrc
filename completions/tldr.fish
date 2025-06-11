@@ -26,6 +26,7 @@ complete -c tldr -l no-compact -d "Do not strip empty lines from output (overrid
 complete -c tldr -s R -l raw -d "Print pages in raw markdown instead of rendering them"
 complete -c tldr -l no-raw -d "Render pages instead of printing raw file contents (overrides --raw)"
 complete -c tldr -s q -l quiet -d "Suppress status messages and warnings"
+complete -c tldr -l verbose -d "Be more verbose (can be specified twice)"
 complete -c tldr -s v -l version -d "Print version"
 complete -c tldr -s h -l help -d "Print help"
 complete -c tldr -f -a "(tldr --offline --list-all 2> /dev/null)"

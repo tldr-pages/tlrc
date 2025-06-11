@@ -37,6 +37,7 @@ _tldr() {
         {-R,--raw}"[Print pages in raw markdown instead of rendering them]" \
         --no-raw"[Render pages instead of printing raw file contents (overrides --raw)]" \
         {-q,--quiet}"[Suppress status messages and warnings]" \
+        --verbose"[Be more verbose (can be specified twice)]" \
         --color"[Specify when to enable color]:WHEN:(auto always never)" \
         --config"[Specify an alternative path to the config file]:FILE:_files" \
         {-v,--version}"[Print version]" \
