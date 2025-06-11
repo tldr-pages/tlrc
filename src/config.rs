@@ -389,7 +389,11 @@ impl Config {
     pub fn print_path() -> Result<()> {
         let config_path = Config::locate();
         writeln!(io::stdout(), "{}", config_path.display())?;
-        fs::create_dir_all(config_path.parent().unwrap())?;
+
+        fs::create_dir_all(config_path.parent().ok_or_else(|| {
+            Error::new("cannot create the config directory: the path has only one component")
+        })?)?;
+
         Ok(())
     }
 
