@@ -250,5 +250,21 @@ dim = false
 strikethrough = false
 ```
 
+For a style similar to [tldr-python-client](https://github.com/tldr-pages/tldr-python-client), add this to your config:
+
+```toml
+[output]
+show_hyphens = true
+compact = true
+
+[style]
+title.color = "default"
+title.bold = true
+description.color = "default"
+bullet.color = "green"
+example.color = "red"
+placeholder.color = "default"
+```
+
 [latest-release]: https://github.com/tldr-pages/tlrc/releases/latest
 [crate]: https://crates.io/crates/tlrc
