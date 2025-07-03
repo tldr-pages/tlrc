@@ -124,7 +124,7 @@ pub fn init_color(color_mode: ColorChoice) {
         ColorChoice::Auto => {
             let no_color = env::var_os("NO_COLOR").is_some_and(|x| !x.is_empty());
 
-            if no_color || !io::stdout().is_terminal() {
+            if no_color || !io::stdout().is_terminal() || !io::stderr().is_terminal() {
                 yansi::disable();
             }
         }
