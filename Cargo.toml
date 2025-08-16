@@ -50,3 +50,17 @@ strip = true
 codegen-units = 1
 panic = "abort"
 opt-level = 3
+
+[package.metadata.deb]
+section = "utils"
+priority = "optional"
+conflicts = ["tldr", "tldr-py"]
+extended-description = ""
+assets = [
+	["target/release/tldr", "usr/bin/", "755"],
+	["tldr.1", "usr/share/man/man1/", "644"],
+	["completions/tldr.bash", "usr/share/bash-completion/completions/tldr", "644"],
+	["completions/_tldr", "usr/share/zsh/site-functions/", "644"],
+	["completions/tldr.fish", "usr/share/fish/vendor_completions.d/", "644"],
+	["LICENSE", "usr/share/licenses/tlrc", "644"]
+]
