@@ -152,17 +152,17 @@ where
 
 pub trait PagePathExt {
     /// Extracts the page name from its path.
-    fn page_name(&self) -> Option<Cow<str>>;
+    fn page_name(&self) -> Option<Cow<'_, str>>;
     /// Extracts the platform from the page path.
-    fn page_platform(&self) -> Option<Cow<str>>;
+    fn page_platform(&self) -> Option<Cow<'_, str>>;
 }
 
 impl PagePathExt for Path {
-    fn page_name(&self) -> Option<Cow<str>> {
+    fn page_name(&self) -> Option<Cow<'_, str>> {
         self.file_stem().map(OsStr::to_string_lossy)
     }
 
-    fn page_platform(&self) -> Option<Cow<str>> {
+    fn page_platform(&self) -> Option<Cow<'_, str>> {
         self.parent()
             .and_then(|parent| parent.file_name().map(OsStr::to_string_lossy))
     }
