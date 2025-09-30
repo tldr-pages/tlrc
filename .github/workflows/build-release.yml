@@ -65,8 +65,15 @@ jobs:
       - name: Set up Rust
         run: rustup update stable && rustup target add ${{ matrix.target }}
 
-      - name: Build
+      - name: Build the executable
         run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Build the Debian package
+        if: ${{ contains(matrix.target, 'linux') }}
+        run: |
+          cargo install cargo-deb --locked
+          deb_path="$(cargo deb --target ${{ matrix.target }})"
+          mv "$deb_path" "$NAME-$GITHUB_REF_NAME-${{ matrix.target }}.deb"
 
       - name: Create the archive
         env:
@@ -86,11 +93,11 @@ jobs:
 
       - name: Upload the archive
         env:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh release upload "$GITHUB_REF_NAME" "$NAME"-*
 
       - name: Attest release files
         id: attest
         uses: actions/attest-build-provenance@v3
         with:
-          subject-path: '*.zip, *.tar.gz'
+          subject-path: '*.zip, *.tar.gz, *.deb'
