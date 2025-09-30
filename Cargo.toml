@@ -1,14 +1,15 @@
 [package]
 name = "tlrc"
-version = "1.11.1"
+version = "1.12.0"
 description = "Official tldr client written in Rust"
+authors = ["Lena Pastwa"]
 categories = ["command-line-utilities"]
 keywords = ["tldr"]
 repository = "https://github.com/tldr-pages/tlrc"
 documentation = "https://tldr.sh/tlrc"
 license = "MIT"
 edition = "2021"
-rust-version = "1.82"
+rust-version = "1.83"
 
 [[bin]]
 name = "tldr"
@@ -30,7 +31,7 @@ toml = "0.9.5"
 unicode-width = { version = "0.2.1", default-features = false }
 ureq = { version = "3.1.0", default-features = false, features = ["rustls", "platform-verifier"] }
 yansi = "1.0.1"
-zip = { version = "4.6.0", default-features = false, features = ["deflate-flate2-zlib-rs"] }
+zip = { version = "5.1.1", default-features = false, features = ["deflate-flate2-zlib-rs"] }
 
 [dev-dependencies]
 assert_cmd = "2.0.17"
