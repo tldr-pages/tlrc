@@ -1,3 +1,4 @@
+use std::cmp;
 use std::collections::{BTreeMap, HashMap};
 use std::ffi::OsString;
 use std::fs::{self, File};
@@ -565,17 +566,19 @@ impl<'a> Cache<'a> {
         }
 
         writeln!(stdout, "Installed languages:")?;
+        let width = cmp::max(n_map.keys().map(String::len).max().unwrap(), 5);
+        //                                  "total" is 5 characters long. ^^
 
         for (lang, n) in n_map {
-            writeln!(
-                stdout,
-                // Language codes are at most 5 characters (ll_CC).
-                "{lang:5} : {}",
-                n.green().bold(),
-            )?;
+            writeln!(stdout, "{lang:width$} : {}", n.green().bold())?;
         }
 
-        writeln!(stdout, "total : {} pages", n_total.green().bold())?;
+        writeln!(
+            stdout,
+            "{:width$} : {} pages",
+            "total",
+            n_total.green().bold()
+        )?;
 
         Ok(())
     }
