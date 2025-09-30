@@ -2,7 +2,7 @@ use std::cmp;
 use std::collections::{BTreeMap, HashMap};
 use std::ffi::OsString;
 use std::fs::{self, File};
-use std::io::{self, BufWriter, Cursor, Write};
+use std::io::{self, BufRead, BufWriter, Cursor, Write};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
@@ -17,6 +17,7 @@ use crate::error::{Error, Result};
 use crate::util::{self, info_end, info_start, Dedup};
 
 pub const ENGLISH_DIR: &str = "pages.en";
+const CHECKSUM_FILE: &str = "tldr.sha256sums";
 const USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), '/', env!("CARGO_PKG_VERSION"));
 const HTTP_TIMEOUT: Option<Duration> = Some(Duration::from_secs(10));
 
@@ -98,12 +99,12 @@ impl<'a> Cache<'a> {
             .build()
             .into();
 
-        let sums = Self::get_asset(&agent, &format!("{mirror}/tldr.sha256sums"))?;
+        let sums = Self::get_asset(&agent, &format!("{mirror}/{CHECKSUM_FILE}"))?;
         let sums_str = String::from_utf8_lossy(&sums);
         let sum_map = Self::parse_sumfile(&sums_str)?;
         debug!("sum file parsed, available languages: {:?}", sum_map.keys());
 
-        let old_sumfile_path = self.dir.join("tldr.sha256sums");
+        let old_sumfile_path = self.dir.join(CHECKSUM_FILE);
         let old_sums = fs::read_to_string(&old_sumfile_path).unwrap_or_default();
         let old_sum_map = Self::parse_sumfile(&old_sums).unwrap_or_default();
 
@@ -282,17 +283,38 @@ impl<'a> Cache<'a> {
         Ok(())
     }
 
-    /// Delete the cache directory.
+    /// Interactively delete contents of the cache directory.
     pub fn clean(&self) -> Result<()> {
-        if !self.dir.is_dir() {
+        if !self.dir.is_dir() || fs::read_dir(self.dir).map(|mut rd| rd.next().is_none())? {
             info!("cache does not exist, not cleaning.");
             fs::create_dir_all(self.dir)?;
             return Ok(());
         }
 
-        info!("cleaning the cache directory...");
-        fs::remove_dir_all(self.dir)?;
-        fs::create_dir_all(self.dir)?;
+        let sumfile = self.dir.join(CHECKSUM_FILE);
+        if sumfile.is_file() {
+            info!("removing '{}'...", sumfile.display().red());
+            fs::remove_file(sumfile)?;
+        }
+
+        let mut stdout = io::stdout().lock();
+        let mut stdin = io::stdin().lock();
+        let mut resp = String::new();
+
+        for dir in fs::read_dir(self.dir)? {
+            let dir = dir?.path();
+
+            write!(stdout, "Remove '{}'? [y/N] ", dir.display().red())?;
+            stdout.flush()?;
+            stdin.read_line(&mut resp)?;
+
+            if resp.starts_with(['y', 'Y']) {
+                info!("removing...");
+                fs::remove_dir_all(dir)?;
+            }
+
+            String::clear(&mut resp);
+        }
 
         Ok(())
     }
@@ -587,7 +609,7 @@ impl<'a> Cache<'a> {
     pub fn age(&self) -> Result<Duration> {
         self.age
             .get_or_try_init(|| {
-                let sumfile = self.dir.join("tldr.sha256sums");
+                let sumfile = self.dir.join(CHECKSUM_FILE);
                 let metadata = if sumfile.is_file() {
                     fs::metadata(&sumfile)
                 } else {

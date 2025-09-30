@@ -75,7 +75,7 @@ pub struct Cli {
     #[arg(short, long, group = "operations", value_name = "FILE")]
     pub render: Option<PathBuf>,
 
-    /// Clean the cache.
+    /// Interactively delete contents of the cache directory.
     #[arg(long, group = "operations")]
     pub clean_cache: bool,
 

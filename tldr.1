@@ -44,8 +44,10 @@ Render the specified markdown file.
 .
 .TP 4
 .B --clean-cache
-Clean the cache directory (i.e. remove pages and old sha256sums).\&
-Useful to force a redownload when all pages are up to date.
+Interactively delete contents of the cache directory.\&
+.br
+The \fItldr.sha256sums\fR file is always removed to force a redownload of all page archives\&
+during the next update. You can also choose to delete already downloaded languages.
 .
 .TP 4
 .B --gen-config

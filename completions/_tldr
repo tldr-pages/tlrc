@@ -24,7 +24,7 @@ _tldr() {
         --list-languages"[List installed languages]" \
         {-i,--info}"[Show cache information (path, age, installed languages and the number of pages)]" \
         {-r,--render}"[Render the specified markdown file]:FILE:_files" \
-        --clean-cache"[Clean the cache]" \
+        --clean-cache"[Interactively delete contents of the cache directory]" \
         --gen-config"[Print the default config]" \
         --config-path"[Print the default config path and create the config directory]" \
         {-p,--platform}"[Specify the platform to use (linux, osx, windows, etc.)]:PLATFORM:_platforms" \
