@@ -91,7 +91,7 @@ cargo install tlrc --locked
 
 ### From GitHub Releases
 
-You can find prebuilt binaries [here][latest-release].
+You can find prebuilt binaries and Debian packages [here][latest-release].
 
 ## Usage
 
