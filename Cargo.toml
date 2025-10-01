@@ -61,7 +61,7 @@ assets = [
 	["target/release/tldr", "usr/bin/", "755"],
 	["tldr.1", "usr/share/man/man1/", "644"],
 	["completions/tldr.bash", "usr/share/bash-completion/completions/tldr", "644"],
-	["completions/_tldr", "usr/share/zsh/site-functions/", "644"],
+	["completions/_tldr", "usr/share/zsh/vendor-completions/", "644"],
 	["completions/tldr.fish", "usr/share/fish/vendor_completions.d/", "644"],
 	["LICENSE", "usr/share/licenses/tlrc", "644"]
 ]
