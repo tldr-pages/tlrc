@@ -351,8 +351,8 @@ impl<'a> PageRenderer<'a> {
             let pages_dir = components.next().unwrap().to_string_lossy();
             let pages_dir = match pages_dir.split_once('.').unwrap().1 {
                 // There is a `pages.en` symlink, but GitHub doesn't resolve it.
-                "en" => Cow::Borrowed("pages"),
-                x => Cow::Owned(format!("pages.{x}")),
+                "en" => "pages",
+                _ => &pages_dir,
             };
 
             let platform = components.next().unwrap().to_string_lossy();
