@@ -272,6 +272,8 @@ pub struct OutputConfig {
     pub platform_title: bool,
     /// Show hyphens before example descriptions.
     pub show_hyphens: bool,
+    /// Display a link to edit the shown page on GitHub.
+    pub edit_link: bool,
     /// Show a custom string instead of a hyphen.
     pub example_prefix: Cow<'static, str>,
     /// Set the max line length. 0 means to use the terminal width.
@@ -290,6 +292,7 @@ impl Default for OutputConfig {
             show_title: true,
             platform_title: false,
             show_hyphens: false,
+            edit_link: false,
             example_prefix: Cow::Borrowed("- "),
             line_length: 0,
             compact: false,

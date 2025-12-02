@@ -103,6 +103,10 @@ pub struct Cli {
     #[arg(long)]
     pub long_options: bool,
 
+    /// Display a link to edit the shown page on GitHub.
+    #[arg(long)]
+    pub edit: bool,
+
     /// Do not update the cache, even if it is stale.
     #[arg(short, long)]
     pub offline: bool,

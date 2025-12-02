@@ -30,6 +30,7 @@ fn main() -> ExitCode {
 }
 
 fn include_cli_in_config(cfg: &mut Config, cli: &Cli) {
+    cfg.output.edit_link |= cli.edit;
     cfg.output.compact = !cli.no_compact && (cli.compact || cfg.output.compact);
     cfg.output.raw_markdown = !cli.no_raw && (cli.raw || cfg.output.raw_markdown);
     match (cli.short_options, cli.long_options) {
