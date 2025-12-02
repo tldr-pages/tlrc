@@ -19,7 +19,7 @@ jobs:
 
     steps:
       - name: Checkout the repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
       - name: Update Rust
         run: rustup update stable
       - name: Run rustfmt
@@ -31,7 +31,7 @@ jobs:
 
       steps:
         - name: Checkout the repository
-          uses: actions/checkout@v5
+          uses: actions/checkout@v6
         - name: Update Rust
           run: rustup update stable
         - name: Run clippy
@@ -49,7 +49,7 @@ jobs:
 
     steps:
       - name: Checkout the repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
       - name: Update Rust
         run: rustup update "${{ matrix.rust_version }}" && rustup default "${{ matrix.rust_version }}"
       - name: Build
