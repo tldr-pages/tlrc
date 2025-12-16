@@ -4,7 +4,7 @@ use std::fs::File;
 use std::io::{self, BufRead, BufReader, BufWriter, Write};
 use std::path::{Path, PathBuf};
 
-use log::{log_enabled, warn};
+use log::{info, log_enabled, warn};
 use terminal_size::terminal_size;
 use unicode_width::UnicodeWidthStr;
 use yansi::{Paint, Style};
@@ -342,6 +342,25 @@ impl<'a> PageRenderer<'a> {
 
         // This is safe to unwrap - errors would have already been catched in run().
         let first = paths.first().unwrap();
+
+        if cfg.output.edit_link {
+            // The path always starts with the cache dir.
+            let mut components = first.strip_prefix(&cfg.cache.dir).unwrap().iter();
+
+            // pages.lang/platform/filename.md
+            let pages_dir = components.next().unwrap().to_string_lossy();
+            let pages_dir = match pages_dir.split_once('.').unwrap().1 {
+                // There is a `pages.en` symlink, but GitHub doesn't resolve it.
+                "en" => "pages",
+                _ => &pages_dir,
+            };
+
+            let platform = components.next().unwrap().to_string_lossy();
+            let filename = components.next().unwrap().to_string_lossy();
+
+            info!("edit this page on GitHub:\nhttps://github.com/tldr-pages/tldr/edit/main/{pages_dir}/{platform}/{filename}");
+        }
+
         Self::print(first, cfg)
     }
 
