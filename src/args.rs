@@ -71,6 +71,10 @@ pub struct Cli {
     #[arg(short, long, group = "operations")]
     pub info: bool,
 
+    /// Search for a specific command from a query.
+    #[arg(short, long, group = "operations", value_name = "KEYWORDS")]
+    pub search: Option<String>,
+
     /// Render the specified markdown file.
     #[arg(short, long, group = "operations", value_name = "FILE")]
     pub render: Option<PathBuf>,

@@ -499,6 +499,82 @@ impl<'a> Cache<'a> {
         Self::print_basenames(pages)
     }
 
+    /// Search for a specific command from a query.
+    pub fn search(
+        &self,
+        search_term: &str,
+        platform: Option<&str>,
+        languages: Option<&[String]>,
+    ) -> Result<()> {
+        if let Some(p) = platform {
+            self.get_platforms_and_check(p)?;
+        }
+
+        let mut matches = vec![];
+        let search_term_lower = search_term.to_lowercase();
+
+        let lang_dirs: Vec<String> = if let Some(langs) = languages {
+            langs.iter().map(|l| format!("pages.{l}")).collect()
+        } else {
+            let mut dirs = vec![];
+            for entry in fs::read_dir(self.dir)? {
+                let entry = entry?;
+                let name = entry.file_name().to_string_lossy().to_string();
+                if entry.path().is_dir() && name.starts_with("pages.") {
+                    dirs.push(name);
+                }
+            }
+            dirs
+        };
+
+        for lang_dir in lang_dirs {
+            let platforms: Vec<String> = if let Some(p) = platform {
+                vec![p.to_string()]
+            } else {
+                self.get_platforms()?
+                    .iter()
+                    .map(|s| s.to_string_lossy().to_string())
+                    .collect()
+            };
+
+            for plat in platforms {
+                for file in self.list_dir(&plat, &lang_dir)? {
+                    let fname = file.to_string_lossy();
+                    let page_name = fname.strip_suffix(".md").unwrap_or(&fname);
+                    if page_name.to_lowercase().contains(&search_term_lower) {
+                        matches.push((page_name.to_string(), lang_dir.clone(), plat.clone()));
+                    }
+                }
+            }
+        }
+
+        if matches.is_empty() {
+            return Err(Error::new("no commands matched your search term."));
+        }
+
+        println!("Similar commands found:");
+        matches.sort_unstable();
+        matches.dedup();
+
+        for (page_name, lang_dir, plat) in matches {
+            let lang = lang_dir.strip_prefix("pages.").unwrap_or(&lang_dir);
+            let mut highlighted_name = String::new();
+            let mut last_end = 0;
+            let page_name_lower = page_name.to_lowercase();
+
+            for (start, part) in page_name_lower.match_indices(&search_term_lower) {
+                highlighted_name.push_str(&page_name[last_end..start]);
+                highlighted_name.push_str(&page_name[start..start + part.len()].bold().to_string());
+                last_end = start + part.len();
+            }
+            highlighted_name.push_str(&page_name[last_end..]);
+
+            println!("{highlighted_name} (tldr -p {plat} -L {lang} {page_name})");
+        }
+
+        Ok(())
+    }
+
     /// List all pages in `lang` and return a `Vec`.
     fn list_all_vec<S>(&self, lang_dir: S) -> Result<Vec<OsString>>
     where
@@ -753,6 +829,26 @@ mod tests {
         ]);
         let c = Cache::new(tmpdir.path());
         assert_eq!(c.get_platforms().unwrap(), &["common", "linux", "osx"]);
+    }
+
+    #[test]
+    fn search() {
+        let tmpdir = prepare(&[
+            "pages.en/common/a.md",
+            "pages.en/common/b.md",
+            "pages.en/linux/a.md",
+            "pages.en/linux/c.md",
+            "pages.en/osx/d.md",
+            "pages.en/android/am.md",
+        ]);
+        let c = Cache::new(tmpdir.path());
+
+        assert!(c.search("a", None, None).is_ok());
+        assert!(c.search("am", None, None).is_ok());
+        assert!(c.search("am", Some("linux"), None).is_err());
+        assert!(c.search("c", Some("linux"), None).is_ok());
+        assert!(c.search("b", Some("linux"), None).is_err()); // 'b' is in common, not linux
+        assert!(c.search("b", Some("common"), None).is_ok()); // 'b' is in common
     }
 
     #[test]

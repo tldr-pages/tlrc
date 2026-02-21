@@ -61,7 +61,11 @@ fn run(cli: Cli) -> Result<()> {
     let languages_are_from_cli = cli.languages.is_some();
     // We need to clone() because this vector will not be sorted,
     // unlike the one in the config.
-    let languages = cli.languages.unwrap_or_else(|| cfg.cache.languages.clone());
+    let languages = cli
+        .languages
+        .as_ref()
+        .cloned()
+        .unwrap_or_else(|| cfg.cache.languages.clone());
     let cache = Cache::new(&cfg.cache.dir);
 
     if cli.clean_cache {
@@ -114,6 +118,19 @@ fn run(cli: Cli) -> Result<()> {
         cache.list_for(platform)?;
     } else if cli.list_all {
         cache.list_all()?;
+    } else if let Some(search_term) = cli.search {
+        let platform_provided = std::env::args().any(|a| {
+            a == "-p" || a == "--platform" || a.starts_with("-p=") || a.starts_with("--platform=")
+        });
+        cache.search(
+            &search_term,
+            if platform_provided {
+                Some(platform)
+            } else {
+                None
+            },
+            cli.languages.as_deref(),
+        )?;
     } else if cli.info {
         cache.info(&cfg)?;
     } else if cli.list_platforms {
