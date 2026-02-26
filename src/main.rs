@@ -41,6 +41,7 @@ fn include_cli_in_config(cfg: &mut Config, cli: &Cli) {
     }
 }
 
+#[allow(clippy::too_many_lines)]
 fn run(cli: Cli) -> Result<()> {
     if cli.config_path {
         return Config::print_path();
@@ -63,8 +64,7 @@ fn run(cli: Cli) -> Result<()> {
     // unlike the one in the config.
     let languages = cli
         .languages
-        .as_ref()
-        .cloned()
+        .clone()
         .unwrap_or_else(|| cfg.cache.languages.clone());
     let cache = Cache::new(&cfg.cache.dir);
 
