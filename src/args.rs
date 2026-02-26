@@ -71,6 +71,26 @@ pub struct Cli {
     #[arg(short, long, group = "operations")]
     pub info: bool,
 
+    /// List configured personal repositories ("taps").
+    #[arg(long, group = "operations")]
+    pub tap_list: bool,
+
+    /// Add a personal repository ("tap") by name and git URL.
+    #[arg(long, num_args = 2, value_names = ["NAME", "URL"], group = "operations")]
+    pub tap_add: Option<Vec<String>>,
+
+    /// Remove a configured personal repository ("tap").
+    #[arg(long, value_name = "NAME", group = "operations")]
+    pub tap_remove: Option<String>,
+
+    /// Update a configured personal repository ("tap").
+    #[arg(long, value_name = "NAME", group = "operations")]
+    pub tap_update: Option<String>,
+
+    /// Update all configured personal repositories ("taps").
+    #[arg(long, group = "operations")]
+    pub tap_update_all: bool,
+
     /// Render the specified markdown file.
     #[arg(short, long, group = "operations", value_name = "FILE")]
     pub render: Option<PathBuf>,

@@ -130,5 +130,6 @@ macro_rules! from_impl {
 
 from_impl! { io::Error, Io }
 from_impl! { toml::de::Error, ParseToml }
+from_impl! { toml::ser::Error, ParseToml }
 from_impl! { ureq::Error, Download }
 from_impl! { zip::result::ZipError, Download }

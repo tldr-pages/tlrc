@@ -17,6 +17,7 @@ const TITLE: &str = "# ";
 const DESC: &str = "> ";
 const BULLET: &str = "- ";
 const EXAMPLE: char = '`';
+const PERSONAL_TITLE: &str = "Personal additions";
 
 struct RenderStyles {
     title: Style,
@@ -362,6 +363,72 @@ impl<'a> PageRenderer<'a> {
         }
 
         Self::print(first, cfg)
+    }
+
+    pub fn print_cache_result_with_personal(
+        paths: &'a [PathBuf],
+        personal_paths: &'a [PathBuf],
+        cfg: &'a Config,
+    ) -> Result<()> {
+        Self::print_cache_result(paths, cfg)?;
+        if cfg.output.raw_markdown || personal_paths.is_empty() {
+            return Ok(());
+        }
+        Self::print_personal_additions(personal_paths, cfg)
+    }
+
+    fn print_personal_additions(personal_paths: &'a [PathBuf], cfg: &'a Config) -> Result<()> {
+        let mut stdout = BufWriter::new(io::stdout().lock());
+        let title_indent = " ".repeat(cfg.indent.title);
+        let bullet_indent = " ".repeat(cfg.indent.bullet);
+        let example_indent = " ".repeat(cfg.indent.example);
+        let title_style: Style = cfg.style.title.into();
+        let bullet_style: Style = cfg.style.bullet.into();
+        let example_style: Style = cfg.style.example.into();
+
+        if !cfg.output.compact {
+            writeln!(stdout)?;
+        }
+        writeln!(
+            stdout,
+            "{title_indent}{}",
+            PERSONAL_TITLE.paint(title_style)
+        )?;
+        if !cfg.output.compact {
+            writeln!(stdout)?;
+        }
+
+        for path in personal_paths {
+            let file = File::open(path).map_err(|e| {
+                Error::new(format!("'{}': {e}", path.display())).kind(ErrorKind::Io)
+            })?;
+            let mut reader = BufReader::new(file);
+            let mut line = String::new();
+
+            while reader.read_line(&mut line)? != 0 {
+                let trimmed = line.trim_end();
+                if let Some(rest) = trimmed.strip_prefix(BULLET) {
+                    write!(stdout, "{bullet_indent}")?;
+                    if cfg.output.show_hyphens {
+                        let prefix = cfg.output.example_prefix.paint(bullet_style);
+                        write!(stdout, "{prefix}")?;
+                    }
+                    writeln!(stdout, "{}", rest.paint(bullet_style))?;
+                } else if let Some(rest) = trimmed.strip_prefix(EXAMPLE) {
+                    if let Some(rest) = rest.strip_suffix('`') {
+                        writeln!(stdout, "{example_indent}{}", rest.paint(example_style))?;
+                    }
+                } else if trimmed.is_empty() && !cfg.output.compact {
+                    writeln!(stdout)?;
+                }
+                String::clear(&mut line);
+            }
+        }
+
+        if !cfg.output.compact {
+            writeln!(stdout)?;
+        }
+        Ok(stdout.flush()?)
     }
 
     /// Load the next line into the line buffer.
