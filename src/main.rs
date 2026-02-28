@@ -18,6 +18,24 @@ use crate::error::{Error, Result};
 use crate::output::PageRenderer;
 use crate::util::{init_color, Logger};
 
+const DEFAULT_PLATFORM: &str = if cfg!(target_os = "linux") {
+    "linux"
+} else if cfg!(target_os = "macos") {
+    "osx"
+} else if cfg!(target_os = "windows") {
+    "windows"
+} else if cfg!(target_os = "freebsd") {
+    "freebsd"
+} else if cfg!(target_os = "openbsd") {
+    "openbsd"
+} else if cfg!(target_os = "netbsd") {
+    "netbsd"
+} else if cfg!(target_os = "android") {
+    "android"
+} else {
+    "common"
+};
+
 fn main() -> ExitCode {
     let cli = Cli::parse();
     init_color(cli.color);
@@ -62,10 +80,7 @@ fn run(cli: Cli) -> Result<()> {
     let languages_are_from_cli = cli.languages.is_some();
     // We need to clone() because this vector will not be sorted,
     // unlike the one in the config.
-    let languages = cli
-        .languages
-        .clone()
-        .unwrap_or_else(|| cfg.cache.languages.clone());
+    let languages = cli.languages.unwrap_or_else(|| cfg.cache.languages.clone());
     let cache = Cache::new(&cfg.cache.dir);
 
     if cli.clean_cache {
@@ -105,31 +120,32 @@ fn run(cli: Cli) -> Result<()> {
         }
     }
 
-    // "macos" should be an alias of "osx".
-    // Since the `macos` directory doesn't exist, this has to be changed before it
-    // gets passed to cache functions (which expect directory names).
-    let platform = if cli.platform == "macos" {
-        "osx"
-    } else {
-        &cli.platform
+    let platform = match &cli.platform {
+        // "macos" should be an alias of "osx".
+        // Since the `macos` directory doesn't exist, this has to be changed before it
+        // gets passed to cache functions (which expect directory names).
+        Some(p) if p == "macos" => "osx",
+        Some(p) => p,
+        None => DEFAULT_PLATFORM,
     };
 
     if cli.list {
         cache.list_for(platform)?;
     } else if cli.list_all {
         cache.list_all()?;
-    } else if let Some(search_term) = cli.search {
-        let platform_provided = std::env::args().any(|a| {
-            a == "-p" || a == "--platform" || a.starts_with("-p=") || a.starts_with("--platform=")
-        });
+    } else if let Some(query) = cli.search {
         cache.search(
-            &search_term,
-            if platform_provided {
-                Some(platform)
+            &query,
+            // All platforms should be searched if `-p` isn't used.
+            match &cli.platform {
+                Some(_) => Some(platform),
+                None => None,
+            },
+            if languages_are_from_cli {
+                Some(&languages)
             } else {
                 None
             },
-            cli.languages.as_deref(),
         )?;
     } else if cli.info {
         cache.info(&cfg)?;

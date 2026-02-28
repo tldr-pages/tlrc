@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::cmp;
 use std::collections::{BTreeMap, HashMap};
 use std::ffi::OsString;
@@ -499,10 +500,10 @@ impl<'a> Cache<'a> {
         Self::print_basenames(pages)
     }
 
-    /// Search for a specific command from a query.
+    /// Search for pages containing a keyword.
     pub fn search(
         &self,
-        search_term: &str,
+        query: &str,
         platform: Option<&str>,
         languages: Option<&[String]>,
     ) -> Result<()> {
@@ -510,66 +511,64 @@ impl<'a> Cache<'a> {
             self.get_platforms_and_check(p)?;
         }
 
-        let mut matches = vec![];
-        let search_term_lower = search_term.to_lowercase();
-
-        let lang_dirs: Vec<String> = if let Some(langs) = languages {
-            langs.iter().map(|l| format!("pages.{l}")).collect()
+        let lang_dirs: Vec<OsString> = if let Some(langs) = languages {
+            langs
+                .iter()
+                .map(|l| OsString::from(format!("pages.{l}")))
+                .collect()
         } else {
-            let mut dirs = vec![];
-            for entry in fs::read_dir(self.dir)? {
-                let entry = entry?;
-                let name = entry.file_name().to_string_lossy().to_string();
-                if entry.path().is_dir() && name.starts_with("pages.") {
-                    dirs.push(name);
-                }
-            }
-            dirs
+            self.get_lang_dirs()?.collect()
         };
 
-        for lang_dir in lang_dirs {
-            let platforms: Vec<String> = if let Some(p) = platform {
-                vec![p.to_string()]
-            } else {
-                self.get_platforms()?
-                    .iter()
-                    .map(|s| s.to_string_lossy().to_string())
-                    .collect()
-            };
+        let platforms: Vec<Cow<str>> = if let Some(p) = platform {
+            vec![Cow::Borrowed(p)]
+        } else {
+            self.get_platforms()?
+                .iter()
+                .map(|x| x.to_string_lossy())
+                .collect()
+        };
 
-            for plat in platforms {
-                for file in self.list_dir(&plat, &lang_dir)? {
-                    let fname = file.to_string_lossy();
+        let query = query.to_lowercase();
+        let mut matches = vec![];
+
+        for lang_dir in &lang_dirs {
+            for plat in &platforms {
+                for fname in self.list_dir::<&str, &OsString>(plat, lang_dir)? {
+                    let fname = fname.to_string_lossy();
                     let page_name = fname.strip_suffix(".md").unwrap_or(&fname);
-                    if page_name.to_lowercase().contains(&search_term_lower) {
-                        matches.push((page_name.to_string(), lang_dir.clone(), plat.clone()));
+
+                    if page_name.contains(&query) {
+                        matches.push((page_name.to_owned(), lang_dir, plat));
                     }
                 }
             }
         }
 
         if matches.is_empty() {
-            return Err(Error::new("no commands matched your search term."));
+            return Err(Error::new("no pages matched your search term."));
         }
 
-        println!("Similar commands found:");
-        matches.sort_unstable();
-        matches.dedup();
+        matches.sort_unstable_by(|(name1, _, _), (name2, _, _)| name1.cmp(name2));
+        writeln!(io::stderr(), "Similar pages found:")?;
+        let mut stdout = io::stdout().lock();
 
         for (page_name, lang_dir, plat) in matches {
-            let lang = lang_dir.strip_prefix("pages.").unwrap_or(&lang_dir);
-            let mut highlighted_name = String::new();
+            let lang = lang_dir.to_string_lossy();
+            let lang = lang.strip_prefix("pages.").unwrap();
             let mut last_end = 0;
-            let page_name_lower = page_name.to_lowercase();
 
-            for (start, part) in page_name_lower.match_indices(&search_term_lower) {
-                highlighted_name.push_str(&page_name[last_end..start]);
-                highlighted_name.push_str(&page_name[start..start + part.len()].bold().to_string());
+            for (start, part) in page_name.match_indices(&query) {
+                stdout.write_all(&page_name.as_bytes()[last_end..start])?;
+                write!(stdout, "{}", &page_name[start..start + part.len()].bold())?;
                 last_end = start + part.len();
             }
-            highlighted_name.push_str(&page_name[last_end..]);
 
-            println!("{highlighted_name} (tldr -p {plat} -L {lang} {page_name})");
+            writeln!(
+                stdout,
+                "{} (tldr -p {plat} -L {lang} {page_name})",
+                &page_name[last_end..],
+            )?;
         }
 
         Ok(())
@@ -601,15 +600,26 @@ impl<'a> Cache<'a> {
         Ok(())
     }
 
+    /// Get all language directories in the cache.
+    fn get_lang_dirs(&self) -> Result<impl Iterator<Item = OsString>> {
+        let languages = fs::read_dir(self.dir)?.filter_map(|res| match res {
+            Ok(ent) => {
+                if !ent.path().is_dir() {
+                    return None;
+                }
+                Some(ent.file_name())
+            }
+            Err(_) => None,
+        });
+        Ok(languages)
+    }
+
     /// List languages (used in shell completions).
     pub fn list_languages(&self) -> Result<()> {
-        let languages = fs::read_dir(self.dir)?
-            .filter(|res| res.is_ok() && res.as_ref().unwrap().path().is_dir())
-            .map(|res| res.unwrap().file_name());
         let mut stdout = io::stdout().lock();
 
-        for lang in languages {
-            let lang = lang.to_string_lossy();
+        for dir in self.get_lang_dirs()? {
+            let lang = dir.to_string_lossy();
             let lang = lang.strip_prefix("pages.").unwrap_or(&lang);
 
             writeln!(stdout, "{lang}")?;
@@ -623,12 +633,7 @@ impl<'a> Cache<'a> {
         let mut n_map = BTreeMap::new();
         let mut n_total = 0;
 
-        for lang_dir in fs::read_dir(self.dir)? {
-            let lang_dir = lang_dir?;
-            if !lang_dir.path().is_dir() {
-                continue;
-            }
-            let lang_dir = lang_dir.file_name();
+        for lang_dir in self.get_lang_dirs()? {
             let n = self.list_all_vec(&lang_dir)?.len();
 
             let lang = lang_dir.to_string_lossy();

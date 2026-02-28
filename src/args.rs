@@ -2,24 +2,6 @@ use std::path::PathBuf;
 
 use clap::{ArgAction, ArgGroup, ColorChoice, Parser};
 
-const DEFAULT_PLATFORM: &str = if cfg!(target_os = "linux") {
-    "linux"
-} else if cfg!(target_os = "macos") {
-    "osx"
-} else if cfg!(target_os = "windows") {
-    "windows"
-} else if cfg!(target_os = "freebsd") {
-    "freebsd"
-} else if cfg!(target_os = "openbsd") {
-    "openbsd"
-} else if cfg!(target_os = "netbsd") {
-    "netbsd"
-} else if cfg!(target_os = "android") {
-    "android"
-} else {
-    "common"
-};
-
 const AFTER_HELP: &str = if cfg!(target_os = "windows") {
     // Man pages are not available on Windows.
     "See https://tldr.sh/tlrc for more information."
@@ -59,6 +41,10 @@ pub struct Cli {
     #[arg(short = 'a', long, group = "operations")]
     pub list_all: bool,
 
+    /// Search for pages containing a keyword.
+    #[arg(short, long, group = "operations", value_name = "KEYWORD")]
+    pub search: Option<String>,
+
     /// List available platforms.
     #[arg(long, group = "operations")]
     pub list_platforms: bool,
@@ -70,10 +56,6 @@ pub struct Cli {
     /// Show cache information (path, age, installed languages and the number of pages).
     #[arg(short, long, group = "operations")]
     pub info: bool,
-
-    /// Search for a specific command from a query.
-    #[arg(short, long, group = "operations", value_name = "KEYWORDS")]
-    pub search: Option<String>,
 
     /// Render the specified markdown file.
     #[arg(short, long, group = "operations", value_name = "FILE")]
@@ -92,8 +74,8 @@ pub struct Cli {
     pub config_path: bool,
 
     /// Specify the platform to use (linux, osx, windows, etc.).
-    #[arg(short, long, default_value = DEFAULT_PLATFORM)]
-    pub platform: String,
+    #[arg(short, long)]
+    pub platform: Option<String>,
 
     /// Specify the languages to use.
     #[arg(short = 'L', long = "language", value_name = "LANGUAGE_CODE")]
