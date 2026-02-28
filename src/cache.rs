@@ -501,40 +501,33 @@ impl<'a> Cache<'a> {
     }
 
     /// Search for pages containing a keyword.
-    pub fn search(
-        &self,
-        query: &str,
-        platform: Option<&str>,
-        languages: Option<&[String]>,
-    ) -> Result<()> {
+    ///
+    /// When `platform` is `None`, search all platforms.
+    pub fn search(&self, query: &str, platform: Option<&str>, languages: &[String]) -> Result<()> {
         if let Some(p) = platform {
             self.get_platforms_and_check(p)?;
         }
 
-        let lang_dirs: Vec<OsString> = if let Some(langs) = languages {
-            langs
-                .iter()
-                .map(|l| OsString::from(format!("pages.{l}")))
-                .collect()
-        } else {
-            self.get_lang_dirs()?.collect()
-        };
+        let mut lang_dirs: Vec<String> = languages.iter().map(|x| format!("pages.{x}")).collect();
+        lang_dirs.sort_unstable();
+        lang_dirs.dedup();
 
-        let platforms: Vec<Cow<str>> = if let Some(p) = platform {
-            vec![Cow::Borrowed(p)]
-        } else {
-            self.get_platforms()?
+        let platforms = match platform {
+            Some(p) => vec![Cow::Borrowed(p)],
+            None => self
+                .get_platforms()?
                 .iter()
                 .map(|x| x.to_string_lossy())
-                .collect()
+                .collect(),
         };
 
         let query = query.to_lowercase();
+        debug!("searching for '{query}' in:\nplatforms: {platforms:?}\nlanguages: {lang_dirs:?}");
         let mut matches = vec![];
 
         for lang_dir in &lang_dirs {
             for plat in &platforms {
-                for fname in self.list_dir::<&str, &OsString>(plat, lang_dir)? {
+                for fname in self.list_dir::<&str, _>(plat, lang_dir)? {
                     let fname = fname.to_string_lossy();
                     let page_name = fname.strip_suffix(".md").unwrap_or(&fname);
 
@@ -554,8 +547,7 @@ impl<'a> Cache<'a> {
         let mut stdout = io::stdout().lock();
 
         for (page_name, lang_dir, plat) in matches {
-            let lang = lang_dir.to_string_lossy();
-            let lang = lang.strip_prefix("pages.").unwrap();
+            let lang = lang_dir.strip_prefix("pages.").unwrap();
             let mut last_end = 0;
 
             for (start, part) in page_name.match_indices(&query) {
@@ -848,12 +840,12 @@ mod tests {
         ]);
         let c = Cache::new(tmpdir.path());
 
-        assert!(c.search("a", None, None).is_ok());
-        assert!(c.search("am", None, None).is_ok());
-        assert!(c.search("am", Some("linux"), None).is_err());
-        assert!(c.search("c", Some("linux"), None).is_ok());
-        assert!(c.search("b", Some("linux"), None).is_err()); // 'b' is in common, not linux
-        assert!(c.search("b", Some("common"), None).is_ok()); // 'b' is in common
+        assert!(c.search("a", None, &["en".to_owned()]).is_ok());
+        assert!(c.search("am", None, &["en".to_owned()]).is_ok());
+        assert!(c.search("am", Some("linux"), &["en".to_owned()]).is_err());
+        assert!(c.search("c", Some("linux"), &["en".to_owned()]).is_ok());
+        assert!(c.search("b", Some("linux"), &["en".to_owned()]).is_err()); // 'b' is in common, not linux
+        assert!(c.search("b", Some("common"), &["en".to_owned()]).is_ok()); // 'b' is in common
     }
 
     #[test]

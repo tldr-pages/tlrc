@@ -59,7 +59,6 @@ fn include_cli_in_config(cfg: &mut Config, cli: &Cli) {
     }
 }
 
-#[allow(clippy::too_many_lines)]
 fn run(cli: Cli) -> Result<()> {
     if cli.config_path {
         return Config::print_path();
@@ -134,19 +133,9 @@ fn run(cli: Cli) -> Result<()> {
     } else if cli.list_all {
         cache.list_all()?;
     } else if let Some(query) = cli.search {
-        cache.search(
-            &query,
-            // All platforms should be searched if `-p` isn't used.
-            match &cli.platform {
-                Some(_) => Some(platform),
-                None => None,
-            },
-            if languages_are_from_cli {
-                Some(&languages)
-            } else {
-                None
-            },
-        )?;
+        // All platforms should be searched when `-p` isn't used.
+        let search_plat = cli.platform.as_deref().map(|_| platform);
+        cache.search(&query, search_plat, &languages)?;
     } else if cli.info {
         cache.info(&cfg)?;
     } else if cli.list_platforms {
