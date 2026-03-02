@@ -543,24 +543,37 @@ impl<'a> Cache<'a> {
         }
 
         matches.sort_unstable_by(|(name1, _, _), (name2, _, _)| name1.cmp(name2));
-        writeln!(io::stderr(), "Similar pages found:")?;
+        //                                                "Platform".len() is 8
+        let width_plat = matches.iter().map(|x| x.2.len()).max().unwrap().max(8);
+        //                             "pages.".len() is 6   "Languages".len() is 8
+        let width_lang = matches.iter().map(|x| x.1.len() - 6).max().unwrap().max(8);
+
+        writeln!(
+            io::stderr(),
+            "{:width_lang$} {:width_plat$} {}",
+            "Language".bold(),
+            "Platform".bold(),
+            "Page".bold(),
+        )?;
         let mut stdout = io::stdout().lock();
 
         for (page_name, lang_dir, plat) in matches {
             let lang = lang_dir.strip_prefix("pages.").unwrap();
+            write!(stdout, "{lang:width_lang$} {plat:width_plat$} ")?;
+
             let mut last_end = 0;
 
             for (start, part) in page_name.match_indices(&query) {
                 stdout.write_all(&page_name.as_bytes()[last_end..start])?;
-                write!(stdout, "{}", &page_name[start..start + part.len()].bold())?;
+                write!(
+                    stdout,
+                    "{}",
+                    &page_name[start..start + part.len()].green().bold()
+                )?;
                 last_end = start + part.len();
             }
 
-            writeln!(
-                stdout,
-                "{} (tldr -p {plat} -L {lang} {page_name})",
-                &page_name[last_end..],
-            )?;
+            writeln!(stdout, "{}", &page_name[last_end..])?;
         }
 
         Ok(())

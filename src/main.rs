@@ -119,11 +119,11 @@ fn run(cli: Cli) -> Result<()> {
         }
     }
 
-    let platform = match &cli.platform {
+    let platform = match cli.platform.as_deref() {
         // "macos" should be an alias of "osx".
         // Since the `macos` directory doesn't exist, this has to be changed before it
         // gets passed to cache functions (which expect directory names).
-        Some(p) if p == "macos" => "osx",
+        Some("macos") => "osx",
         Some(p) => p,
         None => DEFAULT_PLATFORM,
     };
