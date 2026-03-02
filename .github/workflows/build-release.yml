@@ -101,6 +101,6 @@ jobs:
 
       - name: Attest release files
         id: attest
-        uses: actions/attest-build-provenance@v3
+        uses: actions/attest-build-provenance@v4
         with:
           subject-path: '*.zip, *.tar.gz, *.deb'
