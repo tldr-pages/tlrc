@@ -1,6 +1,5 @@
 use std::cmp;
 use std::collections::{BTreeMap, HashMap};
-use std::ffi::OsString;
 use std::fs::{self, File};
 use std::io::{self, BufRead, BufWriter, Cursor, Write};
 use std::path::{Path, PathBuf};
@@ -359,12 +358,12 @@ impl<'a> Cache<'a> {
                 "Possible values:".bold(),
                 platforms
                     // 4 platforms per line
+                    // Possible values: a, b, c, d,
+                    //                  e, f, g, h.
                     .chunks(4)
                     .map(|x| x.join(", "))
                     .collect::<Vec<String>>()
                     .join(",\n                 ")
-                    // Possible values: a, b, c, d,
-                    //                  e, f, g, h.
             )))
         } else {
             Ok(platforms)
@@ -442,12 +441,31 @@ impl<'a> Cache<'a> {
         Ok(result)
     }
 
-    /// List all available pages in `lang` for `platform`.
-    fn list_dir(&self, platform: &str, lang_dir: &str) -> Result<Vec<OsString>> {
+    /// List all available pages in `lang` for `platform`, with the '.md' suffix removed.
+    fn list_dir(&self, platform: &str, lang_dir: &str) -> Result<Vec<String>> {
         match fs::read_dir(self.dir.join(lang_dir).join(platform)) {
             Ok(entries) => {
-                let entries = entries.map(|res| res.map(|ent| ent.file_name()));
-                Ok(entries.collect::<io::Result<Vec<OsString>>>()?)
+                let entries = entries.filter_map(|res| match res {
+                    Ok(ent) => {
+                        let Ok(mut fname) = ent.file_name().into_string() else {
+                            return None;
+                        };
+
+                        if let Some(page_name) = fname.strip_suffix(".md") {
+                            fname.truncate(page_name.len());
+                            Some(Ok(fname))
+                        } else {
+                            warn!(
+                                "'{}': page files should end in '.md', ignoring this",
+                                ent.path().display()
+                            );
+                            None
+                        }
+                    }
+                    Err(e) => Some(Err(e)),
+                });
+
+                Ok(entries.collect::<io::Result<Vec<String>>>()?)
             }
             // If the directory does not exist, return an empty Vec instead of an error
             // (some platform directories do not exist in some translations).
@@ -456,7 +474,7 @@ impl<'a> Cache<'a> {
         }
     }
 
-    fn print_basenames(mut pages: Vec<OsString>) -> Result<()> {
+    fn print_page_list(mut pages: Vec<String>) -> Result<()> {
         if pages.is_empty() {
             return Err(Error::messed_up_cache(
                 "no pages found, but the 'pages.en' directory exists.",
@@ -472,9 +490,6 @@ impl<'a> Cache<'a> {
         let mut stdout = BufWriter::new(io::stdout().lock());
 
         for page in pages {
-            let page = page.to_string_lossy();
-            let page = page.strip_suffix(".md").unwrap_or(&page);
-
             writeln!(stdout, "{page}")?;
         }
 
@@ -495,7 +510,7 @@ impl<'a> Cache<'a> {
                 .collect()
         };
 
-        Self::print_basenames(pages)
+        Self::print_page_list(pages)
     }
 
     /// Search for pages containing a keyword.
@@ -522,12 +537,9 @@ impl<'a> Cache<'a> {
 
         for lang_dir in &lang_dirs {
             for plat in &platforms {
-                for fname in self.list_dir(plat, lang_dir)? {
-                    let fname = fname.to_string_lossy();
-                    let page_name = fname.strip_suffix(".md").unwrap_or(&fname);
-
+                for page_name in self.list_dir(plat, lang_dir)? {
                     if page_name.contains(&query) {
-                        matches.push((page_name.to_owned(), lang_dir, plat));
+                        matches.push((page_name, lang_dir, plat));
                     }
                 }
             }
@@ -575,7 +587,7 @@ impl<'a> Cache<'a> {
     }
 
     /// List all pages in `lang` and return a `Vec`.
-    fn list_all_vec(&self, lang_dir: &str) -> Result<Vec<OsString>> {
+    fn list_all_vec(&self, lang_dir: &str) -> Result<Vec<String>> {
         let mut result = vec![];
 
         for platform in self.get_platforms()? {
@@ -587,7 +599,7 @@ impl<'a> Cache<'a> {
 
     /// List all pages in English.
     pub fn list_all(&self) -> Result<()> {
-        Self::print_basenames(self.list_all_vec(ENGLISH_DIR)?)
+        Self::print_page_list(self.list_all_vec(ENGLISH_DIR)?)
     }
 
     /// List platforms (used in shell completions).
@@ -808,15 +820,15 @@ mod tests {
 
         let mut list = c.list_dir("common", "pages.en").unwrap();
         list.sort_unstable();
-        assert_eq!(list, vec!["a.md", "b.md"]);
+        assert_eq!(list, vec!["a", "b"]);
 
         let mut list = c.list_dir("linux", "pages.en").unwrap();
         list.sort_unstable();
-        assert_eq!(list, vec!["c.md"]);
+        assert_eq!(list, vec!["c"]);
 
         let mut list = c.list_all_vec("pages.en").unwrap();
         list.sort_unstable();
-        assert_eq!(list, vec!["a.md", "b.md", "c.md", "d.md"]);
+        assert_eq!(list, vec!["a", "b", "c", "d"]);
     }
 
     #[test]
