@@ -1,4 +1,3 @@
-use std::borrow::Cow;
 use std::cmp;
 use std::collections::{BTreeMap, HashMap};
 use std::ffi::OsString;
@@ -26,7 +25,7 @@ type PagesArchive = ZipArchive<Cursor<Vec<u8>>>;
 
 pub struct Cache<'a> {
     dir: &'a Path,
-    platforms: OnceCell<Vec<OsString>>,
+    platforms: OnceCell<Vec<String>>,
     age: OnceCell<Duration>,
 }
 
@@ -321,17 +320,18 @@ impl<'a> Cache<'a> {
     }
 
     /// Find out what platforms are available.
-    fn get_platforms(&self) -> Result<&[OsString]> {
+    fn get_platforms(&self) -> Result<&[String]> {
         self.platforms
             .get_or_try_init(|| {
                 let mut result = vec![];
 
                 for entry in fs::read_dir(self.dir.join(ENGLISH_DIR))? {
                     let entry = entry?;
-                    let path = entry.path();
-                    let platform = path.file_name().unwrap();
+                    let Ok(platform) = entry.file_name().into_string() else {
+                        continue;
+                    };
 
-                    result.push(platform.to_os_string());
+                    result.push(platform);
                 }
 
                 if result.is_empty() {
@@ -350,14 +350,21 @@ impl<'a> Cache<'a> {
     }
 
     /// Find out what platforms are available and check if the provided platform exists.
-    fn get_platforms_and_check(&self, platform: &str) -> Result<&[OsString]> {
+    fn get_platforms_and_check(&self, platform: &str) -> Result<&[String]> {
         let platforms = self.get_platforms()?;
 
         if platforms.iter().all(|x| x != platform) {
             Err(Error::new(format!(
                 "platform '{platform}' does not exist.\n{} {}.",
                 "Possible values:".bold(),
-                platforms.join(", ".as_ref()).to_string_lossy()
+                platforms
+                    // 4 platforms per line
+                    .chunks(4)
+                    .map(|x| x.join(", "))
+                    .collect::<Vec<String>>()
+                    .join(",\n                 ")
+                    // Possible values: a, b, c, d,
+                    //                  e, f, g, h.
             )))
         } else {
             Ok(platforms)
@@ -365,12 +372,9 @@ impl<'a> Cache<'a> {
     }
 
     /// Find a page for the given platform.
-    fn find_page_for<P>(&self, fname: &str, platform: P, lang_dirs: &[String]) -> Option<PathBuf>
-    where
-        P: AsRef<Path>,
-    {
+    fn find_page_for(&self, fname: &str, platform: &str, lang_dirs: &[String]) -> Option<PathBuf> {
         for lang_dir in lang_dirs {
-            let path = self.dir.join(lang_dir).join(&platform).join(fname);
+            let path = self.dir.join(lang_dir).join(platform).join(fname);
 
             debug!("trying path: {path:?}");
             if path.is_file() {
@@ -417,8 +421,6 @@ impl<'a> Cache<'a> {
 
             if let Some(path) = self.find_page_for(&file, alt_platform, &lang_dirs) {
                 if result.is_empty() {
-                    let alt_platform = alt_platform.to_string_lossy();
-
                     if platform == "common" {
                         warn!(
                             "showing page from platform '{alt_platform}', \
@@ -441,12 +443,8 @@ impl<'a> Cache<'a> {
     }
 
     /// List all available pages in `lang` for `platform`.
-    fn list_dir<P, Q>(&self, platform: P, lang_dir: Q) -> Result<Vec<OsString>>
-    where
-        P: AsRef<Path>,
-        Q: AsRef<Path>,
-    {
-        match fs::read_dir(self.dir.join(lang_dir.as_ref()).join(platform)) {
+    fn list_dir(&self, platform: &str, lang_dir: &str) -> Result<Vec<OsString>> {
+        match fs::read_dir(self.dir.join(lang_dir).join(platform)) {
             Ok(entries) => {
                 let entries = entries.map(|res| res.map(|ent| ent.file_name()));
                 Ok(entries.collect::<io::Result<Vec<OsString>>>()?)
@@ -513,13 +511,9 @@ impl<'a> Cache<'a> {
         lang_dirs.dedup();
 
         let platforms = match platform {
-            Some("common") => vec![Cow::Borrowed("common")],
-            Some(p) => vec![Cow::Borrowed(p), Cow::Borrowed("common")],
-            None => self
-                .get_platforms()?
-                .iter()
-                .map(|x| x.to_string_lossy())
-                .collect(),
+            Some("common") => vec!["common"],
+            Some(p) => vec![p, "common"],
+            None => self.get_platforms()?.iter().map(String::as_str).collect(),
         };
 
         let query = query.to_lowercase();
@@ -528,7 +522,7 @@ impl<'a> Cache<'a> {
 
         for lang_dir in &lang_dirs {
             for plat in &platforms {
-                for fname in self.list_dir::<&str, _>(plat, lang_dir)? {
+                for fname in self.list_dir(plat, lang_dir)? {
                     let fname = fname.to_string_lossy();
                     let page_name = fname.strip_suffix(".md").unwrap_or(&fname);
 
@@ -581,14 +575,11 @@ impl<'a> Cache<'a> {
     }
 
     /// List all pages in `lang` and return a `Vec`.
-    fn list_all_vec<S>(&self, lang_dir: S) -> Result<Vec<OsString>>
-    where
-        S: AsRef<Path>,
-    {
+    fn list_all_vec(&self, lang_dir: &str) -> Result<Vec<OsString>> {
         let mut result = vec![];
 
         for platform in self.get_platforms()? {
-            result.append(&mut self.list_dir(platform, &lang_dir)?);
+            result.append(&mut self.list_dir(platform, lang_dir)?);
         }
 
         Ok(result)
@@ -601,19 +592,21 @@ impl<'a> Cache<'a> {
 
     /// List platforms (used in shell completions).
     pub fn list_platforms(&self) -> Result<()> {
-        let platforms = self.get_platforms()?.join("\n".as_ref());
-        writeln!(io::stdout(), "{}", platforms.to_string_lossy())?;
+        writeln!(io::stdout(), "{}", self.get_platforms()?.join("\n"))?;
         Ok(())
     }
 
     /// Get all language directories in the cache.
-    fn get_lang_dirs(&self) -> Result<impl Iterator<Item = OsString>> {
+    fn get_lang_dirs(&self) -> Result<impl Iterator<Item = String>> {
         let languages = fs::read_dir(self.dir)?.filter_map(|res| match res {
             Ok(ent) => {
-                if !ent.path().is_dir() {
+                let Ok(dir) = ent.file_name().into_string() else {
+                    return None;
+                };
+                if !ent.path().is_dir() || !dir.starts_with("pages.") {
                     return None;
                 }
-                Some(ent.file_name())
+                Some(dir)
             }
             Err(_) => None,
         });
@@ -625,10 +618,7 @@ impl<'a> Cache<'a> {
         let mut stdout = io::stdout().lock();
 
         for dir in self.get_lang_dirs()? {
-            let lang = dir.to_string_lossy();
-            let lang = lang.strip_prefix("pages.").unwrap_or(&lang);
-
-            writeln!(stdout, "{lang}")?;
+            writeln!(stdout, "{}", dir.strip_prefix("pages.").unwrap())?;
         }
 
         Ok(())
@@ -642,10 +632,7 @@ impl<'a> Cache<'a> {
         for lang_dir in self.get_lang_dirs()? {
             let n = self.list_all_vec(&lang_dir)?.len();
 
-            let lang = lang_dir.to_string_lossy();
-            let lang = lang.strip_prefix("pages.").unwrap_or(&lang);
-
-            n_map.insert(lang.to_string(), n);
+            n_map.insert(lang_dir, n);
             n_total += n;
         }
 
@@ -678,7 +665,8 @@ impl<'a> Cache<'a> {
         let width = cmp::max(n_map.keys().map(String::len).max().unwrap(), 5);
         //                                  "total" is 5 characters long. ^^
 
-        for (lang, n) in n_map {
+        for (lang_dir, n) in n_map {
+            let lang = lang_dir.strip_prefix("pages.").unwrap();
             writeln!(stdout, "{lang:width$} : {}", n.green().bold())?;
         }
 
