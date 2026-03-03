@@ -513,7 +513,8 @@ impl<'a> Cache<'a> {
         lang_dirs.dedup();
 
         let platforms = match platform {
-            Some(p) => vec![Cow::Borrowed(p)],
+            Some("common") => vec![Cow::Borrowed("common")],
+            Some(p) => vec![Cow::Borrowed(p), Cow::Borrowed("common")],
             None => self
                 .get_platforms()?
                 .iter()
