@@ -101,12 +101,6 @@ See `man tldr` or the [online manpage](https://tldr.sh/tlrc). For a brief descri
 tldr --help
 ```
 
-To search for a command from a query:
-
-```shell
-tldr --search "KEYWORDS"
-```
-
 ## Configuration
 
 Tlrc can be customized with a [TOML](https://toml.io) configuration file. To get the default path for your system, run:
