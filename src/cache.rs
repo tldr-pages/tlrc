@@ -5,6 +5,7 @@ use std::ffi::OsString;
 use std::fs::{self, File};
 use std::io::{self, BufRead, BufWriter, Cursor, Write};
 use std::path::{Path, PathBuf};
+use std::process::Command;
 use std::time::Duration;
 
 use log::{debug, info, warn};
@@ -14,6 +15,7 @@ use yansi::Paint;
 use zip::ZipArchive;
 
 use crate::config::Config;
+use crate::config::TapConfig;
 use crate::error::{Error, Result};
 use crate::util::{self, Dedup, info_end, info_start};
 
@@ -21,6 +23,7 @@ pub const ENGLISH_DIR: &str = "pages.en";
 const CHECKSUM_FILE: &str = "tldr.sha256sums";
 const USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), '/', env!("CARGO_PKG_VERSION"));
 const HTTP_TIMEOUT: Option<Duration> = Some(Duration::from_secs(10));
+const TAPS_DIR: &str = "taps";
 
 type PagesArchive = ZipArchive<Cursor<Vec<u8>>>;
 
@@ -47,6 +50,121 @@ impl<'a> Cache<'a> {
     /// Return `true` if the specified subdirectory exists in the cache.
     pub fn subdir_exists(&self, sd: &str) -> bool {
         self.dir.join(sd).is_dir()
+    }
+
+    fn taps_dir(&self) -> PathBuf {
+        self.dir.join(TAPS_DIR)
+    }
+
+    fn sanitized_tap_name(name: &str) -> String {
+        let mut out = String::with_capacity(name.len());
+        for ch in name.chars() {
+            if ch.is_ascii_alphanumeric() || ch == '-' || ch == '_' || ch == '.' {
+                out.push(ch);
+            } else {
+                out.push('_');
+            }
+        }
+        if out.is_empty() {
+            "_".to_string()
+        } else {
+            out
+        }
+    }
+
+    pub fn tap_repo_path(&self, tap_name: &str) -> PathBuf {
+        self.taps_dir().join(Self::sanitized_tap_name(tap_name))
+    }
+
+    fn run_git(cmd: &mut Command, context: &str) -> Result<()> {
+        let output = cmd
+            .output()
+            .map_err(|e| Error::new(format!("failed to run git for {context}: {e}")))?;
+
+        if output.status.success() {
+            return Ok(());
+        }
+
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        let stderr = stderr.trim();
+        if stderr.is_empty() {
+            Err(Error::new(format!("git command failed for {context}")))
+        } else {
+            Err(Error::new(format!(
+                "git command failed for {context}: {stderr}"
+            )))
+        }
+    }
+
+    pub fn sync_tap(&self, tap: &TapConfig) -> Result<()> {
+        if tap.name.is_empty() {
+            return Err(Error::new("tap name cannot be empty"));
+        }
+        if tap.url.is_empty() {
+            return Err(Error::new(format!("tap '{}' has an empty URL", tap.name)));
+        }
+
+        fs::create_dir_all(self.taps_dir())?;
+        let repo_path = self.tap_repo_path(&tap.name);
+        let branch = tap.branch.as_deref();
+
+        if repo_path.join(".git").is_dir() {
+            info!("updating tap '{}'...", tap.name);
+
+            let mut fetch = Command::new("git");
+            fetch
+                .current_dir(&repo_path)
+                .args(["fetch", "--all", "--prune"]);
+            Self::run_git(&mut fetch, &format!("fetching tap '{}'", tap.name))?;
+
+            if let Some(branch) = branch {
+                let mut checkout = Command::new("git");
+                checkout.current_dir(&repo_path).args(["checkout", branch]);
+                Self::run_git(
+                    &mut checkout,
+                    &format!("checking out '{branch}' in tap '{}'", tap.name),
+                )?;
+
+                let mut pull = Command::new("git");
+                pull.current_dir(&repo_path)
+                    .args(["pull", "--ff-only", "origin", branch]);
+                Self::run_git(
+                    &mut pull,
+                    &format!("pulling branch '{branch}' for tap '{}'", tap.name),
+                )?;
+            } else {
+                let mut pull = Command::new("git");
+                pull.current_dir(&repo_path).args(["pull", "--ff-only"]);
+                Self::run_git(&mut pull, &format!("pulling tap '{}'", tap.name))?;
+            }
+        } else {
+            if repo_path.exists() {
+                return Err(Error::new(format!(
+                    "cannot clone tap '{}': '{}' exists but is not a git repository",
+                    tap.name,
+                    repo_path.display()
+                )));
+            }
+
+            info!("cloning tap '{}'...", tap.name);
+            let mut clone = Command::new("git");
+            clone.arg("clone").arg("--depth").arg("1");
+            if let Some(branch) = branch {
+                clone.arg("--branch").arg(branch);
+            }
+            clone.arg(&tap.url).arg(&repo_path);
+            Self::run_git(&mut clone, &format!("cloning tap '{}'", tap.name))?;
+        }
+
+        Ok(())
+    }
+
+    pub fn remove_tap_checkout(&self, tap_name: &str) -> Result<()> {
+        let repo_path = self.tap_repo_path(tap_name);
+        if repo_path.exists() {
+            fs::remove_dir_all(repo_path)?;
+        }
+        Ok(())
     }
 
     /// Send a GET request with the provided agent and return the response body.
@@ -382,6 +500,42 @@ impl<'a> Cache<'a> {
         None
     }
 
+    /// Find a page for the given platform under a custom base directory.
+    fn find_page_for_base<P>(
+        &self,
+        base_dir: &Path,
+        fname: &str,
+        platform: P,
+        lang_dirs: &[String],
+    ) -> Option<PathBuf>
+    where
+        P: AsRef<Path>,
+    {
+        for lang_dir in lang_dirs {
+            let path = base_dir.join(lang_dir).join(&platform).join(fname);
+            debug!("trying path: {path:?}");
+            if path.is_file() {
+                debug!("page found");
+                return Some(path);
+            }
+        }
+        None
+    }
+
+    fn tap_language_dirs(languages: &[String]) -> Vec<String> {
+        let mut dirs = Vec::with_capacity(languages.len() + 1);
+        for lang in languages {
+            if lang == "en" {
+                dirs.push("pages".to_string());
+                dirs.push(ENGLISH_DIR.to_string());
+            } else {
+                dirs.push(format!("pages.{lang}"));
+            }
+        }
+        dirs.dedup_nosort();
+        dirs
+    }
+
     /// Find all pages with the given name.
     pub fn find(&self, name: &str, languages: &[String], platform: &str) -> Result<Vec<PathBuf>> {
         // https://github.com/tldr-pages/tldr/blob/main/CLIENT-SPECIFICATION.md#page-resolution
@@ -437,6 +591,66 @@ impl<'a> Cache<'a> {
         }
 
         debug!("found {} page(s)", result.len());
+        Ok(result)
+    }
+
+    /// Find matching pages in enabled taps.
+    pub fn find_in_taps(
+        &self,
+        name: &str,
+        languages: &[String],
+        platform: &str,
+        taps: &[TapConfig],
+    ) -> Result<Vec<PathBuf>> {
+        let platforms = self.get_platforms_and_check(platform)?;
+        let file = format!("{name}.md");
+        let mut lang_dirs = Self::tap_language_dirs(languages);
+        lang_dirs.dedup_nosort();
+
+        let mut result = Vec::new();
+
+        for tap in taps {
+            if !tap.enabled {
+                continue;
+            }
+
+            let repo_root = self.tap_repo_path(&tap.name);
+            if !repo_root.is_dir() {
+                debug!(
+                    "tap '{}' is configured but repository is missing locally at '{}'",
+                    tap.name,
+                    repo_root.display()
+                );
+                continue;
+            }
+
+            let mut tap_page = None;
+
+            if platform != "common" {
+                tap_page = self.find_page_for_base(&repo_root, &file, platform, &lang_dirs);
+            }
+
+            if tap_page.is_none() {
+                tap_page = self.find_page_for_base(&repo_root, &file, "common", &lang_dirs);
+            }
+
+            if tap_page.is_none() {
+                for alt_platform in platforms {
+                    if alt_platform == platform || alt_platform == "common" {
+                        continue;
+                    }
+                    tap_page = self.find_page_for_base(&repo_root, &file, alt_platform, &lang_dirs);
+                    if tap_page.is_some() {
+                        break;
+                    }
+                }
+            }
+
+            if let Some(page) = tap_page {
+                result.push(page);
+            }
+        }
+
         Ok(result)
     }
 
@@ -870,5 +1084,66 @@ mod tests {
         let s = "xyz    pages.en.zip\nzyx   pages.xy.zip\nabc   someotherfile\ncba  index.json";
         let map = HashMap::from([("en", "xyz"), ("xy", "zyx")]);
         assert_eq!(Cache::parse_sumfile(s).unwrap(), map);
+    }
+
+    #[test]
+    fn find_pages_in_taps() {
+        let tmpdir = prepare(&[
+            "pages.en/common/a.md",
+            "pages.en/linux/a.md",
+            "taps/personal/pages/common/a.md",
+            "taps/disabled/pages/common/a.md",
+        ]);
+        let c = Cache::new(tmpdir.path());
+
+        let taps = vec![
+            TapConfig {
+                name: "personal".to_string(),
+                url: "https://example.com/personal.git".to_string(),
+                branch: None,
+                enabled: true,
+            },
+            TapConfig {
+                name: "disabled".to_string(),
+                url: "https://example.com/disabled.git".to_string(),
+                branch: None,
+                enabled: false,
+            },
+        ];
+
+        let found = c
+            .find_in_taps("a", &["en".to_string()], "linux", &taps)
+            .unwrap();
+        assert_eq!(found.len(), 1);
+        assert!(found[0].ends_with("taps/personal/pages/common/a.md"));
+    }
+
+    #[test]
+    fn tap_path_is_sanitized() {
+        let tmpdir = prepare(&["pages.en/common/a.md"]);
+        let c = Cache::new(tmpdir.path());
+        let path = c.tap_repo_path("my tap/name");
+        assert!(path.ends_with("taps/my_tap_name"));
+    }
+
+    #[test]
+    fn sync_tap_validates_required_fields() {
+        let tmpdir = prepare(&["pages.en/common/a.md"]);
+        let c = Cache::new(tmpdir.path());
+        let empty_name = TapConfig {
+            name: String::new(),
+            url: "https://example.com/repo.git".to_string(),
+            branch: None,
+            enabled: true,
+        };
+        assert!(c.sync_tap(&empty_name).is_err());
+
+        let empty_url = TapConfig {
+            name: "personal".to_string(),
+            url: String::new(),
+            branch: None,
+            enabled: true,
+        };
+        assert!(c.sync_tap(&empty_url).is_err());
     }
 }

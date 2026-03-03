@@ -140,6 +140,16 @@ max_age = 336 # 336 hours = 2 weeks
 # Example: ["de", "pl"]
 languages = []
 
+# Optional personal git-backed repositories ("taps").
+# Each tap can contribute additional examples appended below official pages.
+[[taps]]
+name = "personal"
+url = "https://example.com/your/tldr-pages.git"
+# Optional branch to track.
+# branch = "main"
+# Disable this tap without removing it from config.
+enabled = true
+
 [output]
 # Show the title in the rendered page.
 show_title = true
@@ -266,6 +276,18 @@ description.color = "default"
 bullet.color = "green"
 example.color = "red"
 placeholder.color = "default"
+```
+
+### Personal repository commands
+
+Tlrc can manage personal repositories ("taps") from the command line:
+
+```shell
+tldr --tap-list
+tldr --tap-add personal https://example.com/your/tldr-pages.git
+tldr --tap-update personal
+tldr --tap-update-all
+tldr --tap-remove personal
 ```
 
 [latest-release]: https://github.com/tldr-pages/tlrc/releases/latest

@@ -239,6 +239,35 @@ pub struct CacheConfig {
     pub languages: Vec<String>,
 }
 
+fn default_tap_enabled() -> bool {
+    true
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+#[serde(deny_unknown_fields, default)]
+pub struct TapConfig {
+    /// Unique tap name.
+    pub name: String,
+    /// Git URL.
+    pub url: String,
+    /// Optional branch to track.
+    pub branch: Option<String>,
+    /// If false, this tap is ignored during lookup and updates.
+    #[serde(default = "default_tap_enabled")]
+    pub enabled: bool,
+}
+
+impl Default for TapConfig {
+    fn default() -> Self {
+        Self {
+            name: String::new(),
+            url: String::new(),
+            branch: None,
+            enabled: true,
+        }
+    }
+}
+
 impl Default for CacheConfig {
     fn default() -> Self {
         Self {
@@ -329,6 +358,7 @@ pub struct Config {
     pub output: OutputConfig,
     pub indent: IndentConfig,
     pub style: StyleConfig,
+    pub taps: Vec<TapConfig>,
 }
 
 impl Config {
@@ -375,6 +405,11 @@ impl Config {
         })
     }
 
+    /// Resolve the config file path for loading/saving.
+    pub fn resolve_path(cli_config_path: Option<&Path>) -> PathBuf {
+        cli_config_path.map_or_else(Self::locate, Path::to_path_buf)
+    }
+
     /// Get the default path to the config file.
     pub fn locate() -> PathBuf {
         env::var_os("TLRC_CONFIG").map_or_else(
@@ -386,6 +421,15 @@ impl Config {
             },
             PathBuf::from,
         )
+    }
+
+    /// Save config to a file path.
+    pub fn save_to(&self, path: &Path) -> Result<()> {
+        fs::create_dir_all(path.parent().ok_or_else(|| {
+            Error::new("cannot create the config directory: the path has only one component")
+        })?)?;
+        fs::write(path, toml::ser::to_string_pretty(self)?)?;
+        Ok(())
     }
 
     /// Print the default path to the config file and create the config directory.
@@ -418,5 +462,34 @@ impl Config {
     /// Convert the number of hours from config to a `Duration`.
     pub const fn cache_max_age(&self) -> Duration {
         Duration::from_secs(self.cache.max_age * 60 * 60)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_taps() {
+        let cfg = toml::from_str::<Config>(
+            r#"
+                [[taps]]
+                name = "local"
+                url = "https://example.com/tldr-local.git"
+
+                [[taps]]
+                name = "team"
+                url = "ssh://git@example.com/team/tldr.git"
+                branch = "main"
+                enabled = false
+            "#,
+        )
+        .unwrap();
+
+        assert_eq!(cfg.taps.len(), 2);
+        assert_eq!(cfg.taps[0].name, "local");
+        assert!(cfg.taps[0].enabled);
+        assert_eq!(cfg.taps[1].branch.as_deref(), Some("main"));
+        assert!(!cfg.taps[1].enabled);
     }
 }

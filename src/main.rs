@@ -5,6 +5,7 @@ mod error;
 mod output;
 mod util;
 
+use std::io::{self, Write};
 use std::process::ExitCode;
 
 use clap::Parser;
@@ -13,7 +14,7 @@ use yansi::Paint;
 
 use crate::args::Cli;
 use crate::cache::Cache;
-use crate::config::{Config, OptionStyle};
+use crate::config::{Config, OptionStyle, TapConfig};
 use crate::error::{Error, Result};
 use crate::output::PageRenderer;
 use crate::util::{Logger, init_color};
@@ -59,6 +60,30 @@ fn include_cli_in_config(cfg: &mut Config, cli: &Cli) {
     }
 }
 
+fn print_taps(cfg: &Config) -> Result<()> {
+    let mut stdout = io::stdout().lock();
+    if cfg.taps.is_empty() {
+        writeln!(stdout, "no taps configured")?;
+        return Ok(());
+    }
+
+    for tap in &cfg.taps {
+        let mut line = format!("{} -> {}", tap.name, tap.url);
+        if let Some(branch) = &tap.branch {
+            line.push_str(&format!(" (branch: {branch})"));
+        }
+        if !tap.enabled {
+            line.push_str(" [disabled]");
+        }
+        writeln!(stdout, "{line}")?;
+    }
+    Ok(())
+}
+
+fn find_tap<'a>(cfg: &'a Config, name: &str) -> Option<&'a TapConfig> {
+    cfg.taps.iter().find(|tap| tap.name == name)
+}
+
 fn run(cli: Cli) -> Result<()> {
     if cli.config_path {
         return Config::print_path();
@@ -70,6 +95,7 @@ fn run(cli: Cli) -> Result<()> {
 
     let mut cfg = Config::new(cli.config.as_deref())?;
     include_cli_in_config(&mut cfg, &cli);
+    let cfg_path = Config::resolve_path(cli.config.as_deref());
 
     if let Some(path) = cli.render {
         return PageRenderer::print(&path, &cfg);
@@ -81,6 +107,57 @@ fn run(cli: Cli) -> Result<()> {
     // unlike the one in the config.
     let languages = cli.languages.unwrap_or_else(|| cfg.cache.languages.clone());
     let cache = Cache::new(&cfg.cache.dir);
+
+    if cli.tap_list {
+        return print_taps(&cfg);
+    }
+
+    if let Some(tap_add) = &cli.tap_add {
+        let name = tap_add[0].clone();
+        let url = tap_add[1].clone();
+        if find_tap(&cfg, &name).is_some() {
+            return Err(Error::new(format!("tap '{name}' already exists")));
+        }
+
+        let tap = TapConfig {
+            name,
+            url,
+            branch: None,
+            enabled: true,
+        };
+        cache.sync_tap(&tap)?;
+        cfg.taps.push(tap.clone());
+        cfg.save_to(&cfg_path)?;
+        info!("tap '{}' added.", tap.name);
+        return Ok(());
+    }
+
+    if let Some(name) = &cli.tap_remove {
+        let old_len = cfg.taps.len();
+        cfg.taps.retain(|tap| &tap.name != name);
+        if cfg.taps.len() == old_len {
+            return Err(Error::new(format!("tap '{name}' does not exist")));
+        }
+
+        cache.remove_tap_checkout(name)?;
+        cfg.save_to(&cfg_path)?;
+        info!("tap '{name}' removed.");
+        return Ok(());
+    }
+
+    if let Some(name) = &cli.tap_update {
+        let tap = find_tap(&cfg, name)
+            .ok_or_else(|| Error::new(format!("tap '{name}' does not exist")))?;
+        cache.sync_tap(tap)?;
+        return Ok(());
+    }
+
+    if cli.tap_update_all {
+        for tap in cfg.taps.iter().filter(|tap| tap.enabled) {
+            cache.sync_tap(tap)?;
+        }
+        return Ok(());
+    }
 
     if cli.clean_cache {
         return cache.clean();
@@ -145,6 +222,7 @@ fn run(cli: Cli) -> Result<()> {
     } else {
         let page_name = cli.page.join("-").to_lowercase();
         let mut page_paths = cache.find(&page_name, &languages, platform)?;
+        let mut personal_paths = cache.find_in_taps(&page_name, &languages, platform, &cfg.taps)?;
         let forced_update_no_page = update_later && page_paths.is_empty();
         if forced_update_no_page {
             // Since the page hasn't been found and the cache is stale, disregard the defer option.
@@ -153,6 +231,7 @@ fn run(cli: Cli) -> Result<()> {
                 .update(&cfg.cache.mirror, &mut cfg.cache.languages)
                 .map_err(|e| e.describe(Error::DESC_AUTO_UPDATE_ERR))?;
             page_paths = cache.find(&page_name, &languages, platform)?;
+            personal_paths = cache.find_in_taps(&page_name, &languages, platform, &cfg.taps)?;
             // Reset the defer flag in order not to update twice.
             update_later = false;
         }
@@ -176,7 +255,7 @@ fn run(cli: Cli) -> Result<()> {
             };
         }
 
-        PageRenderer::print_cache_result(&page_paths, &cfg)?;
+        PageRenderer::print_cache_result_with_personal(&page_paths, &personal_paths, &cfg)?;
     }
 
     if update_later {
