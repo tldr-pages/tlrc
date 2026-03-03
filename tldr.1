@@ -20,11 +20,18 @@ If you want to force a redownload, run \fItldr\fR \fB--clean-cache\fR beforehand
 .
 .TP 4
 .B -l, --list
-List all pages in the current platform.
+List all English pages in the current platform, one per line (names only). The special platform\&
+\fIcommon\fR contains documentation for cross-platform tools, and is always listed.
 .
 .TP 4
 .B -a, --list-all
-List all pages.
+List all English pages, one per line (names only).
+.
+.TP 4
+\fB-s, --search\fR <KEYWORD>
+List pages containing a keyword, along with their respective language and platform. All platforms\&
+are searched by default. If \fB--platform\fR is specified, this behaves like\&
+\fB--list\fR (i.e. the specified platform and \fIcommon\fR are searched).
 .
 .TP 4
 .B --list-platforms
@@ -37,10 +44,6 @@ List available languages. Use \fB--info\fR for a language list with more informa
 .TP 4
 .B -i, --info
 Show cache information (path, age, installed languages and the number of pages).
-.
-.TP 4
-\fB-s, --search\fR <KEYWORDS>
-Search for a specific command from a query.
 .
 .TP 4
 \fB-r, --render\fR <FILE>
@@ -100,6 +103,14 @@ Example: "\fI{{[-s|--long]}}\fR" will be displayed as "\fB--long\fR" when using 
 Equivalent of setting \fIoutput.option_style\fR="\fBlong\fR" in the config.
 .sp
 This is the default.
+.
+.TP 4
+.B --edit
+Display a link to edit the shown page on GitHub.
+.sp
+The following link will be displayed:
+.br
+https://github.com/tldr-pages/tldr/edit/main/pages/\fB{{platform}}\fR/\fB{{page-name}}\fR.md
 .
 .TP 4
 .B -o, --offline
@@ -208,7 +219,7 @@ See the tldr page for \fBdiskpart\fR, from platform \fBwindows\fR:
 .fi
 .PP
 .
-Search for commands that contain the string \fBtar\fR:
+Search for pages that contain the string \fBtar\fR:
 .IP
 .nf
 \fItldr\fR --search tar
