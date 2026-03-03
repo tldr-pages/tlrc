@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::cmp;
 use std::collections::{BTreeMap, HashMap};
 use std::ffi::OsString;
@@ -499,6 +500,85 @@ impl<'a> Cache<'a> {
         Self::print_basenames(pages)
     }
 
+    /// Search for pages containing a keyword.
+    ///
+    /// When `platform` is `None`, search all platforms.
+    pub fn search(&self, query: &str, platform: Option<&str>, languages: &[String]) -> Result<()> {
+        if let Some(p) = platform {
+            self.get_platforms_and_check(p)?;
+        }
+
+        let mut lang_dirs: Vec<String> = languages.iter().map(|x| format!("pages.{x}")).collect();
+        lang_dirs.sort_unstable();
+        lang_dirs.dedup();
+
+        let platforms = match platform {
+            Some(p) => vec![Cow::Borrowed(p)],
+            None => self
+                .get_platforms()?
+                .iter()
+                .map(|x| x.to_string_lossy())
+                .collect(),
+        };
+
+        let query = query.to_lowercase();
+        debug!("searching for '{query}' in:\nplatforms: {platforms:?}\nlanguages: {lang_dirs:?}");
+        let mut matches = vec![];
+
+        for lang_dir in &lang_dirs {
+            for plat in &platforms {
+                for fname in self.list_dir::<&str, _>(plat, lang_dir)? {
+                    let fname = fname.to_string_lossy();
+                    let page_name = fname.strip_suffix(".md").unwrap_or(&fname);
+
+                    if page_name.contains(&query) {
+                        matches.push((page_name.to_owned(), lang_dir, plat));
+                    }
+                }
+            }
+        }
+
+        if matches.is_empty() {
+            return Err(Error::new("no pages matched your search term."));
+        }
+
+        matches.sort_unstable_by(|(name1, _, _), (name2, _, _)| name1.cmp(name2));
+        //                                                "Platform".len() is 8
+        let width_plat = matches.iter().map(|x| x.2.len()).max().unwrap().max(8);
+        //                             "pages.".len() is 6   "Languages".len() is 8
+        let width_lang = matches.iter().map(|x| x.1.len() - 6).max().unwrap().max(8);
+
+        writeln!(
+            io::stderr(),
+            "{:width_lang$} {:width_plat$} {}",
+            "Language".bold(),
+            "Platform".bold(),
+            "Page".bold(),
+        )?;
+        let mut stdout = io::stdout().lock();
+
+        for (page_name, lang_dir, plat) in matches {
+            let lang = lang_dir.strip_prefix("pages.").unwrap();
+            write!(stdout, "{lang:width_lang$} {plat:width_plat$} ")?;
+
+            let mut last_end = 0;
+
+            for (start, part) in page_name.match_indices(&query) {
+                stdout.write_all(&page_name.as_bytes()[last_end..start])?;
+                write!(
+                    stdout,
+                    "{}",
+                    &page_name[start..start + part.len()].green().bold()
+                )?;
+                last_end = start + part.len();
+            }
+
+            writeln!(stdout, "{}", &page_name[last_end..])?;
+        }
+
+        Ok(())
+    }
+
     /// List all pages in `lang` and return a `Vec`.
     fn list_all_vec<S>(&self, lang_dir: S) -> Result<Vec<OsString>>
     where
@@ -525,15 +605,26 @@ impl<'a> Cache<'a> {
         Ok(())
     }
 
+    /// Get all language directories in the cache.
+    fn get_lang_dirs(&self) -> Result<impl Iterator<Item = OsString>> {
+        let languages = fs::read_dir(self.dir)?.filter_map(|res| match res {
+            Ok(ent) => {
+                if !ent.path().is_dir() {
+                    return None;
+                }
+                Some(ent.file_name())
+            }
+            Err(_) => None,
+        });
+        Ok(languages)
+    }
+
     /// List languages (used in shell completions).
     pub fn list_languages(&self) -> Result<()> {
-        let languages = fs::read_dir(self.dir)?
-            .filter(|res| res.is_ok() && res.as_ref().unwrap().path().is_dir())
-            .map(|res| res.unwrap().file_name());
         let mut stdout = io::stdout().lock();
 
-        for lang in languages {
-            let lang = lang.to_string_lossy();
+        for dir in self.get_lang_dirs()? {
+            let lang = dir.to_string_lossy();
             let lang = lang.strip_prefix("pages.").unwrap_or(&lang);
 
             writeln!(stdout, "{lang}")?;
@@ -547,12 +638,7 @@ impl<'a> Cache<'a> {
         let mut n_map = BTreeMap::new();
         let mut n_total = 0;
 
-        for lang_dir in fs::read_dir(self.dir)? {
-            let lang_dir = lang_dir?;
-            if !lang_dir.path().is_dir() {
-                continue;
-            }
-            let lang_dir = lang_dir.file_name();
+        for lang_dir in self.get_lang_dirs()? {
             let n = self.list_all_vec(&lang_dir)?.len();
 
             let lang = lang_dir.to_string_lossy();
@@ -753,6 +839,26 @@ mod tests {
         ]);
         let c = Cache::new(tmpdir.path());
         assert_eq!(c.get_platforms().unwrap(), &["common", "linux", "osx"]);
+    }
+
+    #[test]
+    fn search() {
+        let tmpdir = prepare(&[
+            "pages.en/common/a.md",
+            "pages.en/common/b.md",
+            "pages.en/linux/a.md",
+            "pages.en/linux/c.md",
+            "pages.en/osx/d.md",
+            "pages.en/android/am.md",
+        ]);
+        let c = Cache::new(tmpdir.path());
+
+        assert!(c.search("a", None, &["en".to_owned()]).is_ok());
+        assert!(c.search("am", None, &["en".to_owned()]).is_ok());
+        assert!(c.search("am", Some("linux"), &["en".to_owned()]).is_err());
+        assert!(c.search("c", Some("linux"), &["en".to_owned()]).is_ok());
+        assert!(c.search("b", Some("linux"), &["en".to_owned()]).is_err()); // 'b' is in common, not linux
+        assert!(c.search("b", Some("common"), &["en".to_owned()]).is_ok()); // 'b' is in common
     }
 
     #[test]

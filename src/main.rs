@@ -18,6 +18,24 @@ use crate::error::{Error, Result};
 use crate::output::PageRenderer;
 use crate::util::{init_color, Logger};
 
+const DEFAULT_PLATFORM: &str = if cfg!(target_os = "linux") {
+    "linux"
+} else if cfg!(target_os = "macos") {
+    "osx"
+} else if cfg!(target_os = "windows") {
+    "windows"
+} else if cfg!(target_os = "freebsd") {
+    "freebsd"
+} else if cfg!(target_os = "openbsd") {
+    "openbsd"
+} else if cfg!(target_os = "netbsd") {
+    "netbsd"
+} else if cfg!(target_os = "android") {
+    "android"
+} else {
+    "common"
+};
+
 fn main() -> ExitCode {
     let cli = Cli::parse();
     init_color(cli.color);
@@ -101,19 +119,23 @@ fn run(cli: Cli) -> Result<()> {
         }
     }
 
-    // "macos" should be an alias of "osx".
-    // Since the `macos` directory doesn't exist, this has to be changed before it
-    // gets passed to cache functions (which expect directory names).
-    let platform = if cli.platform == "macos" {
-        "osx"
-    } else {
-        &cli.platform
+    let platform = match cli.platform.as_deref() {
+        // "macos" should be an alias of "osx".
+        // Since the `macos` directory doesn't exist, this has to be changed before it
+        // gets passed to cache functions (which expect directory names).
+        Some("macos") => "osx",
+        Some(p) => p,
+        None => DEFAULT_PLATFORM,
     };
 
     if cli.list {
         cache.list_for(platform)?;
     } else if cli.list_all {
         cache.list_all()?;
+    } else if let Some(query) = cli.search {
+        // All platforms should be searched when `-p` isn't used.
+        let search_plat = cli.platform.as_deref().map(|_| platform);
+        cache.search(&query, search_plat, &languages)?;
     } else if cli.info {
         cache.info(&cfg)?;
     } else if cli.list_platforms {
