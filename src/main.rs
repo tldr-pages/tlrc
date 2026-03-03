@@ -16,7 +16,7 @@ use crate::cache::Cache;
 use crate::config::{Config, OptionStyle};
 use crate::error::{Error, Result};
 use crate::output::PageRenderer;
-use crate::util::{init_color, Logger};
+use crate::util::{Logger, init_color};
 
 const DEFAULT_PLATFORM: &str = if cfg!(target_os = "linux") {
     "linux"

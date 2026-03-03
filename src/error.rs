@@ -28,12 +28,10 @@ impl Error {
     pub const DESC_NO_INTERNET: &'static str =
         "\n\nAn internet connection is required to download pages for the first time.";
 
-    pub const DESC_AUTO_UPDATE_ERR: &'static str =
-        "\n\nAn error occurred during the automatic update. \
+    pub const DESC_AUTO_UPDATE_ERR: &'static str = "\n\nAn error occurred during the automatic update.\n\
         To skip updating the cache, run tldr with --offline.";
 
-    pub const DESC_LANG_NOT_INSTALLED: &'static str =
-        "\n\nThe language you are trying to view the page in is not installed.\n\
+    pub const DESC_LANG_NOT_INSTALLED: &'static str = "\n\nThe language you are trying to view the page in is not installed.\n\
         Please update your config and run 'tldr --update' to install a new language.";
 
     pub fn new<T>(message: T) -> Self

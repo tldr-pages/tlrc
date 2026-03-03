@@ -15,7 +15,7 @@ use zip::ZipArchive;
 
 use crate::config::Config;
 use crate::error::{Error, Result};
-use crate::util::{self, info_end, info_start, Dedup};
+use crate::util::{self, Dedup, info_end, info_start};
 
 pub const ENGLISH_DIR: &str = "pages.en";
 const CHECKSUM_FILE: &str = "tldr.sha256sums";
@@ -397,10 +397,10 @@ impl<'a> Cache<'a> {
 
         // `common` is always searched, so we skip the search for the specified platform
         // if the user has requested only `common` (to prevent searching twice)
-        if platform != "common" {
-            if let Some(path) = self.find_page_for(&file, platform, &lang_dirs) {
-                result.push(path);
-            }
+        if platform != "common"
+            && let Some(path) = self.find_page_for(&file, platform, &lang_dirs)
+        {
+            result.push(path);
         }
 
         // Fall back to `common` if the page is not found in `platform`.
@@ -718,7 +718,7 @@ impl<'a> Cache<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tempfile::{tempdir, TempDir};
+    use tempfile::{TempDir, tempdir};
 
     /// Create a temporary cache dir for tests with the specified pages.
     fn prepare(pages: &[&str]) -> TempDir {

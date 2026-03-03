@@ -106,15 +106,13 @@ impl<'a> PageRenderer<'a> {
         }
 
         for part in split {
-            if part.contains('>') {
-                // The first part of the second split contains the part to be highlighted.
-                //
-                // "More information: <https://example.com>."
-                // 0: "More information: " => does not match
-                // 1: "s://example.com>."  => 0: "s://example.com" (highlighted)
-                //                            1: ">."
-                let part_split = part.split_once('>').unwrap();
-
+            // The first part of the second split contains the part to be highlighted.
+            //
+            // "More information: <https://example.com>."
+            // 0: "More information: " => does not match
+            // 1: "s://example.com>."  => 0: "s://example.com" (highlighted)
+            //                            1: ">."
+            if let Some(part_split) = part.split_once('>') {
                 // "<http" is used to detect URLs. It must be added back.
                 let hl = format!("http{}", part_split.0);
                 write_paint!(buf, hl.paint(self.style.url));
@@ -159,9 +157,8 @@ impl<'a> PageRenderer<'a> {
                 if self.cfg.output.option_style != OptionStyle::Both
                     && inside.starts_with('[')
                     && inside.ends_with(']')
-                    && inside.contains('|')
+                    && let Some((short, long)) = inside.split_once('|')
                 {
-                    let (short, long) = inside.split_once('|').unwrap();
                     // A single option will be displayed, using the normal style (static part).
                     if self.cfg.output.option_style == OptionStyle::Short {
                         // Cut out the leading `[`.
@@ -295,7 +292,7 @@ impl<'a> PageRenderer<'a> {
             current_line: String::new(),
             lnum: 0,
             max_len: if cfg.output.line_length == 0 {
-                terminal_size().map(|x| x.0 .0 as usize)
+                terminal_size().map(|x| x.0.0 as usize)
             } else {
                 Some(cfg.output.line_length)
             },
@@ -358,7 +355,9 @@ impl<'a> PageRenderer<'a> {
             let platform = components.next().unwrap().to_string_lossy();
             let filename = components.next().unwrap().to_string_lossy();
 
-            info!("edit this page on GitHub:\nhttps://github.com/tldr-pages/tldr/edit/main/{pages_dir}/{platform}/{filename}");
+            info!(
+                "edit this page on GitHub:\nhttps://github.com/tldr-pages/tldr/edit/main/{pages_dir}/{platform}/{filename}"
+            );
         }
 
         Self::print(first, cfg)
@@ -389,12 +388,10 @@ impl<'a> PageRenderer<'a> {
         self.add_newline()?;
 
         let line = self.current_line.strip_prefix(TITLE).unwrap();
-        let title = if self.cfg.output.platform_title {
-            if let Some(platform) = self.path.page_platform() {
-                Cow::Owned(format!("{platform}/{line}"))
-            } else {
-                Cow::Borrowed(line)
-            }
+        let title = if self.cfg.output.platform_title
+            && let Some(platform) = self.path.page_platform()
+        {
+            Cow::Owned(format!("{platform}/{line}"))
         } else {
             Cow::Borrowed(line)
         };

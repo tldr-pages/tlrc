@@ -9,7 +9,7 @@ use std::path::Path;
 
 use clap::ColorChoice;
 use log::debug;
-use ring::digest::{digest, SHA256};
+use ring::digest::{SHA256, digest};
 
 /// A simple logger for the `log` crate that logs to stderr.
 pub struct Logger;
@@ -224,16 +224,18 @@ mod tests {
     use std::env;
 
     fn prepare_env(lang: Option<&str>, language: Option<&str>) {
-        if let Some(lang) = lang {
-            env::set_var("LANG", lang);
-        } else {
-            env::remove_var("LANG");
-        }
+        unsafe {
+            if let Some(lang) = lang {
+                env::set_var("LANG", lang);
+            } else {
+                env::remove_var("LANG");
+            }
 
-        if let Some(language) = language {
-            env::set_var("LANGUAGE", language);
-        } else {
-            env::remove_var("LANGUAGE");
+            if let Some(language) = language {
+                env::set_var("LANGUAGE", language);
+            } else {
+                env::remove_var("LANGUAGE");
+            }
         }
     }
 
