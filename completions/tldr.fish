@@ -5,6 +5,7 @@ complete -c tldr -s L -l language -d "Specify the languages to use" -x -a \
     "(tldr --offline --list-languages 2> /dev/null)"
 complete -c tldr -l short-options -d "Display short options wherever possible (e.g '-s')"
 complete -c tldr -l long-options -d "Display long options wherever possible (e.g '--long')"
+complete -c tldr -l edit -d "Display a link to edit the shown page on GitHub"
 complete -c tldr -l color -d "Specify when to enable color" -x -a "
     auto\t'Display color if standard output is a terminal and NO_COLOR is not set'
     always\t'Always display color'
@@ -14,6 +15,7 @@ complete -c tldr -l config -d "Specify an alternative path to the config file" -
 complete -c tldr -s u -l update -d "Update the cache"
 complete -c tldr -s l -l list -d "List all pages in the current platform"
 complete -c tldr -s a -l list-all -d "List all pages"
+complete -c tldr -s s -l search -d "Search for pages containing a keyword"
 complete -c tldr -s a -l list-platforms -d "List available platforms"
 complete -c tldr -s a -l list-languages -d "List installed languages"
 complete -c tldr -s i -l info -d "Show cache information (path, age, installed languages and the number of pages)"
