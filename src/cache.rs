@@ -609,7 +609,7 @@ impl<'a> Cache<'a> {
     }
 
     /// Get all language directories in the cache.
-    fn get_lang_dirs(&self) -> Result<impl Iterator<Item = String>> {
+    fn get_lang_dirs(&self) -> Result<impl Iterator<Item = io::Result<String>>> {
         let languages = fs::read_dir(self.dir)?.filter_map(|res| match res {
             Ok(ent) => {
                 let Ok(dir) = ent.file_name().into_string() else {
@@ -618,9 +618,9 @@ impl<'a> Cache<'a> {
                 if !ent.path().is_dir() || !dir.starts_with("pages.") {
                     return None;
                 }
-                Some(dir)
+                Some(Ok(dir))
             }
-            Err(_) => None,
+            Err(e) => Some(Err(e)),
         });
         Ok(languages)
     }
@@ -630,7 +630,7 @@ impl<'a> Cache<'a> {
         let mut stdout = io::stdout().lock();
 
         for dir in self.get_lang_dirs()? {
-            writeln!(stdout, "{}", dir.strip_prefix("pages.").unwrap())?;
+            writeln!(stdout, "{}", dir?.strip_prefix("pages.").unwrap())?;
         }
 
         Ok(())
@@ -642,6 +642,7 @@ impl<'a> Cache<'a> {
         let mut n_total = 0;
 
         for lang_dir in self.get_lang_dirs()? {
+            let lang_dir = lang_dir?;
             let n = self.list_all_vec(&lang_dir)?.len();
 
             n_map.insert(lang_dir, n);
@@ -840,6 +841,20 @@ mod tests {
         ]);
         let c = Cache::new(tmpdir.path());
         assert_eq!(c.get_platforms().unwrap(), &["common", "linux", "osx"]);
+    }
+
+    #[test]
+    fn get_lang_dirs() {
+        let tmpdir = prepare(&[
+            "pages.en/common/a.md",
+            "pages.xy/linux/b.md",
+            "pages.ab/freebsd/c.md",
+        ]);
+        let c = Cache::new(tmpdir.path());
+        assert!(c.get_lang_dirs().is_ok_and(|iter| iter.collect::<io::Result<Vec<String>>>().is_ok_and(|mut v| {
+            v.sort_unstable();
+            v == ["pages.ab", "pages.en", "pages.xy"]
+        })));
     }
 
     #[test]
