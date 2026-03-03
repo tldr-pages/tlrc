@@ -846,20 +846,23 @@ mod tests {
     fn search() {
         let tmpdir = prepare(&[
             "pages.en/common/a.md",
-            "pages.en/common/b.md",
-            "pages.en/linux/a.md",
-            "pages.en/linux/c.md",
-            "pages.en/osx/d.md",
-            "pages.en/android/am.md",
+            "pages.en/linux/b.md",
+            "pages.en/android/c.md",
         ]);
         let c = Cache::new(tmpdir.path());
 
+        // 'common' should always be searched.
         assert!(c.search("a", None, &["en".to_owned()]).is_ok());
-        assert!(c.search("am", None, &["en".to_owned()]).is_ok());
-        assert!(c.search("am", Some("linux"), &["en".to_owned()]).is_err());
-        assert!(c.search("c", Some("linux"), &["en".to_owned()]).is_ok());
-        assert!(c.search("b", Some("linux"), &["en".to_owned()]).is_err()); // 'b' is in common, not linux
-        assert!(c.search("b", Some("common"), &["en".to_owned()]).is_ok()); // 'b' is in common
+        assert!(c.search("a", Some("linux"), &["en".to_owned()]).is_ok());
+        assert!(c.search("a", Some("common"), &["en".to_owned()]).is_ok());
+
+        assert!(c.search("b", None, &["en".to_owned()]).is_ok());
+        assert!(c.search("b", Some("linux"), &["en".to_owned()]).is_ok());
+        assert!(c.search("b", Some("common"), &["en".to_owned()]).is_err()); // 'b' is in linux
+
+        assert!(c.search("c", None, &["en".to_owned()]).is_ok());
+        assert!(c.search("c", Some("android"), &["en".to_owned()]).is_ok());
+        assert!(c.search("c", Some("linux"), &["en".to_owned()]).is_err()); // 'c' is in android
     }
 
     #[test]
