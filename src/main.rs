@@ -158,18 +158,9 @@ fn run(cli: Cli) -> Result<()> {
         }
 
         if page_paths.is_empty() {
-            let mut e = Error::new("page not found.");
+            let e = Error::new("page not found.");
             return if languages_are_from_cli {
-                e = e.describe("Try running tldr without --language.");
-
-                if !languages
-                    .iter()
-                    .all(|x| cache.subdir_exists(&format!("pages.{x}")))
-                {
-                    e = e.describe(Error::DESC_LANG_NOT_INSTALLED);
-                }
-
-                Err(e)
+                Err(e.describe("Try running tldr without --language."))
             } else {
                 // If the cache has been updated, don't suggest running 'tldr --update'.
                 Err(e.describe(Error::desc_page_does_not_exist(!forced_update_no_page)))

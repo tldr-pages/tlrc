@@ -394,9 +394,8 @@ impl<'a> Cache<'a> {
         debug!("searching for page: '{file}'");
 
         let mut result = vec![];
-        let mut lang_dirs: Vec<String> = languages.iter().map(|x| format!("pages.{x}")).collect();
         // We can't sort here - order is defined by the user.
-        lang_dirs.dedup_nosort();
+        let lang_dirs = self.languages_to_dirs_checked(languages, false)?;
 
         // `common` is always searched, so we skip the search for the specified platform
         // if the user has requested only `common` (to prevent searching twice)
@@ -521,9 +520,7 @@ impl<'a> Cache<'a> {
             self.get_platforms_and_check(p)?;
         }
 
-        let mut lang_dirs: Vec<String> = languages.iter().map(|x| format!("pages.{x}")).collect();
-        lang_dirs.sort_unstable();
-        lang_dirs.dedup();
+        let lang_dirs = self.languages_to_dirs_checked(languages, true)?;
 
         let platforms = match platform {
             Some("common") => vec!["common"],
@@ -623,6 +620,43 @@ impl<'a> Cache<'a> {
             Err(e) => Some(Err(e)),
         });
         Ok(languages)
+    }
+
+    /// Convert languages to language directories (i.e. prepend 'pages.') and return an error if
+    /// none of the provided languages is installed.
+    pub fn languages_to_dirs_checked(
+        &self,
+        languages: &[String],
+        sort: bool,
+    ) -> Result<Vec<String>> {
+        let mut lang_dirs: Vec<String> = languages
+            .iter()
+            .filter_map(|x| {
+                let dir = format!("pages.{x}");
+                if !self.subdir_exists(&dir) {
+                    return None;
+                }
+                Some(dir)
+            })
+            .collect();
+
+        if lang_dirs.is_empty() {
+            return Err(Error::new(format!(
+                "the specified language{} not installed.\n\n\
+                Try running tldr without --language or update your config\n\
+                and run 'tldr --update' to install a new language.",
+                if languages.len() == 1 { " is" } else { "s are" }
+            )));
+        }
+
+        if sort {
+            lang_dirs.sort_unstable();
+            lang_dirs.dedup();
+        } else {
+            lang_dirs.dedup_nosort();
+        }
+
+        Ok(lang_dirs)
     }
 
     /// List languages (used in shell completions).
@@ -851,10 +885,33 @@ mod tests {
             "pages.ab/freebsd/c.md",
         ]);
         let c = Cache::new(tmpdir.path());
-        assert!(c.get_lang_dirs().is_ok_and(|iter| iter.collect::<io::Result<Vec<String>>>().is_ok_and(|mut v| {
-            v.sort_unstable();
-            v == ["pages.ab", "pages.en", "pages.xy"]
-        })));
+        assert!(c.get_lang_dirs().is_ok_and(|iter| {
+            iter.collect::<io::Result<Vec<String>>>()
+                .is_ok_and(|mut v| {
+                    v.sort_unstable();
+                    v == ["pages.ab", "pages.en", "pages.xy"]
+                })
+        }));
+    }
+
+    #[test]
+    fn languages_to_dirs() {
+        let tmpdir = prepare(&[
+            "pages.en/common/a.md",
+            "pages.xy/linux/b.md",
+            "pages.ab/freebsd/c.md",
+        ]);
+        let c = Cache::new(tmpdir.path());
+
+        let l = ["en", "xy", "ab", "en"].map(String::from);
+        let mut ld = ["pages.en", "pages.xy", "pages.ab"];
+        let res = c.languages_to_dirs_checked(&l, false);
+        assert!(res.is_ok_and(|x| x == ld));
+        ld.sort_unstable();
+        assert!(c.languages_to_dirs_checked(&l, true).is_ok_and(|x| x == ld));
+
+        let l = ["doesnotexist".to_owned(), "doesnotexist2".to_owned()];
+        assert!(c.languages_to_dirs_checked(&l, true).is_err());
     }
 
     #[test]
