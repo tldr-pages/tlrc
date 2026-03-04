@@ -75,8 +75,7 @@ jobs:
         if: ${{ contains(matrix.target, 'linux') }}
         run: |
           cargo install cargo-deb --locked
-          deb_path="$(cargo deb --target ${{ matrix.target }})"
-          mv "$deb_path" "$NAME-$GITHUB_REF_NAME-${{ matrix.target }}.deb"
+          cargo deb --target ${{ matrix.target }} --output "$NAME-$GITHUB_REF_NAME-${{ matrix.target }}.deb"
 
       - name: Create the archive
         env:
