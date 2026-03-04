@@ -346,14 +346,14 @@ impl<'a> PageRenderer<'a> {
 
             // pages.lang/platform/filename.md
             let pages_dir = components.next().unwrap().to_string_lossy();
-            let pages_dir = match pages_dir.split_once('.').unwrap().1 {
+            let pages_dir = match &*pages_dir {
                 // There is a `pages.en` symlink, but GitHub doesn't resolve it.
-                "en" => "pages",
+                "pages.en" => "pages",
                 _ => &pages_dir,
             };
 
-            let platform = components.next().unwrap().to_string_lossy();
-            let filename = components.next().unwrap().to_string_lossy();
+            let platform = components.next().unwrap().display();
+            let filename = components.next().unwrap().display();
 
             info!(
                 "edit this page on GitHub:\nhttps://github.com/tldr-pages/tldr/edit/main/{pages_dir}/{platform}/{filename}"
