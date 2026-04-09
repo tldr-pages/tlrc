@@ -9,7 +9,7 @@ use terminal_size::terminal_size;
 use unicode_width::UnicodeWidthStr;
 use yansi::{Paint, Style};
 
-use crate::config::{Config, OptionStyle};
+use crate::config::{Config, OptionStyle, OutputMode};
 use crate::error::{Error, ErrorKind, Result};
 use crate::util::PagePathExt;
 
@@ -276,7 +276,7 @@ impl<'a> PageRenderer<'a> {
         let mut page = File::open(path)
             .map_err(|e| Error::new(format!("'{}': {e}", path.display())).kind(ErrorKind::Io))?;
 
-        if cfg.output.raw_markdown {
+        if cfg.output.mode == OutputMode::Raw {
             io::copy(&mut page, &mut io::stdout()).map_err(|e| {
                 Error::new(format!("'{}': {e}", path.display())).kind(ErrorKind::Io)
             })?;
@@ -427,6 +427,12 @@ impl<'a> PageRenderer<'a> {
         }
         writeln!(self.stdout, "{bullet}")?;
 
+        if self.cfg.output.mode == OutputMode::Compact {
+            // Next line must be empty.
+            self.reader.skip_until(b'\n')?;
+            self.lnum += 1;
+        }
+
         Ok(())
     }
 
@@ -461,12 +467,11 @@ impl<'a> PageRenderer<'a> {
         Ok(())
     }
 
-    /// Write a newline to the page buffer if compact mode is not turned on.
+    /// Write a newline to the page buffer if very compact mode is not turned on.
     fn add_newline(&mut self) -> Result<()> {
-        if !self.cfg.output.compact {
-            writeln!(self.stdout)?;
+        if self.cfg.output.mode != OutputMode::VeryCompact {
+            self.stdout.write_all(b"\n")?;
         }
-
         Ok(())
     }
 

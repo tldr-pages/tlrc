@@ -264,9 +264,25 @@ pub enum OptionStyle {
     Both,
 }
 
+#[derive(Serialize, Deserialize, PartialEq, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum OutputMode {
+    #[default]
+    /// All empty lines included.
+    Normal,
+    /// Empty lines after example descriptions removed.
+    Compact,
+    /// All empty lines removed.
+    VeryCompact,
+    /// Raw markdown.
+    Raw,
+}
+
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields, default)]
 pub struct OutputConfig {
+    /// How to output pages.
+    pub mode: OutputMode,
     /// Show the page title.
     pub show_title: bool,
     /// Show the platform in the title.
@@ -279,26 +295,32 @@ pub struct OutputConfig {
     pub example_prefix: Cow<'static, str>,
     /// Set the max line length. 0 means to use the terminal width.
     pub line_length: usize,
+
+    /// _**DEPRECATED:**_ replaced by `mode = "compact"`
     /// Strip empty lines from pages.
-    pub compact: bool,
+    pub compact: Option<bool>,
+
     /// Display the specified options in pages wherever possible.
     pub option_style: OptionStyle,
+
+    /// _**DEPRECATED:**_ replaced by `mode = "raw"`
     /// Print pages in raw markdown.
-    pub raw_markdown: bool,
+    pub raw_markdown: Option<bool>,
 }
 
 impl Default for OutputConfig {
     fn default() -> Self {
         Self {
+            mode: OutputMode::Normal,
             show_title: true,
             platform_title: false,
             show_hyphens: false,
             edit_link: false,
             example_prefix: Cow::Borrowed("- "),
             line_length: 0,
-            compact: false,
+            compact: None,
             option_style: OptionStyle::default(),
-            raw_markdown: false,
+            raw_markdown: None,
         }
     }
 }
@@ -339,6 +361,38 @@ impl Config {
         })?)?)
     }
 
+    fn convert_deprecated_opts_to_new(&mut self) {
+        if self.output.compact.is_some() || self.output.raw_markdown.is_some() {
+            warn!(
+                "deprecated option(s) detected in the config.\n\
+                The old options will be removed in the future, please\n\
+                replace them with the appropriate new options.\n\
+                See the warnings below and v1.14.0 release notes for more information."
+            );
+        }
+
+        if let Some(b) = self.output.compact {
+            warn!(
+                "output.compact = {b} is deprecated.\n\
+                Please use output.mode = \"{}\" instead",
+                if b { "very_compact" } else { "normal" }
+            );
+            if b && self.output.mode == OutputMode::default() {
+                self.output.mode = OutputMode::VeryCompact;
+            }
+        }
+        if let Some(b) = self.output.raw_markdown {
+            warn!(
+                "output.raw_markdown = {b} is deprecated.\n\
+                Please use output.mode = \"{}\" instead",
+                if b { "raw" } else { "normal" }
+            );
+            if b && self.output.mode == OutputMode::default() {
+                self.output.mode = OutputMode::Raw;
+            }
+        }
+    }
+
     pub fn new(cli_config_path: Option<&Path>) -> Result<Self> {
         let cfg_res = if let Some(path) = cli_config_path {
             if path.is_file() {
@@ -372,6 +426,8 @@ impl Config {
                 p.extend(cfg.cache.dir.components().skip(1));
                 cfg.cache.dir = p;
             }
+
+            cfg.convert_deprecated_opts_to_new();
             cfg
         })
     }

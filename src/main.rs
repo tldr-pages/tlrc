@@ -13,7 +13,7 @@ use yansi::Paint;
 
 use crate::args::Cli;
 use crate::cache::Cache;
-use crate::config::{Config, OptionStyle};
+use crate::config::{Config, OptionStyle, OutputMode};
 use crate::error::{Error, Result};
 use crate::output::PageRenderer;
 use crate::util::{Logger, init_color};
@@ -48,9 +48,33 @@ fn main() -> ExitCode {
 }
 
 fn include_cli_in_config(cfg: &mut Config, cli: &Cli) {
+    if cli.compact {
+        warn!(
+            "--compact is deprecated.\nPlease use output.mode = \"very_compact\" in the config instead"
+        );
+        cfg.output.mode = OutputMode::VeryCompact;
+    }
+    if cli.no_compact {
+        warn!(
+            "--no-compact is deprecated.\nPlease use output.mode = \"normal\" in the config instead"
+        );
+        if cfg.output.mode == OutputMode::VeryCompact {
+            cfg.output.mode = OutputMode::Normal;
+        }
+    }
+
+    if cli.raw {
+        cfg.output.mode = OutputMode::Raw;
+    }
+    if cli.no_raw {
+        warn!("--no-raw is deprecated.\nPlease use output.mode = \"normal\" in the config instead");
+        if cfg.output.mode == OutputMode::Raw {
+            cfg.output.mode = OutputMode::Normal;
+        }
+    }
+
     cfg.output.edit_link |= cli.edit;
-    cfg.output.compact = !cli.no_compact && (cli.compact || cfg.output.compact);
-    cfg.output.raw_markdown = !cli.no_raw && (cli.raw || cfg.output.raw_markdown);
+
     match (cli.short_options, cli.long_options) {
         (false, false) => {}
         (true, true) => cfg.output.option_style = OptionStyle::Both,
