@@ -2,6 +2,7 @@ use std::borrow::Cow;
 use std::fmt::Write as _;
 use std::fs::File;
 use std::io::{self, BufRead, BufReader, BufWriter, Write};
+use std::num::NonZero;
 use std::path::{Path, PathBuf};
 
 use log::{info, log_enabled, warn};
@@ -40,7 +41,7 @@ pub struct PageRenderer<'a> {
     /// The line number of the current line.
     lnum: usize,
     /// Max line length.
-    max_len: Option<usize>,
+    max_len: Option<NonZero<usize>>,
     /// Style configuration.
     style: RenderStyles,
     /// Other options.
@@ -184,7 +185,7 @@ impl<'a> PageRenderer<'a> {
 
     /// Split the line into multiple lines if it's longer than the configured max length.
     fn splitln(&self, s: &'a str, indent: &str, ltype: LineType) -> Cow<'a, str> {
-        let Some(max_len) = self.max_len else {
+        let Some(max_len) = self.max_len.map(NonZero::get) else {
             // We don't have the max length. Just print the entire line then.
             return Cow::Borrowed(s);
         };
@@ -289,11 +290,8 @@ impl<'a> PageRenderer<'a> {
             stdout: BufWriter::new(io::stdout().lock()),
             current_line: String::new(),
             lnum: 0,
-            max_len: if cfg.output.line_length == 0 {
-                terminal_size().map(|x| x.0.0 as usize)
-            } else {
-                Some(cfg.output.line_length)
-            },
+            max_len: NonZero::new(cfg.output.line_length)
+                .or_else(|| terminal_size().and_then(|x| NonZero::new(x.0.0 as usize))),
             style: RenderStyles {
                 title: cfg.style.title.into(),
                 desc: cfg.style.description.into(),
