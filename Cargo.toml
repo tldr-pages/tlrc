@@ -42,7 +42,6 @@ tempfile = "3.27.0"
 all = "warn"
 pedantic = "warn"
 style = "warn"
-module_name_repetitions = { level = "allow", priority = 1 }
 struct_excessive_bools = { level = "allow", priority = 1 }
 unnecessary_debug_formatting = { level = "allow", priority = 1 }
 
