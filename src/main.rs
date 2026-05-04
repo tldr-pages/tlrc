@@ -83,13 +83,6 @@ fn include_cli_in_config(cfg: &mut Config, cli: &Cli) {
     }
 }
 
-#[derive(PartialEq)]
-enum UpdateState {
-    Done,
-    NotDone,
-    Deferred,
-}
-
 fn run(cli: Cli) -> Result<()> {
     if cli.config_path {
         return Config::print_path();
@@ -122,7 +115,7 @@ fn run(cli: Cli) -> Result<()> {
         return cache.update(&cfg.cache.mirror, &mut cfg.cache.languages);
     }
 
-    let mut ustate = UpdateState::NotDone;
+    let mut update_later = false;
 
     if !cache.subdir_exists(cache::ENGLISH_DIR) {
         if cli.offline {
@@ -132,22 +125,23 @@ fn run(cli: Cli) -> Result<()> {
         cache
             .update(&cfg.cache.mirror, &mut cfg.cache.languages)
             .map_err(|e| e.describe(Error::DESC_NO_INTERNET))?;
-        ustate = UpdateState::Done;
-    } else if cfg.cache.auto_update && cache.age()? > cfg.cache_max_age() {
-        let age = util::duration_fmt(cache.age()?.as_secs());
+    } else if cfg.cache.auto_update
+        && let age = cache.age()?
+        && age > cfg.cache_max_age()
+    {
+        let age = util::duration_fmt(age.as_secs());
         let age = age.green().bold();
 
         if cli.offline {
             warn!("cache is stale (last update: {age} ago). Run tldr without --offline to update.");
         } else if cfg.cache.defer_auto_update {
             info!("cache is stale (last update: {age} ago), update has been deferred");
-            ustate = UpdateState::Deferred;
+            update_later = true;
         } else {
             info!("cache is stale (last update: {age} ago), updating...");
             cache
                 .update(&cfg.cache.mirror, &mut cfg.cache.languages)
                 .map_err(|e| e.describe(Error::DESC_AUTO_UPDATE_ERR))?;
-            ustate = UpdateState::Done;
         }
     }
 
@@ -178,14 +172,15 @@ fn run(cli: Cli) -> Result<()> {
         let page_name = cli.page.join("-").to_lowercase();
         let mut page_paths = cache.find(&page_name, &languages, platform)?;
 
-        if ustate == UpdateState::Deferred && page_paths.is_empty() {
+        if update_later && page_paths.is_empty() {
             // Since the page hasn't been found and the cache is stale, disregard the defer option.
             warn!("page not found, updating now...");
             cache
                 .update(&cfg.cache.mirror, &mut cfg.cache.languages)
                 .map_err(|e| e.describe(Error::DESC_AUTO_UPDATE_ERR))?;
             page_paths = cache.find(&page_name, &languages, platform)?;
-            ustate = UpdateState::Done;
+            // Reset the defer flag in order not to update twice.
+            update_later = false;
         }
 
         if page_paths.is_empty() {
@@ -193,16 +188,14 @@ fn run(cli: Cli) -> Result<()> {
             return if languages_are_from_cli {
                 Err(e.describe(Error::TRY_NO_EXPLICIT_LANGUAGE))
             } else {
-                // If the cache has been updated, don't suggest running 'tldr --update'.
-                let suggest_update = ustate != UpdateState::Done;
-                Err(e.describe(Error::desc_page_does_not_exist(suggest_update)))
+                Err(e.describe(Error::desc_page_does_not_exist(cache.age()?)))
             };
         }
 
         PageRenderer::print_cache_result(&page_paths, &cfg)?;
     }
 
-    if ustate == UpdateState::Deferred {
+    if update_later {
         cache
             .update(&cfg.cache.mirror, &mut cfg.cache.languages)
             .map_err(|e| e.describe(Error::DESC_AUTO_UPDATE_ERR))?;

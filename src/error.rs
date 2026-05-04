@@ -1,10 +1,14 @@
+use std::borrow::Cow;
 use std::fmt::Display;
 use std::io;
 use std::path::Path;
 use std::process::ExitCode;
+use std::time::Duration;
 
 use log::error;
 use yansi::Paint;
+
+use crate::util;
 
 #[derive(Debug)]
 pub enum ErrorKind {
@@ -71,20 +75,21 @@ impl Error {
         Error::new("could not parse the checksum file").kind(ErrorKind::Download)
     }
 
-    pub fn desc_page_does_not_exist(try_update: bool) -> String {
-        let e = if try_update {
-            "Try running 'tldr --update'.\n\n"
-        } else {
-            "\n\n"
-        };
+    pub fn desc_page_does_not_exist(cache_age: Duration) -> String {
         format!(
-            "{e}\
-            If the page does not exist, you can create an issue here:\n\
-            {}\n\
-            or document it yourself and create a pull request here:\n\
-            {}",
-            "https://github.com/tldr-pages/tldr/issues".bold(),
-            "https://github.com/tldr-pages/tldr/pulls".bold()
+            "{}\
+            If the page does not exist, you can create an issue or\n\
+            document it yourself and create a pull request here:\n{}",
+            if cache_age > Duration::from_secs(util::DAY) {
+                Cow::Owned(format!(
+                    "Last update was {} ago.\nIf that's not a typo, you could try running 'tldr --update'.\n\n",
+                    util::duration_fmt(cache_age.as_secs()).bold()
+                ))
+            } else {
+                // If the cache has been updated in the last 24 hours, don't suggest running 'tldr --update'.
+                Cow::Borrowed("\n\n")
+            },
+            "https://github.com/tldr-pages/tldr".bold()
         )
     }
 

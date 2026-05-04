@@ -176,7 +176,7 @@ pub fn sha256_hexdigest(data: &[u8]) -> String {
     hex
 }
 
-const DAY: u64 = 86400;
+pub const DAY: u64 = 86400;
 const HOUR: u64 = 3600;
 const MINUTE: u64 = 60;
 

@@ -24,7 +24,6 @@ type PagesArchive = ZipArchive<Cursor<Vec<u8>>>;
 pub struct Cache<'a> {
     dir: &'a Path,
     platforms: OnceCell<Vec<String>>,
-    age: OnceCell<Duration>,
 }
 
 impl<'a> Cache<'a> {
@@ -32,7 +31,6 @@ impl<'a> Cache<'a> {
         Self {
             dir,
             platforms: OnceCell::new(),
-            age: OnceCell::new(),
         }
     }
 
@@ -723,25 +721,21 @@ impl<'a> Cache<'a> {
 
     /// Get the age of the cache.
     pub fn age(&self) -> Result<Duration> {
-        self.age
-            .get_or_try_init(|| {
-                let sumfile = self.dir.join(CHECKSUM_FILE);
-                let metadata = if sumfile.is_file() {
-                    fs::metadata(&sumfile)
-                } else {
-                    // The sumfile is not available, fall back to the base directory.
-                    fs::metadata(self.dir)
-                }?;
+        let sumfile = self.dir.join(CHECKSUM_FILE);
+        let metadata = if sumfile.is_file() {
+            fs::metadata(&sumfile)
+        } else {
+            // The sumfile is not available, fall back to the base directory.
+            fs::metadata(self.dir)
+        }?;
 
-                metadata.modified()?.elapsed().map_err(|_| {
-                    Error::new(
-                        "the system clock is not functioning correctly.\n\
-                        Modification time of the cache is later than the current system time.\n\
-                        Please fix your system clock.",
-                    )
-                })
-            })
-            .copied()
+        metadata.modified()?.elapsed().map_err(|_| {
+            Error::new(
+                "the system clock is not functioning correctly.\n\
+                Modification time of the cache is later than the current system time.\n\
+                Please fix your system clock.",
+            )
+        })
     }
 }
 
