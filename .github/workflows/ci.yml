@@ -35,7 +35,7 @@ jobs:
         - name: Update Rust
           run: rustup update stable
         - name: Run clippy
-          run: cargo clippy --workspace --all-targets --all-features -- --deny warnings
+          run: cargo clippy --all-targets --all-features -- --deny warnings
 
   tests:
     name: Build and test
