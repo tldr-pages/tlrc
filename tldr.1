@@ -1,5 +1,5 @@
 .\" vim: colorcolumn=100 textwidth=100
-.TH "TLRC" "1" "2026-03-31"  "tlrc 1.13.0" "tlrc manual"
+.TH "TLRC" "1" "2026-05-22"  "tlrc 1.13.1" "tlrc manual"
 .nh
 .ad l
 .SH NAME
@@ -7,10 +7,28 @@ tlrc - official tldr client written in Rust
 .
 .
 .SH SYNOPSIS
-\fItldr\fR [options] [page]
+\fBtldr\fR [\fIoptions\fR] [\fIpage\fR]...
+.
+.
+.SH DESCRIPTION
+If the \fIpage\fR argument is provided (with no other operations), \fItlrc\fR displays the tldr\&
+page entitled \fIpage\fR. If multiple arguments are provided, they are concatenated with hyphens\&
+between each argument (e.g. \fIgit\fR \fIcheckout\fR becomes \fIgit-checkout\fR). Page names are\&
+case insensitive. If multiple pages are found, a warning is shown and the page from the preferred\&
+platform (see \fB--platform\fR) is displayed. If the page only exists in other platforms, a\&
+warning is shown and the page from the first platform (in alphabetical order) is displayed.
+.br
+For other operations, see \fBOPTIONS\fR.
+.sp
+Pages are loaded from a cache directory. If this directory is empty, pages will be automatically\&
+downloaded when you run \fItldr\fR. After that \fItlrc\fR works completely offline until an\&
+automatic update is triggered (when the cache is more than 2 weeks old by default), or if an\&
+update is explicitly requested using \fB--update\fR.
 .
 .
 .SH OPTIONS
+.SS Operations
+Only one of these options can be used at a time.
 .TP 4
 .B -u, --update
 Update the cache of tldr pages.\&
@@ -47,7 +65,7 @@ Show cache information (path, age, installed languages and the number of pages).
 .
 .TP 4
 \fB-r, --render\fR <FILE>
-Render the specified markdown file.
+Render the specified tldr page.
 .
 .TP 4
 .B --clean-cache
@@ -65,8 +83,24 @@ Print the default config to standard output.
 Print the default config path and create the config directory if it does not exist.
 .
 .TP 4
+.B -v, --version
+Print version information.
+.
+.TP 4
+.B -h, --help
+Print a help message.
+.
+.SS Other options
+These options modify the behavior of operations.
+.
+.TP 4
 \fB-p, --platform\fR <PLATFORM>
 Specify the platform to use (linux, osx, windows, etc.).
+.sp
+Tldr pages are grouped by the operating system the documented command runs on. If a program can\&
+run on more than one operating system (and behaves in the same way), the page for it is put into\&
+the special \fIcommon\fR platform, which is always searched. Specifying \fB--platform\fR\&
+\fIcommon\fR is allowed and causes \fIcommon\fR to be the only searched platform.
 .sp
 Default: the operating system you are \fBcurrently running\fR
 .
@@ -80,8 +114,10 @@ show an error. Note that this option does not affect languages downloaded on \fB
 If you want to use languages not defined in environment variables, use the\&
 \fIcache.languages\fR option in the config file.
 .sp
-Default: taken from the config or the \fBLANG\fR and \fBLANGUAGE\fR environment variables.\&
-See \fBhttps://github.com/tldr-pages/tldr/blob/main/CLIENT-SPECIFICATION.md#language\fR
+Default: taken from the config or the \fILANG\fR and \fILANGUAGE\fR environment variables.\&
+See
+.br
+.B \%https://github.com/tldr-pages/tldr/blob/main/CLIENT-SPECIFICATION.md#language
 for a detailed description of how \fItlrc\fR determines the language.
 .
 .TP 4
@@ -162,7 +198,7 @@ Can be one of the following: '\fBalways\fR', '\fBnever\fR', '\fBauto\fR'.
 .br
 \fBalways\fR forces colors on; \fBnever\fR forces colors off; and \fBauto\fR
 only automatically enables colors when outputting onto a tty and\&
-the \fBNO_COLOR\fR environment variable is not set or is an empty string.
+the \fINO_COLOR\fR environment variable is not set or is an empty string.
 .sp
 Default: \fBauto\fR
 .
@@ -173,14 +209,6 @@ methods (i.e. OS-specific directories and the \fI$TLRC_CONFIG\fR environment var
 .sp
 Default: \fBplatform-dependent\fR (use \fB--config-path\fR to see the default path for your system)
 .
-.TP 4
-.B -v, --version
-Print version information.
-.
-.TP 4
-.B -h, --help
-Print a help message.
-.
 .
 .SH CONFIGURATION
 To generate a default config file, run:
@@ -189,7 +217,7 @@ To generate a default config file, run:
 \fItldr\fR --gen-config > "$(\fItldr\fR --config-path)"
 .fi
 .PP
-See \fBhttps://github.com/tldr-pages/tlrc#configuration\fR for an example config file\&
+See \fB\%https://github.com/tldr-pages/tlrc#configuration\fR for an example config file\&
 with explanations.
 .sp
 The default config path depends on your operating system:
@@ -207,24 +235,24 @@ other detection methods.
 .
 .
 .SH EXAMPLES
-See the tldr page for \fBtar\fR:
+See the tldr page for \fItar\fR:
 .IP
 .nf
-\fItldr\fR tar
+\fBtldr\fR \fItar\fR
 .fi
 .PP
 .
-See the tldr page for \fBdiskpart\fR, from platform \fBwindows\fR:
+See the tldr page for \fIdiskpart\fR, from platform \fIwindows\fR:
 .IP
 .nf
-\fItldr\fR --platform windows diskpart
+\fBtldr\fR --platform \fIwindows diskpart\fR
 .fi
 .PP
 .
-Search for pages that contain the string \fBtar\fR:
+Search for pages that contain the string \fItar\fR:
 .IP
 .nf
-\fItldr\fR --search tar
+\fBtldr\fR --search \fItar\fR
 .fi
 .PP
 .
@@ -255,20 +283,24 @@ Errors related to cache updates (e.g. a failed HTTP GET request)
 Tldr syntax error (e.g. a non-empty line that does not start with '# ', '> ', '- ' or '`')
 .
 .
+.SH AUTHOR
+Lena Pastwa <lena@lnps.me>
+.
+.
 .SH SEE ALSO
 tldr client specification
 .br
-.B https://github.com/tldr-pages/tldr/blob/main/CLIENT-SPECIFICATION.md
+.B \%https://github.com/tldr-pages/tldr/blob/main/CLIENT-SPECIFICATION.md
 .br
 .sp
 tlrc repository (report issues with the client here)
 .br
-.B https://github.com/tldr-pages/tlrc
+.B \%https://github.com/tldr-pages/tlrc
 .sp
 tldr-pages repository (report issues with the pages here)
 .br
-.B https://github.com/tldr-pages/tldr
+.B \%https://github.com/tldr-pages/tldr
 .sp
 An online version of this man page is available here:
 .br
-.B https://tldr.sh/tlrc
+.B \%https://tldr.sh/tlrc

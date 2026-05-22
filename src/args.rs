@@ -57,7 +57,7 @@ pub struct Cli {
     #[arg(short, long, group = "operations")]
     pub info: bool,
 
-    /// Render the specified markdown file.
+    /// Render the specified tldr page.
     #[arg(short, long, group = "operations", value_name = "FILE")]
     pub render: Option<PathBuf>,
 
