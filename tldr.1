@@ -22,8 +22,8 @@ For other operations, see \fBOPTIONS\fR.
 .sp
 Pages are loaded from a cache directory. If this directory is empty, pages will be automatically\&
 downloaded when you run \fItldr\fR. After that \fItlrc\fR works completely offline until an\&
-automatic update is triggered (when the cache is more than 2 weeks old by default), or if an\&
-update is explicitly requested using \fB--update\fR.
+automatic update is triggered (when the cache is more than 2 weeks old by default) or explicitly\&
+requested using \fB--update\fR.
 .
 .
 .SH OPTIONS
@@ -159,21 +159,27 @@ show an error if the cache is empty.
 .TP 4
 .B -c, --compact
 Strip empty lines from output. Equivalent of setting \fIoutput.compact\fR=\fBtrue\fR in the config.
+.br
+This option is \fBDEPRECATED\fR and \fBWILL BE REMOVED\fR in v2.0.0.
 .
 .TP 4
 .B --no-compact
 Do not strip empty lines from output. Equivalent of setting\&
 \fIoutput.compact\fR=\fBfalse\fR in the config. This always overrides \fB--compact\fR.
+.br
+This option is \fBDEPRECATED\fR and \fBWILL BE REMOVED\fR in v2.0.0.
 .
 .TP 4
 .B -R, --raw
-Print pages in raw markdown. Equivalent of setting\&
-\fIoutput.raw_markdown\fR=\fBtrue\fR in the config.
+Print pages in raw Markdown. Equivalent of setting\&
+\fIoutput.mode\fR="\fBraw\fR" in the config.
 .
 .TP 4
 .B --no-raw
 Render pages instead of printing raw file contents. Equivalent of setting\&
 \fIoutput.raw_markdown\fR=\fBfalse\fR in the config. This always overrides \fB--raw\fR.
+.br
+This option is \fBDEPRECATED\fR and \fBWILL BE REMOVED\fR in v2.0.0.
 .
 .TP 4
 .B -q, --quiet
@@ -232,6 +238,19 @@ Windows: \fI%ROAMINGAPPDATA%\fB\\tlrc\\config.toml\fR
 No matter the OS, you can set the \fI$TLRC_CONFIG\fR environment variable or use\&
 \fB--config\fR to override the default path. The command-line option takes precedence over all\&
 other detection methods.
+.
+.
+.SH DEPRECATED CONFIG OPTIONS
+These config options \fBWILL BE REMOVED\fR in v2.0.0. Please migrate to the new options:
+.TS
+allbox tab(;);
+l|l.
+IF YOU'RE USING THIS;USE THIS INSTEAD
+\fIoutput.compact\fR=\fBfalse\fR and \fIoutput.raw.markdown\fR=\fBfalse\fR;\
+\fIoutput.mode\fR="\fBnormal\fR"
+\fIoutput.compact\fR=\fBtrue\fR;\fIoutput.mode\fR="\fBvery_compact\fR"
+\fIoutput.raw_markdown\fR=\fBtrue\fR;\fIoutput.mode\fR="\fBraw\fR"
+.TE
 .
 .
 .SH EXAMPLES
