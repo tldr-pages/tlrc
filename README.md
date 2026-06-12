@@ -86,6 +86,16 @@ Install [tlrc](https://ftp.netbsd.org/pub/NetBSD/NetBSD-current/pkgsrc/net/tlrc/
 pkgin install tlrc
 ```
 
+### Linux/macOS/Windows using Conda
+
+Install [tlrc](https://anaconda.org/channels/conda-forge/packages/tlrc/overview) with Conda:
+
+```shell
+conda install conda-forge::tlrc
+# if using mamba
+# mamba install conda-forge::tlrc
+```
+
 ### From crates.io
 
 To build [tlrc][crate] from a source tarball, run:
