@@ -60,6 +60,14 @@ fn short_opts() {
 }
 
 #[test]
+fn short_opts_short() {
+    tlrc(CONFIG_DEFAULT, TEST_PAGE_OPTION_PLACEHOLDERS)
+        .args(["-S"])
+        .assert()
+        .stdout("    foo -s\n\n");
+}
+
+#[test]
 fn long_opts() {
     tlrc(CONFIG_DEFAULT, TEST_PAGE_OPTION_PLACEHOLDERS)
         .args(["--long-options"])
