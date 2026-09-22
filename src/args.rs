@@ -81,7 +81,7 @@ pub struct Cli {
     #[arg(short = 'L', long = "language", value_name = "LANGUAGE_CODE")]
     pub languages: Option<Vec<String>>,
 
-    /// Display short options wherever possible (e.g. '-S').
+    /// Display short options wherever possible (e.g. '-s').
     #[arg(short = 'S', long)]
     pub short_options: bool,
 
