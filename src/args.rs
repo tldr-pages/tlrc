@@ -82,11 +82,11 @@ pub struct Cli {
     pub languages: Option<Vec<String>>,
 
     /// Display short options wherever possible (e.g. '-s').
-    #[arg(long)]
+    #[arg(short = 'S', long)]
     pub short_options: bool,
 
     /// Display long options wherever possible (e.g. '--long').
-    #[arg(long)]
+    #[arg(short = 'E', long)]
     pub long_options: bool,
 
     /// Display a link to edit the shown page on GitHub.
