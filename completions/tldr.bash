@@ -4,7 +4,7 @@ _tldr() {
     local cur="${COMP_WORDS[COMP_CWORD]}"
     local prev="${COMP_WORDS[COMP_CWORD-1]}"
 
-    local opts="-u -l -a -s -i -r -p -L -o -c -R -q -v -h \
+    local opts="-u -l -a -s -i -r -p -L -S -E -o -c -R -q -v -h \
     --update --list --list-all --search --list-platforms --list-languages \
     --info --render --clean-cache --gen-config --config-path --platform \
     --language --short-options --long-options --edit --offline --compact \
