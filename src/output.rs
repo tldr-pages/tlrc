@@ -106,7 +106,11 @@ impl<'a> PageRenderer<'a> {
             return buf;
         }
 
-        for part in split {
+        for (i, part) in split.into_iter().enumerate() {
+            if i == 0 {
+                write_paint!(buf, part.paint(style_normal));
+                continue;
+            }
             // The first part of the second split contains the part to be highlighted.
             //
             // "More information: <https://example.com>."

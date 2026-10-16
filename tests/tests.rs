@@ -82,3 +82,30 @@ fn wrap_lines() {
         .assert()
         .stdout(expected);
 }
+
+fn assert_greater_than_before_url(prefix: &str) {
+    let dir = tempfile::tempdir().unwrap();
+    let page = dir.path().join("example.md");
+    let config = dir.path().join("config.toml");
+    fs::write(&config, "").unwrap();
+    fs::write(
+        &page,
+        format!("# example\n\n{prefix}Redirect with `>`; see <https://example.com>.\n"),
+    )
+    .unwrap();
+
+    tlrc(config.to_str().unwrap(), page.to_str().unwrap())
+        .assert()
+        .success()
+        .stdout("\n  example\n\n  Redirect with >; see https://example.com.\n\n");
+}
+
+#[test]
+fn description_keeps_greater_than_before_url() {
+    assert_greater_than_before_url("> ");
+}
+
+#[test]
+fn bullet_keeps_greater_than_before_url() {
+    assert_greater_than_before_url("- ");
+}
