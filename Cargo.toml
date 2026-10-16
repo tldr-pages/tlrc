@@ -44,6 +44,7 @@ pedantic = "warn"
 style = "warn"
 struct_excessive_bools = { level = "allow", priority = 1 }
 unnecessary_debug_formatting = { level = "allow", priority = 1 }
+assert_is_empty = { level = "allow", priority = 1 }
 
 [profile.release]
 lto = true
